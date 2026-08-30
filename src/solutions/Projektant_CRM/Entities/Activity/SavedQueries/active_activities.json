@@ -1,0 +1,13 @@
+{
+  "entity": "Activity",
+  "name": "active_activities",
+  "label": "Aktivity",
+  "columns": [
+    { "field": "subject" },
+    { "field": "activity_type", "label": "Typ" },
+    { "field": "entity_type", "label": "Vztahuje se k" },
+    { "field": "activity_date", "label": "Datum" },
+    { "field": "owner", "label": "Vlastník" }
+  ],
+  "defaultSort": { "field": "activity_date", "direction": "desc" }
+}

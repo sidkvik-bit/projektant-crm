@@ -12,7 +12,8 @@ export interface EntityListPageProps {
   view: ViewDefinition;
   select: string;
   basePath: string;
-  newLabel: string;
+  /** Vynech, pokud entita nemá mít samostatný "+ Nový" formulář (zakládá se jen kontextově). */
+  newLabel?: string;
   /** Umožní řádek doupravit (např. rozbalit vnořený lookup/optionset na label). */
   mapRow?: (row: Record<string, unknown>) => Record<string, unknown>;
   description?: string;
@@ -49,7 +50,9 @@ export async function EntityListPage({
         title={entity.displayNamePlural}
         description={description}
         actions={
-          <Button render={<Link href={`${basePath}/new`}><Plus className="size-4" />{newLabel}</Link>} />
+          newLabel && (
+            <Button render={<Link href={`${basePath}/new`}><Plus className="size-4" />{newLabel}</Link>} />
+          )
         }
       />
       <div className="p-6">
