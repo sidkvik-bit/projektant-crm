@@ -4,9 +4,10 @@
   "label": "Aktivní zájemci",
   "columns": [
     { "field": "name" },
-    { "field": "contact_info", "label": "Kontakt" },
-    { "field": "status_reason", "label": "Stav zájemce" },
+    { "field": "company_name", "label": "Firma" },
+    { "field": "status_reason", "label": "Stav" },
     { "field": "expected_value", "label": "Očekávaná hodnota" },
+    { "field": "owner", "label": "Vlastník" },
     { "field": "created_at", "label": "Vytvořeno" }
   ],
   "defaultSort": { "field": "created_at", "direction": "desc" }

@@ -1,0 +1,26 @@
+{
+  "entity": "Project",
+  "tabs": [
+    {
+      "label": "Obecné",
+      "sections": [
+        {
+          "label": "Základní údaje",
+          "fields": ["name", "account_id", "primary_contact_id", "project_template_id"]
+        },
+        {
+          "label": "Termíny a rozpočet",
+          "fields": ["datum_zahajeni", "deadline", "budget"]
+        },
+        {
+          "label": "Odkazy a poznámky",
+          "fields": ["drive_url", "description"]
+        },
+        {
+          "label": "Stav a vlastník",
+          "fields": ["status", "status_reason", "owner_id"]
+        }
+      ]
+    }
+  ]
+}

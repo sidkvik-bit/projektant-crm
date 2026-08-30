@@ -6,11 +6,15 @@
       "sections": [
         {
           "label": "Detaily zájemce",
-          "fields": ["name", "contact_info", "demand_description", "expected_value"]
+          "fields": ["name", "company_name", "email", "phone", "demand_description", "expected_value"]
         },
         {
-          "label": "Stav",
-          "fields": ["status", "status_reason"]
+          "label": "Kvalifikace",
+          "fields": ["lead_source_id", "rating_id"]
+        },
+        {
+          "label": "Stav a vlastník",
+          "fields": ["status", "status_reason", "owner_id"]
         }
       ]
     }

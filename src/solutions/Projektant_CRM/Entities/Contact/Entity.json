@@ -1,0 +1,18 @@
+{
+  "name": "Contact",
+  "table": "contacts",
+  "displayName": "Kontakt",
+  "displayNamePlural": "Kontakty",
+  "primaryField": "first_name",
+  "statusReasonOptionSetKey": "contact_status_reason",
+  "fields": [
+    { "name": "account_id", "label": "Firma", "type": "lookup", "targetEntity": "Account", "required": true },
+    { "name": "first_name", "label": "Jméno", "type": "text", "required": true },
+    { "name": "last_name", "label": "Příjmení", "type": "text" },
+    { "name": "email", "label": "E-mail", "type": "email" },
+    { "name": "phone", "label": "Telefon", "type": "phone" },
+    { "name": "mobile_phone", "label": "Mobil", "type": "phone" },
+    { "name": "profese_id", "label": "Profese", "type": "optionset", "optionSetKey": "profese" },
+    { "name": "description", "label": "Poznámka", "type": "textarea" }
+  ]
+}

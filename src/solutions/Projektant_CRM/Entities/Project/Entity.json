@@ -1,0 +1,19 @@
+{
+  "name": "Project",
+  "table": "projects",
+  "displayName": "Projekt",
+  "displayNamePlural": "Projekty",
+  "primaryField": "name",
+  "statusReasonOptionSetKey": "project_status_reason",
+  "fields": [
+    { "name": "name", "label": "Název", "type": "text", "required": true },
+    { "name": "account_id", "label": "Klient", "type": "lookup", "targetEntity": "Account", "required": true },
+    { "name": "project_template_id", "label": "Šablona (generuje milníky při založení)", "type": "lookup", "targetEntity": "ProjectTemplate" },
+    { "name": "primary_contact_id", "label": "Hlavní kontakt", "type": "lookup", "targetEntity": "Contact" },
+    { "name": "datum_zahajeni", "label": "Datum zahájení", "type": "date" },
+    { "name": "deadline", "label": "Deadline", "type": "date" },
+    { "name": "budget", "label": "Rozpočet", "type": "currency" },
+    { "name": "drive_url", "label": "Odkaz na Google Drive", "type": "url" },
+    { "name": "description", "label": "Popis", "type": "textarea" }
+  ]
+}

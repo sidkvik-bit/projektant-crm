@@ -1,0 +1,13 @@
+{
+  "entity": "Project",
+  "name": "active_projects",
+  "label": "Aktivní projekty",
+  "columns": [
+    { "field": "name" },
+    { "field": "account", "label": "Klient" },
+    { "field": "status_reason", "label": "Fáze" },
+    { "field": "deadline", "label": "Deadline" },
+    { "field": "owner", "label": "Vlastník" }
+  ],
+  "defaultSort": { "field": "created_at", "direction": "desc" }
+}

@@ -35,6 +35,14 @@ const STATUS_REASON_FIELD: FieldDefinition = {
   required: false,
 };
 
+const OWNER_FIELD: FieldDefinition = {
+  name: "owner_id",
+  label: "Vlastník",
+  type: "lookup",
+  targetEntity: "User",
+  required: false,
+};
+
 interface LookupOption {
   id: string;
   label: string;
@@ -55,6 +63,7 @@ export interface FormEngineProps {
 function resolveField(entity: EntityDefinition, name: string): FieldDefinition {
   if (name === "status") return STATUS_FIELD;
   if (name === "status_reason_id" || name === "status_reason") return STATUS_REASON_FIELD;
+  if (name === "owner_id" || name === "owner") return OWNER_FIELD;
   const field = entity.fields.find((f) => f.name === name);
   if (!field) {
     throw new Error(`FormEngine: pole "${name}" není definované v entitě "${entity.name}".`);

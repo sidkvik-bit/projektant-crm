@@ -1,0 +1,11 @@
+{
+  "entity": "ProjectTemplate",
+  "name": "active_project_templates",
+  "label": "Aktivní šablony",
+  "columns": [
+    { "field": "name" },
+    { "field": "status_reason", "label": "Stav" },
+    { "field": "owner", "label": "Vlastník" }
+  ],
+  "defaultSort": { "field": "created_at", "direction": "desc" }
+}

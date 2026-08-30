@@ -42,6 +42,7 @@ export function buildEntityZodSchema(entity: EntityDefinition) {
 
   shape.status = z.enum(["active", "inactive"]).default("active");
   shape.status_reason_id = z.uuid().nullable().optional();
+  shape.owner_id = z.uuid().nullable().optional();
 
   return z.object(shape);
 }

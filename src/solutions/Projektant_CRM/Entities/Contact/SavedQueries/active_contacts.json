@@ -1,0 +1,14 @@
+{
+  "entity": "Contact",
+  "name": "active_contacts",
+  "label": "Aktivní kontakty",
+  "columns": [
+    { "field": "first_name", "label": "Jméno" },
+    { "field": "last_name", "label": "Příjmení" },
+    { "field": "account", "label": "Firma" },
+    { "field": "profese", "label": "Profese" },
+    { "field": "email" },
+    { "field": "status_reason", "label": "Stav" }
+  ],
+  "defaultSort": { "field": "created_at", "direction": "desc" }
+}

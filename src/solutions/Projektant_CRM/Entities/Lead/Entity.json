@@ -7,8 +7,12 @@
   "statusReasonOptionSetKey": "lead_status_reason",
   "fields": [
     { "name": "name", "label": "Jméno", "type": "text", "required": true },
-    { "name": "contact_info", "label": "Kontakt", "type": "text" },
+    { "name": "company_name", "label": "Firma", "type": "text" },
+    { "name": "email", "label": "E-mail", "type": "email" },
+    { "name": "phone", "label": "Telefon", "type": "phone" },
     { "name": "demand_description", "label": "Poptávka", "type": "textarea" },
-    { "name": "expected_value", "label": "Očekávaná hodnota", "type": "currency" }
+    { "name": "expected_value", "label": "Očekávaná hodnota", "type": "currency" },
+    { "name": "lead_source_id", "label": "Zdroj", "type": "optionset", "optionSetKey": "lead_source" },
+    { "name": "rating_id", "label": "Hodnocení", "type": "optionset", "optionSetKey": "lead_rating" }
   ]
 }

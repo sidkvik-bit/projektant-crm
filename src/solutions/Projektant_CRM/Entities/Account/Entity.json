@@ -1,0 +1,18 @@
+{
+  "name": "Account",
+  "table": "accounts",
+  "displayName": "Firma",
+  "displayNamePlural": "Firmy",
+  "primaryField": "name",
+  "statusReasonOptionSetKey": "account_status_reason",
+  "fields": [
+    { "name": "name", "label": "Název", "type": "text", "required": true },
+    { "name": "ico", "label": "IČO", "type": "text" },
+    { "name": "phone", "label": "Telefon", "type": "phone" },
+    { "name": "email", "label": "E-mail", "type": "email" },
+    { "name": "website", "label": "Web", "type": "url" },
+    { "name": "industry", "label": "Obor", "type": "text" },
+    { "name": "billing_address", "label": "Fakturační adresa", "type": "textarea" },
+    { "name": "description", "label": "Popis", "type": "textarea" }
+  ]
+}

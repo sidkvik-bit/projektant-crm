@@ -2,8 +2,7 @@ import { notFound } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import { getRecordById } from "@/engine/Database";
-import { getOptionSetValues } from "@/engine/optionSets";
-import { FormEngine } from "@/engine/FormEngine";
+import { EntityFormPage } from "@/engine/EntityFormPage";
 import type { EntityDefinition, FormDefinition } from "@/engine/types";
 import type { EntityFormValues } from "@/engine/zodSchema";
 
@@ -19,10 +18,11 @@ export default async function LeadDetailPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const [record, statusReasonValues] = await Promise.all([
-    getRecordById<EntityFormValues & { name: string }>(supabase, entity.table, id).catch(() => null),
-    getOptionSetValues(supabase, entity.statusReasonOptionSetKey),
-  ]);
+  const record = await getRecordById<EntityFormValues & { name: string }>(
+    supabase,
+    entity.table,
+    id,
+  ).catch(() => null);
 
   if (!record) notFound();
 
@@ -32,16 +32,14 @@ export default async function LeadDetailPage({
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 p-6">
-      <h1 className="text-2xl font-bold">{record.name}</h1>
-      <FormEngine
-        entity={entity as EntityDefinition}
-        form={formDef as FormDefinition}
-        defaultValues={record}
-        optionSetValues={{ [entity.statusReasonOptionSetKey]: statusReasonValues }}
-        onSubmit={handleUpdate}
-        submitLabel="Uložit změny"
-      />
-    </div>
+    <EntityFormPage
+      entity={entity as EntityDefinition}
+      form={formDef as FormDefinition}
+      title={record.name}
+      defaultValues={record}
+      extraOptionSetKeys={["lead_source", "lead_rating"]}
+      onSubmit={handleUpdate}
+      submitLabel="Uložit změny"
+    />
   );
 }

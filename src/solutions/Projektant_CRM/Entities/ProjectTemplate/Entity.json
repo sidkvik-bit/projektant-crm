@@ -1,0 +1,12 @@
+{
+  "name": "ProjectTemplate",
+  "table": "project_templates",
+  "displayName": "Šablona projektu",
+  "displayNamePlural": "Šablony projektů",
+  "primaryField": "name",
+  "statusReasonOptionSetKey": "project_template_status_reason",
+  "fields": [
+    { "name": "name", "label": "Název", "type": "text", "required": true },
+    { "name": "description", "label": "Popis", "type": "textarea" }
+  ]
+}

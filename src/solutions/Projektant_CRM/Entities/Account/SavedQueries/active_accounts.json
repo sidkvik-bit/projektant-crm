@@ -1,0 +1,13 @@
+{
+  "entity": "Account",
+  "name": "active_accounts",
+  "label": "Aktivní firmy",
+  "columns": [
+    { "field": "name" },
+    { "field": "ico", "label": "IČO" },
+    { "field": "phone", "label": "Telefon" },
+    { "field": "status_reason", "label": "Stav" },
+    { "field": "owner", "label": "Vlastník" }
+  ],
+  "defaultSort": { "field": "created_at", "direction": "desc" }
+}

@@ -1,0 +1,26 @@
+{
+  "entity": "Contact",
+  "tabs": [
+    {
+      "label": "Obecné",
+      "sections": [
+        {
+          "label": "Osoba",
+          "fields": ["first_name", "last_name", "account_id", "profese_id"]
+        },
+        {
+          "label": "Kontakt",
+          "fields": ["email", "phone", "mobile_phone"]
+        },
+        {
+          "label": "Poznámky",
+          "fields": ["description"]
+        },
+        {
+          "label": "Stav a vlastník",
+          "fields": ["status", "status_reason", "owner_id"]
+        }
+      ]
+    }
+  ]
+}

@@ -17,10 +17,12 @@ const STATUS_REASON_FIELD: FieldDefinition = {
   label: "Důvod stavu",
   type: "optionset",
 };
+const OWNER_FIELD: FieldDefinition = { name: "owner", label: "Vlastník", type: "lookup" };
 
 function resolveColumnField(entity: EntityDefinition, name: string): FieldDefinition {
   if (name === "status") return STATUS_FIELD;
   if (name === "status_reason" || name === "status_reason_id") return STATUS_REASON_FIELD;
+  if (name === "owner" || name === "owner_id") return OWNER_FIELD;
   return entity.fields.find((f) => f.name === name) ?? { name, label: name, type: "text" };
 }
 
@@ -75,43 +77,50 @@ export function GridEngine<T extends Record<string, unknown>>({
   }));
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          {columns.map((col) => (
-            <TableHead key={col.field.name}>{col.label ?? col.field.label}</TableHead>
-          ))}
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {rows.length === 0 ? (
-          <TableRow>
-            <TableCell colSpan={columns.length} className="text-center text-muted-foreground">
-              {emptyLabel}
-            </TableCell>
+    <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
+      <Table>
+        <TableHeader>
+          <TableRow className="hover:bg-transparent">
+            {columns.map((col) => (
+              <TableHead key={col.field.name} className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                {col.label ?? col.field.label}
+              </TableHead>
+            ))}
           </TableRow>
-        ) : (
-          rows.map((row, i) => (
-            <TableRow key={(row.id as string) ?? i}>
-              {columns.map((col) => {
-                const value = formatValue(col.field, row[col.field.name]);
-                const isPrimary = col.field.name === entity.primaryField;
-                return (
-                  <TableCell key={col.field.name}>
-                    {isPrimary && basePath ? (
-                      <Link href={`${basePath}/${row.id}`} className="font-medium hover:underline">
-                        {value}
-                      </Link>
-                    ) : (
-                      value
-                    )}
-                  </TableCell>
-                );
-              })}
+        </TableHeader>
+        <TableBody>
+          {rows.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={columns.length} className="h-32 text-center text-muted-foreground">
+                {emptyLabel}
+              </TableCell>
             </TableRow>
-          ))
-        )}
-      </TableBody>
-    </Table>
+          ) : (
+            rows.map((row, i) => (
+              <TableRow key={(row.id as string) ?? i} className="transition-colors hover:bg-accent/40">
+                {columns.map((col) => {
+                  const value = formatValue(col.field, row[col.field.name]);
+                  const isPrimary = col.field.name === entity.primaryField;
+                  return (
+                    <TableCell key={col.field.name}>
+                      {isPrimary && basePath ? (
+                        <Link
+                          href={`${basePath}/${row.id}`}
+                          className="font-medium text-foreground hover:text-primary hover:underline"
+                        >
+                          {value}
+                        </Link>
+                      ) : (
+                        value
+                      )}
+                    </TableCell>
+                  );
+                })}
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
+    </div>
   );
 }

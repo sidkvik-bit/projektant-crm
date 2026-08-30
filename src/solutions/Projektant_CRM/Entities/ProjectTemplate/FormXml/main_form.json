@@ -1,0 +1,12 @@
+{
+  "entity": "ProjectTemplate",
+  "tabs": [
+    {
+      "label": "Obecné",
+      "sections": [
+        { "label": "Základní údaje", "fields": ["name", "description"] },
+        { "label": "Stav a vlastník", "fields": ["status", "status_reason", "owner_id"] }
+      ]
+    }
+  ]
+}
