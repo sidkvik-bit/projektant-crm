@@ -6,6 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +31,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { UserOption } from "@/engine/users";
+
+function MilestoneStatusBadge({ splneno, terminSplneni }: { splneno: boolean; terminSplneni: string | null }) {
+  if (splneno) return <Badge variant="secondary">Splněno</Badge>;
+  if (terminSplneni && terminSplneni < new Date().toISOString().slice(0, 10)) {
+    return <Badge variant="destructive">Po termínu</Badge>;
+  }
+  return <Badge>Aktivní</Badge>;
+}
 
 interface Milestone {
   id: string;
@@ -63,42 +80,65 @@ export function MilestonesPanel({
 
   return (
     <div className="space-y-4">
-      <div className="space-y-2">
-        {sorted.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Zatím žádné milníky.</p>
-        ) : (
-          sorted.map((m) => (
-            <div
-              key={m.id}
-              className="flex items-center justify-between gap-3 rounded-lg border bg-card px-3 py-2.5"
-            >
-              <div className="flex items-center gap-3">
-                <Checkbox
-                  checked={m.splneno}
-                  onCheckedChange={(checked) => onToggle(projectId, m.id, Boolean(checked))}
-                />
-                <div>
-                  <p className={m.splneno ? "text-sm text-muted-foreground line-through" : "text-sm font-medium"}>
+      <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="w-8" />
+              <TableHead className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Název
+              </TableHead>
+              <TableHead className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Termín splnění
+              </TableHead>
+              <TableHead className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Stav
+              </TableHead>
+              <TableHead className="w-20" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {sorted.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                  Zatím žádné milníky.
+                </TableCell>
+              </TableRow>
+            ) : (
+              sorted.map((m) => (
+                <TableRow key={m.id} className="transition-colors hover:bg-accent/40">
+                  <TableCell>
+                    <Checkbox
+                      checked={m.splneno}
+                      onCheckedChange={(checked) => onToggle(projectId, m.id, Boolean(checked))}
+                    />
+                  </TableCell>
+                  <TableCell className={m.splneno ? "text-muted-foreground line-through" : "font-medium"}>
                     {m.name}
-                  </p>
-                  <p className="text-xs text-muted-foreground">{m.termin_splneni ?? "bez termínu"}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-1">
-                <NotificationDialog
-                  milestoneName={m.name}
-                  userOptions={userOptions}
-                  onSubmit={(type, dniPredem, recipientUserId) =>
-                    onCreateNotification(projectId, m.id, type, dniPredem, recipientUserId)
-                  }
-                />
-                <Button variant="ghost" size="icon-sm" onClick={() => onDelete(projectId, m.id)}>
-                  <Trash2 className="size-4" />
-                </Button>
-              </div>
-            </div>
-          ))
-        )}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{m.termin_splneni ?? "bez termínu"}</TableCell>
+                  <TableCell>
+                    <MilestoneStatusBadge splneno={m.splneno} terminSplneni={m.termin_splneni} />
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center justify-end gap-1">
+                      <NotificationDialog
+                        milestoneName={m.name}
+                        userOptions={userOptions}
+                        onSubmit={(type, dniPredem, recipientUserId) =>
+                          onCreateNotification(projectId, m.id, type, dniPredem, recipientUserId)
+                        }
+                      />
+                      <Button variant="ghost" size="icon-sm" onClick={() => onDelete(projectId, m.id)}>
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
       </div>
 
       <form

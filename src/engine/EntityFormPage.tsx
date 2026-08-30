@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/shell/PageHeader";
 import { getCommonFormContext } from "./formContext";
 import { getOptionSetValues, type OptionSetValue } from "./optionSets";
 import { listRecords } from "./Database";
+import { RecordNavigator } from "./RecordNavigator";
 import { entityRegistry } from "@/solutions/Projektant_CRM/registry";
 import type { EntityDefinition, FormDefinition } from "./types";
 import type { EntityFormValues } from "./zodSchema";
@@ -58,7 +59,10 @@ export async function EntityFormPage({
     ...extraLookups.filter((el) => !autoLookups.some((al) => al.targetEntity === el.targetEntity)),
   ];
 
-  const [common, extraSets, lookupEntries] = await Promise.all([
+  const currentId = defaultValues?.id as string | undefined;
+  const selfRegistryEntry = entityRegistry[entity.name];
+
+  const [common, extraSets, lookupEntries, navigatorRecords] = await Promise.all([
     getCommonFormContext(supabase, entity),
     Promise.all(optionSetKeys.map((key) => getOptionSetValues(supabase, key))),
     Promise.all(
@@ -75,6 +79,12 @@ export async function EntityFormPage({
         ] as const;
       }),
     ),
+    currentId && selfRegistryEntry?.basePath
+      ? listRecords<Record<string, unknown>>(supabase, selfRegistryEntry.table, {
+          select: `id, ${selfRegistryEntry.labelFields.join(", ")}`,
+          sort: { field: "created_at", direction: "desc" },
+        })
+      : Promise.resolve([]),
   ]);
 
   const extraOptionSetValues = Object.fromEntries(
@@ -82,18 +92,32 @@ export async function EntityFormPage({
   ) as Record<string, OptionSetValue[]>;
 
   return (
-    <div>
-      <PageHeader title={title} />
-      <div className="mx-auto max-w-3xl p-6">
-        <FormEngine
-          entity={entity}
-          form={form}
-          defaultValues={defaultValues}
-          optionSetValues={{ ...common.optionSetValues, ...extraOptionSetValues }}
-          lookupOptions={{ ...common.lookupOptions, ...Object.fromEntries(lookupEntries) }}
-          onSubmit={onSubmit}
-          submitLabel={submitLabel}
+    <div className="flex h-full">
+      {currentId && selfRegistryEntry?.basePath && (
+        <RecordNavigator
+          basePath={selfRegistryEntry.basePath}
+          currentId={currentId}
+          viewLabel={entity.displayNamePlural}
+          storageKey={`nav-panel:${entity.name}`}
+          records={navigatorRecords.map((r) => ({
+            id: r.id as string,
+            label: selfRegistryEntry.labelFields.map((f) => r[f]).filter(Boolean).join(" ") || "—",
+          }))}
         />
+      )}
+      <div className="min-w-0 flex-1">
+        <PageHeader title={title} />
+        <div className="mx-auto max-w-3xl p-6">
+          <FormEngine
+            entity={entity}
+            form={form}
+            defaultValues={defaultValues}
+            optionSetValues={{ ...common.optionSetValues, ...extraOptionSetValues }}
+            lookupOptions={{ ...common.lookupOptions, ...Object.fromEntries(lookupEntries) }}
+            onSubmit={onSubmit}
+            submitLabel={submitLabel}
+          />
+        </div>
       </div>
     </div>
   );

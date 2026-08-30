@@ -166,6 +166,28 @@ test("editing a field reveals Save / Save & Close, and Save & Close returns to t
   await page.waitForURL(/\/accounts$/, { timeout: 10_000 });
 });
 
+test("record navigator panel lets you browse between records without leaving the form", async ({
+  page,
+}) => {
+  await page.goto("/accounts");
+  const firstHref = await page.locator("table tbody tr a").first().getAttribute("href");
+  const secondHref = await page.locator("table tbody tr a").nth(1).getAttribute("href");
+  await page.locator("table tbody tr a").first().click();
+  await page.waitForURL(/\/accounts\/[0-9a-f-]{36}$/);
+
+  const toggle = page.getByTitle(/Zobrazit seznam záznamů|Skrýt seznam záznamů/);
+  await expect(toggle).toBeVisible();
+  if (await page.getByTitle("Zobrazit seznam záznamů").isVisible().catch(() => false)) {
+    await toggle.click();
+  }
+
+  const navLink = page.locator(`a[href="${secondHref}"]`).first();
+  await expect(navLink).toBeVisible();
+  await navLink.click();
+  await page.waitForURL(new RegExp(secondHref!.replace(/\//g, "\\/") + "$"));
+  expect(page.url()).not.toContain(firstHref!);
+});
+
 test("a set lookup renders a link to open the related record", async ({ page }) => {
   await page.goto("/projects");
   await page.locator("table tbody tr a").first().click();

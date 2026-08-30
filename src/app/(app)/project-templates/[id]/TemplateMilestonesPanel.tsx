@@ -5,6 +5,14 @@ import { Trash2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface Milestone {
   id: string;
@@ -30,30 +38,54 @@ export function TemplateMilestonesPanel({
   const sorted = [...milestones].sort((a, b) => a.offset_dni - b.offset_dni);
 
   return (
-    <div className="space-y-4 rounded-xl border bg-card p-4 shadow-sm">
-      <h3 className="text-sm font-medium">Kroky šablony</h3>
+    <div className="space-y-4">
+      <div>
+        <h3 className="text-sm font-medium">Milníky šablony</h3>
+        <p className="text-xs text-muted-foreground">
+          Při založení projektu z téhle šablony se zkopírují do projektu s termínem = datum zahájení + počet dní.
+        </p>
+      </div>
 
-      <div className="space-y-2">
-        {sorted.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Zatím žádné kroky.</p>
-        ) : (
-          sorted.map((m) => (
-            <div key={m.id} className="flex items-center justify-between rounded-lg border px-3 py-2">
-              <div className="text-sm">
-                <span className="font-medium">{m.name}</span>
-                <span className="ml-2 text-muted-foreground">+{m.offset_dni} dní</span>
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                onClick={() => onDelete(templateId, m.id)}
-              >
-                <Trash2 className="size-4" />
-              </Button>
-            </div>
-          ))
-        )}
+      <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Název
+              </TableHead>
+              <TableHead className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Dní od startu
+              </TableHead>
+              <TableHead className="w-12" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {sorted.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={3} className="h-20 text-center text-muted-foreground">
+                  Zatím žádné milníky.
+                </TableCell>
+              </TableRow>
+            ) : (
+              sorted.map((m) => (
+                <TableRow key={m.id} className="transition-colors hover:bg-accent/40">
+                  <TableCell className="font-medium">{m.name}</TableCell>
+                  <TableCell className="text-muted-foreground">+{m.offset_dni} dní</TableCell>
+                  <TableCell>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => onDelete(templateId, m.id)}
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
       </div>
 
       <form

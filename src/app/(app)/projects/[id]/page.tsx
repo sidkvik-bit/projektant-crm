@@ -6,11 +6,13 @@ import { getCommonFormContext } from "@/engine/formContext";
 import { getOptionSetValues } from "@/engine/optionSets";
 import { getOrgUserOptions } from "@/engine/users";
 import { FormEngine } from "@/engine/FormEngine";
+import { RecordNavigator } from "@/engine/RecordNavigator";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { CalendarLink, DriveLink } from "@/components/SmartLinks";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { EntityDefinition, FormDefinition } from "@/engine/types";
 import type { EntityFormValues } from "@/engine/zodSchema";
+import { entityRegistry } from "@/solutions/Projektant_CRM/registry";
 
 import entity from "@/solutions/Projektant_CRM/Entities/Project/Entity.json";
 import formDef from "@/solutions/Projektant_CRM/Entities/Project/FormXml/main_form.json";
@@ -40,7 +42,7 @@ export default async function ProjectDetailPage({
 
   if (!record) notFound();
 
-  const [common, accounts, contacts, templates, milestones, activityTypes, activities, teamContacts, userOptions] =
+  const [common, accounts, contacts, templates, milestones, activityTypes, activities, teamContacts, userOptions, navigatorRecords] =
     await Promise.all([
       getCommonFormContext(supabase, entity as EntityDefinition),
       listRecords<{ id: string; name: string }>(supabase, "accounts", { select: "id, name" }),
@@ -67,6 +69,10 @@ export default async function ProjectDetailPage({
         .eq("account_id", record.account_id)
         .then((r) => r.data ?? []),
       getOrgUserOptions(supabase),
+      listRecords<{ id: string; name: string }>(supabase, "projects", {
+        select: "id, name",
+        sort: { field: "created_at", direction: "desc" },
+      }),
     ]);
 
   async function handleUpdate(values: EntityFormValues) {
@@ -75,7 +81,15 @@ export default async function ProjectDetailPage({
   }
 
   return (
-    <div>
+    <div className="flex h-full">
+      <RecordNavigator
+        basePath={entityRegistry.Project.basePath!}
+        currentId={id}
+        viewLabel={entity.displayNamePlural}
+        storageKey="nav-panel:Project"
+        records={navigatorRecords.map((p) => ({ id: p.id, label: p.name }))}
+      />
+      <div className="min-w-0 flex-1">
       <PageHeader
         title={record.name}
         actions={
@@ -158,6 +172,7 @@ export default async function ProjectDetailPage({
             />
           </TabsContent>
         </Tabs>
+      </div>
       </div>
     </div>
   );
