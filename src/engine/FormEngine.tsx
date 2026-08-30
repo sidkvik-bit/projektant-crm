@@ -20,6 +20,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Combobox,
+  ComboboxInputGroup,
+  ComboboxInput,
+  ComboboxTrigger,
+  ComboboxIcon,
+  ComboboxContent,
+  ComboboxItem,
+} from "@/components/ui/combobox";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -267,7 +276,9 @@ export function FormEngine({
               <h3 className="text-sm font-medium text-muted-foreground">{section.label}</h3>
               <div className={cn("grid gap-4", COLUMN_CLASSES[form.columns ?? 2])}>
                 {section.fields.map((fieldName) => {
-                  const field = resolveField(entity, fieldName);
+                  const rawField = resolveField(entity, fieldName);
+                  const locked = Boolean(rawField.lockOnceSet && defaultValues?.[rawField.name]);
+                  const field = locked ? { ...rawField, readOnly: true } : rawField;
                   const error = errors[field.name];
                   const options =
                     field.name === "status_reason_id"
@@ -334,25 +345,30 @@ export function FormEngine({
                               : null;
                             const linkHref =
                               linkBasePath && rhf.value ? `${linkBasePath}/${rhf.value}` : null;
+                            const comboItems = lookups.map((opt) => ({ value: opt.id, label: opt.label }));
+                            const selectedCombo =
+                              comboItems.find((opt) => opt.value === rhf.value) ?? null;
                             return (
                               <div className="flex items-center gap-1.5">
-                                <Select
-                                  items={Object.fromEntries(lookups.map((opt) => [opt.id, opt.label]))}
-                                  value={rhf.value ? String(rhf.value) : ""}
-                                  onValueChange={rhf.onChange}
+                                <Combobox
+                                  items={comboItems}
+                                  value={selectedCombo}
+                                  onValueChange={(item) => rhf.onChange(item?.value ?? "")}
                                   disabled={field.readOnly}
                                 >
-                                  <SelectTrigger id={field.name} className="w-full">
-                                    <SelectValue placeholder="Vyberte…" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {lookups.map((opt) => (
-                                      <SelectItem key={opt.id} value={opt.id}>
-                                        {opt.label}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
+                                  <ComboboxInputGroup className="w-full">
+                                    <ComboboxIcon />
+                                    <ComboboxInput id={field.name} placeholder="Hledat…" />
+                                    <ComboboxTrigger />
+                                  </ComboboxInputGroup>
+                                  <ComboboxContent emptyLabel="Nic nenalezeno">
+                                    {(item: { value: string; label: string }) => (
+                                      <ComboboxItem key={item.value} value={item}>
+                                        {item.label}
+                                      </ComboboxItem>
+                                    )}
+                                  </ComboboxContent>
+                                </Combobox>
                                 {linkHref && (
                                   <Button
                                     variant="ghost"

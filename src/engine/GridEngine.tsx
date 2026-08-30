@@ -11,7 +11,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import { ColumnFilterPopover, type ColumnFilter } from "./ColumnFilterPopover";
 
 import type { EntityDefinition, ViewDefinition, FieldDefinition } from "./types";
 
@@ -66,6 +68,19 @@ export interface GridEngineProps<T extends Record<string, unknown>> {
   /** Když je zadané, primaryField sloupec se odkazuje na `${basePath}/${row.id}`. */
   basePath?: string;
   emptyLabel?: string;
+  /** Zaškrtávátka pro hromadné akce (D365 vzor) — vynech, pokud grid selekci nepotřebuje. */
+  selection?: {
+    selectedIds: Set<string>;
+    onToggleRow: (id: string) => void;
+    onToggleAll: () => void;
+  };
+  /** Řazení + filtry na hlavičkách sloupců (D365 vzor) — vynech pro read-only/vnořené gridy. */
+  columnControls?: {
+    sort: { field: string; direction: "asc" | "desc" } | null;
+    onSortChange: (field: string, direction: "asc" | "desc") => void;
+    filters: Record<string, ColumnFilter>;
+    onFilterChange: (field: string, filter: ColumnFilter | null) => void;
+  };
 }
 
 export function GridEngine<T extends Record<string, unknown>>({
@@ -74,21 +89,43 @@ export function GridEngine<T extends Record<string, unknown>>({
   rows,
   basePath,
   emptyLabel = "Žádné záznamy",
+  selection,
+  columnControls,
 }: GridEngineProps<T>) {
   const router = useRouter();
   const columns = view.columns.map((col) => ({
     ...col,
     field: resolveColumnField(entity, col.field),
+    // Filtr/řazení jde jen na skutečné sloupce entity (ne na dopočtené account/owner/status_reason labely).
+    isFilterable: entity.fields.some((f) => f.name === col.field),
   }));
+  const colSpan = columns.length + (selection ? 1 : 0);
+  const allSelected = selection ? rows.length > 0 && rows.every((r) => selection.selectedIds.has(r.id as string)) : false;
 
   return (
     <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
+            {selection && (
+              <TableHead className="w-8">
+                <Checkbox checked={allSelected} onCheckedChange={() => selection.onToggleAll()} />
+              </TableHead>
+            )}
             {columns.map((col) => (
               <TableHead key={col.field.name} className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                {col.label ?? col.field.label}
+                {columnControls && col.isFilterable ? (
+                  <ColumnFilterPopover
+                    label={col.label ?? col.field.label}
+                    fieldType={col.field.type}
+                    sortDirection={columnControls.sort?.field === col.field.name ? columnControls.sort.direction : null}
+                    onSort={(dir) => columnControls.onSortChange(col.field.name, dir)}
+                    filter={columnControls.filters[col.field.name] ?? null}
+                    onFilterChange={(f) => columnControls.onFilterChange(col.field.name, f)}
+                  />
+                ) : (
+                  col.label ?? col.field.label
+                )}
               </TableHead>
             ))}
           </TableRow>
@@ -96,22 +133,31 @@ export function GridEngine<T extends Record<string, unknown>>({
         <TableBody>
           {rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={columns.length} className="h-32 text-center text-muted-foreground">
+              <TableCell colSpan={colSpan} className="h-32 text-center text-muted-foreground">
                 {emptyLabel}
               </TableCell>
             </TableRow>
           ) : (
             rows.map((row, i) => {
               const href = basePath ? `${basePath}/${row.id}` : undefined;
+              const rowId = row.id as string;
               return (
                 <TableRow
-                  key={(row.id as string) ?? i}
+                  key={rowId ?? i}
                   className={cn(
                     "transition-colors hover:bg-accent/40",
                     href && "cursor-pointer",
                   )}
                   onClick={href ? () => router.push(href) : undefined}
                 >
+                  {selection && (
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selection.selectedIds.has(rowId)}
+                        onCheckedChange={() => selection.onToggleRow(rowId)}
+                      />
+                    </TableCell>
+                  )}
                   {columns.map((col) => {
                     const value = formatValue(col.field, row[col.field.name]);
                     const isPrimary = col.field.name === entity.primaryField;

@@ -1,11 +1,6 @@
-import Link from "next/link";
-import type { ReactNode } from "react";
-import { FileSpreadsheet, Plus } from "lucide-react";
-
 import { createClient } from "@/lib/supabase/server";
-import { GridEngine } from "./GridEngine";
+import { EntityListClient } from "./EntityListClient";
 import { PageHeader } from "@/components/shell/PageHeader";
-import { Button } from "@/components/ui/button";
 import { importableEntities } from "@/solutions/Projektant_CRM/entities";
 import type { EntityDefinition, ViewDefinition } from "./types";
 
@@ -19,8 +14,38 @@ export interface EntityListPageProps {
   /** Umožní řádek doupravit (např. rozbalit vnořený lookup/optionset na label). */
   mapRow?: (row: Record<string, unknown>) => Record<string, unknown>;
   description?: string;
-  /** Další tlačítka vedle "+ Nový" / "Import z Excelu". */
-  extraActions?: ReactNode;
+  searchParams?: Promise<Record<string, string | undefined>>;
+}
+
+interface FilterableQuery<Q> {
+  ilike: (field: string, pattern: string) => Q;
+  not: (field: string, op: string, value: string) => Q;
+  neq: (field: string, value: string) => Q;
+  gt: (field: string, value: string) => Q;
+  lt: (field: string, value: string) => Q;
+  eq: (field: string, value: string) => Q;
+}
+
+function applyColumnFilter<Q extends FilterableQuery<Q>>(query: Q, field: string, op: string, value: string): Q {
+  switch (op) {
+    case "contains":
+      return query.ilike(field, `%${value}%`);
+    case "notcontains":
+      return query.not(field, "ilike", `%${value}%`);
+    case "startswith":
+      return query.ilike(field, `${value}%`);
+    case "neq":
+      return query.neq(field, value);
+    case "gt":
+    case "after":
+      return query.gt(field, value);
+    case "lt":
+    case "before":
+      return query.lt(field, value);
+    case "eq":
+    default:
+      return query.eq(field, value);
+  }
 }
 
 export async function EntityListPage({
@@ -31,15 +56,36 @@ export async function EntityListPage({
   newLabel,
   mapRow,
   description,
-  extraActions,
+  searchParams,
 }: EntityListPageProps) {
   const supabase = await createClient();
+  const params = (await searchParams) ?? {};
+  const status = params.status ?? "active";
 
   let query = supabase.from(entity.table).select(select);
-  if (view.defaultSort) {
-    query = query.order(view.defaultSort.field, {
-      ascending: view.defaultSort.direction === "asc",
-    });
+  if (status !== "all") {
+    query = applyColumnFilter(query, "status", "eq", status);
+  }
+  if (params.q) {
+    query = applyColumnFilter(query, entity.primaryField, "contains", params.q);
+  }
+
+  // Filtry na jednotlivých sloupcích (cf_<pole>=<operátor>|<hodnota>) — jen na skutečných
+  // sloupcích entity, ne na dopočtených lookup/optionset labelech z GridEngine.
+  for (const [key, raw] of Object.entries(params)) {
+    if (!key.startsWith("cf_") || !raw) continue;
+    const field = key.slice(3);
+    if (!entity.fields.some((f) => f.name === field)) continue;
+    const [op, ...rest] = raw.split("|");
+    if (!op || rest.length === 0) continue;
+    query = applyColumnFilter(query, field, op, rest.join("|"));
+  }
+
+  const sortField =
+    params.sort && entity.fields.some((f) => f.name === params.sort) ? params.sort : view.defaultSort?.field;
+  const sortDirection = params.sort ? (params.dir ?? "asc") : (view.defaultSort?.direction ?? "asc");
+  if (sortField) {
+    query = query.order(sortField, { ascending: sortDirection === "asc" });
   }
 
   const { data, error } = await query;
@@ -53,32 +99,15 @@ export async function EntityListPage({
 
   return (
     <div>
-      <PageHeader
-        title={entity.displayNamePlural}
-        description={description}
-        actions={
-          <>
-            {extraActions}
-            {isImportable && (
-              <Button
-                variant="outline"
-                render={
-                  <Link href={`/import?entity=${entity.name}`}>
-                    <FileSpreadsheet className="size-4" />
-                    Import z Excelu
-                  </Link>
-                }
-              />
-            )}
-            {newLabel && (
-              <Button render={<Link href={`${basePath}/new`}><Plus className="size-4" />{newLabel}</Link>} />
-            )}
-          </>
-        }
+      <PageHeader title={entity.displayNamePlural} description={description} />
+      <EntityListClient
+        entity={entity}
+        view={view}
+        rows={rows}
+        basePath={basePath}
+        newLabel={newLabel}
+        isImportable={isImportable}
       />
-      <div className="p-6">
-        <GridEngine entity={entity} view={view} rows={rows} basePath={basePath} />
-      </div>
     </div>
   );
 }

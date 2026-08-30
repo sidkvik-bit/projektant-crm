@@ -135,6 +135,105 @@ for (const { path: listPath, hasTabs } of RECORD_LIST_PATHS) {
   });
 }
 
+test("grid search filters by the primary field", async ({ page }) => {
+  await page.goto("/accounts");
+  const rowCountBefore = await page.locator("table tbody tr").count();
+  expect(rowCountBefore).toBeGreaterThan(1);
+
+  await page.getByPlaceholder(/Hledat/i).fill("Novák Architekti");
+  await page.getByPlaceholder(/Hledat/i).press("Enter");
+  await page.waitForURL(/[?&]q=/);
+  await expect(page.getByRole("link", { name: "Novák Architekti s.r.o." })).toBeVisible();
+  await expect(page.locator("table tbody tr")).toHaveCount(1);
+});
+
+test("grid status filter switches between active/inactive/all", async ({ page }) => {
+  await page.goto("/accounts");
+  await expect(page.getByText("Aktivní", { exact: true })).toBeVisible();
+
+  await page.getByText("Vše", { exact: true }).click();
+  await page.waitForURL(/status=all/);
+  const allCount = await page.locator("table tbody tr").count();
+
+  await page.getByText("Neaktivní", { exact: true }).click();
+  await page.waitForURL(/status=inactive/);
+  const inactiveCount = await page.locator("table tbody tr").count();
+  expect(inactiveCount).toBeLessThanOrEqual(allCount);
+});
+
+test("grid bulk delete: select rows via checkbox and delete them", async ({ page }) => {
+  // create a throwaway lead so this test doesn't depend on (and doesn't permanently
+  // consume) a specific seeded row — repeatable across runs.
+  const name = `E2E Bulk Delete Target ${Date.now()}`;
+  await page.goto("/leads/new");
+  await page.getByLabel(/Jméno/i).fill(name);
+  await page.getByRole("button", { name: "Vytvořit", exact: true }).click();
+  await page.waitForURL(/\/leads\/[0-9a-f-]{36}$/);
+
+  await page.goto("/leads");
+  const row = page.locator("table tbody tr", { hasText: name });
+  await expect(row).toBeVisible();
+  await row.getByRole("checkbox").click();
+
+  const deleteButton = page.getByRole("button", { name: /Odstranit \(1\)/ });
+  await expect(deleteButton).toBeVisible();
+  await deleteButton.click();
+  await page.getByRole("button", { name: "Odstranit", exact: true }).click();
+  await expect(page.getByText(name)).toHaveCount(0);
+});
+
+test("grid column header filter: contains operator on a real column", async ({ page }) => {
+  await page.goto("/accounts");
+  await page.getByRole("button", { name: /IČO/i }).click();
+  await page.getByPlaceholder("Hodnota…").fill("12345678");
+  await page.getByRole("button", { name: "Použít" }).click();
+  await page.waitForURL(/cf_ico=/);
+  await expect(page.getByRole("link", { name: "Novák Architekti s.r.o." })).toBeVisible();
+  await expect(page.locator("table tbody tr")).toHaveCount(1);
+});
+
+test("lookup combobox: search and pick a value, saved correctly", async ({ page }) => {
+  await page.goto("/contacts/new");
+  await page.getByLabel(/Jméno/i).fill("E2E Combobox Test");
+  await page.getByLabel(/Příjmení/i).fill("Kontakt");
+
+  const accountCombo = page.getByLabel(/Obchodní vztah/i);
+  await accountCombo.click();
+  await accountCombo.fill("Stavební");
+  await expect(page.locator('[data-slot="combobox-item"]')).toHaveText(/Stavební huť Praha/);
+  await page.locator('[data-slot="combobox-item"]').first().click();
+  await expect(accountCombo).toHaveValue(/Stavební huť Praha/);
+
+  await page.getByRole("button", { name: "Vytvořit", exact: true }).click();
+  await page.waitForURL(/\/contacts\/[0-9a-f-]{36}$/);
+  await expect(page.getByLabel(/Obchodní vztah/i)).toHaveValue(/Stavební huť Praha/);
+});
+
+test("locked-once-set field: project template becomes read-only after a project is created from it", async ({
+  page,
+}) => {
+  await page.goto("/projects/new");
+  await page.getByLabel(/Název/i).fill(`E2E Locked Template ${Date.now()}`);
+
+  const clientCombo = page.getByLabel(/^Klient/i);
+  await clientCombo.click();
+  await clientCombo.fill("Novák");
+  await page.locator('[data-slot="combobox-item"]').first().click();
+
+  const templateCombo = page.getByLabel(/Šablona/i);
+  await templateCombo.click();
+  await templateCombo.fill("Standard");
+  await page.locator('[data-slot="combobox-item"]').first().click();
+
+  await page.getByRole("button", { name: "Vytvořit", exact: true }).click();
+  await page.waitForURL(/\/projects\/[0-9a-f-]{36}$/);
+  await expect(page.getByRole("heading", { name: "Úkoly / Milníky" })).toBeVisible();
+  await expect(page.locator("table tbody tr")).not.toHaveCount(0);
+
+  await page.getByRole("tab", { name: "Obecné" }).click();
+  await expect(page.getByLabel(/Šablona/i)).toBeDisabled();
+});
+
 test("clicking anywhere in a grid row (not just the name) opens the record", async ({ page }) => {
   await page.goto("/accounts");
   const firstRow = page.locator("table tbody tr").first();

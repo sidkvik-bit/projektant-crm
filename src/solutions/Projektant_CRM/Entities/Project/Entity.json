@@ -8,7 +8,7 @@
   "fields": [
     { "name": "name", "label": "Název", "type": "text", "required": true },
     { "name": "account_id", "label": "Klient", "type": "lookup", "targetEntity": "Account", "required": true },
-    { "name": "project_template_id", "label": "Šablona (generuje milníky při založení)", "type": "lookup", "targetEntity": "ProjectTemplate" },
+    { "name": "project_template_id", "label": "Šablona (generuje milníky při založení)", "type": "lookup", "targetEntity": "ProjectTemplate", "lockOnceSet": true },
     { "name": "primary_contact_id", "label": "Hlavní kontakt", "type": "lookup", "targetEntity": "Contact" },
     { "name": "datum_zahajeni", "label": "Datum zahájení", "type": "date" },
     { "name": "deadline", "label": "Deadline", "type": "date" },

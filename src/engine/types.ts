@@ -22,6 +22,8 @@ export interface FieldDefinition {
   type: FieldType;
   required?: boolean;
   readOnly?: boolean;
+  /** Jde upravit jen dokud je pole prázdné — jakmile má hodnotu, zamkne se (needitovatelné). */
+  lockOnceSet?: boolean;
   /** Jen pro type: "lookup" — logický název cílové entity, např. "Account". */
   targetEntity?: string;
   /** Jen pro type: "lookup" — pole cílové entity použité jako popisek v selectu. */
