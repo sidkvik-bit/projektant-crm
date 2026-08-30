@@ -1,6 +1,12 @@
 # Dependencies
 node_modules/
 .pnpm-store/
+/.pnp
+.pnp.*
+
+# Testing / misc
+/coverage
+*.pem
 
 # Next.js
 .next/
