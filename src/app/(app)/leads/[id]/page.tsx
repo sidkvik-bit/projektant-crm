@@ -37,7 +37,6 @@ export default async function LeadDetailPage({
       form={formDef as FormDefinition}
       title={record.name}
       defaultValues={record}
-      extraOptionSetKeys={["lead_source", "lead_rating"]}
       onSubmit={handleUpdate}
       submitLabel="Uložit změny"
     />

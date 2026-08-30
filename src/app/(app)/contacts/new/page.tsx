@@ -11,8 +11,6 @@ export default async function NewContactPage() {
       entity={entity as EntityDefinition}
       form={formDef as FormDefinition}
       title="Nový kontakt"
-      extraOptionSetKeys={["profese"]}
-      extraLookups={[{ targetEntity: "Account", table: "accounts", labelFields: ["name"] }]}
       onSubmit={createContact}
       submitLabel="Vytvořit"
     />

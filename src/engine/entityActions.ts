@@ -24,3 +24,11 @@ export async function updateEntityRecord(
   revalidatePath(basePath);
   revalidatePath(`${basePath}/${id}`);
 }
+
+/** Generický hromadný insert — funguje pro libovolnou tabulku, používá ho ImportWizard. */
+export async function bulkInsertRecords(table: string, rows: EntityFormValues[]) {
+  const supabase = await createClient();
+  const { error } = await supabase.from(table).insert(rows);
+  if (error) throw error;
+  return { imported: rows.length };
+}

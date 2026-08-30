@@ -11,11 +11,6 @@ export default async function NewProjectPage() {
       entity={entity as EntityDefinition}
       form={formDef as FormDefinition}
       title="Nový projekt"
-      extraLookups={[
-        { targetEntity: "Account", table: "accounts", labelFields: ["name"] },
-        { targetEntity: "Contact", table: "contacts", labelFields: ["first_name", "last_name"] },
-        { targetEntity: "ProjectTemplate", table: "project_templates", labelFields: ["name"] },
-      ]}
       onSubmit={createProject}
       submitLabel="Vytvořit"
     />

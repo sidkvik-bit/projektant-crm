@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/shell/PageHeader";
 import { getCommonFormContext } from "./formContext";
 import { getOptionSetValues, type OptionSetValue } from "./optionSets";
 import { listRecords } from "./Database";
+import { entityRegistry } from "@/solutions/Projektant_CRM/registry";
 import type { EntityDefinition, FormDefinition } from "./types";
 import type { EntityFormValues } from "./zodSchema";
 
@@ -20,9 +21,12 @@ export interface EntityFormPageProps {
   form: FormDefinition;
   title: string;
   defaultValues?: Partial<EntityFormValues>;
-  /** Klíče dalších číselníků použitých ve formuláři (mimo statusReasonOptionSetKey, kterou řeší getCommonFormContext). */
+  /**
+   * Číselníky a lookupy se pro pole s optionSetKey / targetEntity (přes
+   * registry.ts) dopočítávají automaticky. Tyhle propy jsou jen pro výjimky
+   * — např. filtrovaný lookup, nebo entitu, co (zatím) není v registry.
+   */
   extraOptionSetKeys?: string[];
-  /** Lookup pole mimo univerzální Owner (ten řeší getCommonFormContext). */
   extraLookups?: ExtraLookup[];
   onSubmit: (values: EntityFormValues) => Promise<void>;
   submitLabel?: string;
@@ -40,11 +44,25 @@ export async function EntityFormPage({
 }: EntityFormPageProps) {
   const supabase = await createClient();
 
+  const autoOptionSetKeys = entity.fields
+    .filter((f) => f.type === "optionset" && f.optionSetKey)
+    .map((f) => f.optionSetKey as string);
+
+  const autoLookups: ExtraLookup[] = entity.fields
+    .filter((f) => f.type === "lookup" && f.targetEntity && entityRegistry[f.targetEntity])
+    .map((f) => ({ targetEntity: f.targetEntity as string, ...entityRegistry[f.targetEntity as string] }));
+
+  const optionSetKeys = Array.from(new Set([...autoOptionSetKeys, ...extraOptionSetKeys]));
+  const lookups = [
+    ...autoLookups,
+    ...extraLookups.filter((el) => !autoLookups.some((al) => al.targetEntity === el.targetEntity)),
+  ];
+
   const [common, extraSets, lookupEntries] = await Promise.all([
     getCommonFormContext(supabase, entity),
-    Promise.all(extraOptionSetKeys.map((key) => getOptionSetValues(supabase, key))),
+    Promise.all(optionSetKeys.map((key) => getOptionSetValues(supabase, key))),
     Promise.all(
-      extraLookups.map(async (lu) => {
+      lookups.map(async (lu) => {
         const rows = await listRecords<Record<string, unknown>>(supabase, lu.table, {
           select: `id, ${lu.labelFields.join(", ")}`,
         });
@@ -60,7 +78,7 @@ export async function EntityFormPage({
   ]);
 
   const extraOptionSetValues = Object.fromEntries(
-    extraOptionSetKeys.map((key, i) => [key, extraSets[i]]),
+    optionSetKeys.map((key, i) => [key, extraSets[i]]),
   ) as Record<string, OptionSetValue[]>;
 
   return (

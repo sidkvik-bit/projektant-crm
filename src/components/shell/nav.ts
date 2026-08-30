@@ -10,6 +10,7 @@ import {
   Activity,
   UsersRound,
   ListTree,
+  FileSpreadsheet,
 } from "lucide-react";
 
 export interface NavItem {
@@ -32,4 +33,5 @@ export const mainNav: NavItem[] = [
 export const settingsNav: NavItem[] = [
   { label: "Tým", href: "/settings/team", icon: UsersRound },
   { label: "Číselníky", href: "/settings/option-sets", icon: ListTree },
+  { label: "Import z Excelu", href: "/import", icon: FileSpreadsheet },
 ];

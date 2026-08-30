@@ -37,8 +37,6 @@ export default async function ContactDetailPage({
       form={formDef as FormDefinition}
       title={[record.first_name, record.last_name].filter(Boolean).join(" ")}
       defaultValues={record}
-      extraOptionSetKeys={["profese"]}
-      extraLookups={[{ targetEntity: "Account", table: "accounts", labelFields: ["name"] }]}
       onSubmit={handleUpdate}
       submitLabel="Uložit změny"
     />

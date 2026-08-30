@@ -11,7 +11,6 @@ export default async function NewLeadPage() {
       entity={entity as EntityDefinition}
       form={formDef as FormDefinition}
       title="Nový zájemce"
-      extraOptionSetKeys={["lead_source", "lead_rating"]}
       onSubmit={createLead}
       submitLabel="Vytvořit"
     />
