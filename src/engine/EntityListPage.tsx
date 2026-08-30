@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 import { createClient } from "@/lib/supabase/server";
 import { GridEngine } from "./GridEngine";
@@ -17,6 +18,8 @@ export interface EntityListPageProps {
   /** Umožní řádek doupravit (např. rozbalit vnořený lookup/optionset na label). */
   mapRow?: (row: Record<string, unknown>) => Record<string, unknown>;
   description?: string;
+  /** Další tlačítka vedle "+ Nový" (např. odkaz na Excel import). */
+  extraActions?: ReactNode;
 }
 
 export async function EntityListPage({
@@ -27,6 +30,7 @@ export async function EntityListPage({
   newLabel,
   mapRow,
   description,
+  extraActions,
 }: EntityListPageProps) {
   const supabase = await createClient();
 
@@ -50,9 +54,12 @@ export async function EntityListPage({
         title={entity.displayNamePlural}
         description={description}
         actions={
-          newLabel && (
-            <Button render={<Link href={`${basePath}/new`}><Plus className="size-4" />{newLabel}</Link>} />
-          )
+          <>
+            {extraActions}
+            {newLabel && (
+              <Button render={<Link href={`${basePath}/new`}><Plus className="size-4" />{newLabel}</Link>} />
+            )}
+          </>
         }
       />
       <div className="p-6">

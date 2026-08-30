@@ -17,7 +17,7 @@ export default async function ActivitiesPage() {
     <EntityListPage
       entity={entity as EntityDefinition}
       view={view as ViewDefinition}
-      select="id, subject, entity_type, activity_date, activity_type:option_set_values(label), owner:users!activities_owner_id_fkey(first_name, last_name, email)"
+      select="id, subject, entity_type, activity_date, activity_type:option_set_values!activities_activity_type_id_fkey(label), owner:users!activities_owner_id_fkey(first_name, last_name, email)"
       basePath="/activities"
       description="Aktivity se zakládají z detailu příslušného záznamu (např. projektu)."
       mapRow={(row) => ({

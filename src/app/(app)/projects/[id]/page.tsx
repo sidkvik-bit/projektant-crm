@@ -56,7 +56,7 @@ export default async function ProjectDetailPage({
       getOptionSetValues(supabase, "activity_type"),
       supabase
         .from("activities")
-        .select("id, subject, description, activity_date, activity_type:option_set_values(label)")
+        .select("id, subject, description, activity_date, activity_type:option_set_values!activities_activity_type_id_fkey(label)")
         .eq("entity_type", "Project")
         .eq("entity_id", id)
         .order("activity_date", { ascending: false })
