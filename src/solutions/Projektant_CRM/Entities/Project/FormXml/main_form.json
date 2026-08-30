@@ -1,5 +1,6 @@
 {
   "entity": "Project",
+  "columns": 3,
   "tabs": [
     {
       "label": "Obecné",

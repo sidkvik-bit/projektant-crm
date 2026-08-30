@@ -58,6 +58,8 @@ export interface FormTab {
 export interface FormDefinition {
   entity: string;
   tabs: FormTab[];
+  /** Kolik sloupců polí na sekci — parametr formuláře, ne pevná hodnota v enginu. Výchozí 2. */
+  columns?: 1 | 2 | 3;
 }
 
 export interface ViewColumn {

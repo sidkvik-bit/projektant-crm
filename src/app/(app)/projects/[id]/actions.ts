@@ -52,24 +52,3 @@ export async function createMilestoneNotification(
   if (error) throw error;
   revalidatePath(basePath(projectId));
 }
-
-// --- Aktivity ---
-
-export async function addProjectActivity(
-  projectId: string,
-  subject: string,
-  description: string,
-  activityTypeId: string | null,
-) {
-  const supabase = await createClient();
-  const { error } = await supabase.from("activities").insert({
-    entity_type: "Project",
-    entity_id: projectId,
-    subject,
-    description: description || null,
-    activity_type_id: activityTypeId,
-    activity_date: new Date().toISOString(),
-  });
-  if (error) throw error;
-  revalidatePath(basePath(projectId));
-}

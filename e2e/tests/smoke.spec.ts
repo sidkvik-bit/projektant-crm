@@ -188,6 +188,40 @@ test("record navigator panel lets you browse between records without leaving the
   expect(page.url()).not.toContain(firstHref!);
 });
 
+test("new-record form always shows a way back, even after typing something", async ({ page }) => {
+  await page.goto("/leads/new");
+  await expect(page.getByRole("button", { name: "Zpět" })).toBeVisible();
+  await page.getByLabel(/Jméno/i).fill("E2E Rozepsaný lead");
+  // still there once the form is dirty — this used to disappear, trapping the user on the page.
+  await expect(page.getByRole("button", { name: "Zpět" })).toBeVisible();
+  await page.getByRole("button", { name: "Zpět" }).click();
+  await page.waitForURL(/\/leads$/);
+});
+
+test("project detail opens straight on Obecné with milestones visible, no tab click needed", async ({
+  page,
+}) => {
+  await page.goto("/projects");
+  await page.locator("table tbody tr a").first().click();
+  await page.waitForURL(/\/projects\/[0-9a-f-]{36}$/);
+  await expect(page.getByRole("tab", { name: "Obecné", selected: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Úkoly / Milníky" })).toBeVisible();
+});
+
+test("activity timeline: logging a call saves it with an editable date", async ({ page }) => {
+  await page.goto("/projects");
+  await page.locator("table tbody tr a").first().click();
+  await page.getByRole("tab", { name: "Historie a aktivity" }).click();
+
+  await page.getByRole("button", { name: "Telefonát", exact: true }).click();
+  const subject = `E2E telefonát ${Date.now()}`;
+  await page.getByLabel(/Předmět/i).fill(subject);
+  await expect(page.getByLabel(/Datum/i)).not.toHaveValue("");
+  await page.getByRole("button", { name: "Uložit aktivitu" }).click();
+  await expect(page.getByText(subject)).toBeVisible();
+  await expect(page.getByText("Telefonát").last()).toBeVisible();
+});
+
 test("a set lookup renders a link to open the related record", async ({ page }) => {
   await page.goto("/projects");
   await page.locator("table tbody tr a").first().click();

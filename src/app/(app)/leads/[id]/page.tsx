@@ -18,7 +18,7 @@ export default async function LeadDetailPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const record = await getRecordById<EntityFormValues & { name: string }>(
+  const record = await getRecordById<EntityFormValues & { name: string; email: string | null }>(
     supabase,
     entity.table,
     id,
@@ -39,6 +39,7 @@ export default async function LeadDetailPage({
       defaultValues={record}
       onSubmit={handleUpdate}
       submitLabel="Uložit změny"
+      timeline={{ relatedEmail: record.email }}
     />
   );
 }

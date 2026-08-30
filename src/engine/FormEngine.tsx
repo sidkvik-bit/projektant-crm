@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Plus, Ban, CheckCircle2, Trash2, RefreshCw } from "lucide-react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -19,11 +19,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { CommandBar, CommandBarButton, CommandBarSeparator } from "@/components/shell/CommandBar";
+import { RecordNavigator, type NavigatorRecord } from "./RecordNavigator";
+import { cn } from "@/lib/utils";
 
 import type { EntityDefinition, FormDefinition, FieldDefinition } from "./types";
 import type { OptionSetValue } from "./optionSets";
 import { buildEntityZodSchema, type EntityFormValues } from "./zodSchema";
 import { entityRegistry } from "@/solutions/Projektant_CRM/registry";
+import { deleteEntityRecord, setEntityStatus } from "./entityActions";
 
 const STATUS_FIELD: FieldDefinition = {
   name: "status",
@@ -47,6 +60,13 @@ const OWNER_FIELD: FieldDefinition = {
   required: false,
 };
 
+/** Literal třídy, ať je Tailwind najde při buildu (dynamický string template by nešlo poznat). */
+const COLUMN_CLASSES: Record<1 | 2 | 3, string> = {
+  1: "sm:grid-cols-1",
+  2: "sm:grid-cols-2",
+  3: "sm:grid-cols-2 lg:grid-cols-3",
+};
+
 interface LookupOption {
   id: string;
   label: string;
@@ -62,6 +82,8 @@ export interface FormEngineProps {
   lookupOptions?: Record<string, LookupOption[]>;
   onSubmit: (values: EntityFormValues) => Promise<void>;
   submitLabel?: string;
+  /** Seznam záznamů pro postranní navigátor (jen u existujícího záznamu) — viz RecordNavigator. */
+  navigator?: { viewLabel: string; records: NavigatorRecord[] };
 }
 
 function resolveField(entity: EntityDefinition, name: string): FieldDefinition {
@@ -83,11 +105,40 @@ export function FormEngine({
   lookupOptions = {},
   onSubmit,
   submitLabel = "Uložit",
+  navigator,
 }: FormEngineProps) {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [statusBusy, setStatusBusy] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const router = useRouter();
   const closePath = entityRegistry[entity.name]?.basePath ?? null;
+  const currentId = defaultValues?.id as string | undefined;
+  const [status, setStatus] = useState((defaultValues?.status as string | undefined) ?? "active");
+
+  async function toggleStatus() {
+    if (!currentId || !closePath) return;
+    setStatusBusy(true);
+    try {
+      const next = status === "active" ? "inactive" : "active";
+      await setEntityStatus(entity.table, closePath, currentId, next);
+      setStatus(next);
+      router.refresh();
+    } finally {
+      setStatusBusy(false);
+    }
+  }
+
+  async function confirmDelete() {
+    if (!currentId || !closePath) return;
+    setDeleteBusy(true);
+    try {
+      await deleteEntityRecord(entity.table, closePath, currentId);
+    } finally {
+      setDeleteBusy(false);
+    }
+  }
 
   const schema = buildEntityZodSchema(entity);
   const {
@@ -116,37 +167,105 @@ export function FormEngine({
 
   return (
     <form onSubmit={handleSubmit(makeSubmitHandler(false))} className="space-y-8">
-      <div className="sticky top-0 z-10 -mx-6 -mt-6 mb-2 flex items-center justify-end gap-2 border-b bg-background/95 px-6 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        {submitError && <p className="mr-auto text-sm text-destructive">{submitError}</p>}
-        {isDirty ? (
+      <CommandBar className="sticky top-0 z-10 -mx-6 -mt-6 mb-2 bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        {navigator && currentId && closePath && (
           <>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={submitting}
-              onClick={handleSubmit(makeSubmitHandler(false))}
-            >
-              {submitting ? "Ukládám…" : submitLabel}
-            </Button>
-            <Button type="button" disabled={submitting} onClick={handleSubmit(makeSubmitHandler(true))}>
-              {submitting ? "Ukládám…" : `${submitLabel} a zavřít`}
-            </Button>
+            <RecordNavigator
+              basePath={closePath}
+              currentId={currentId}
+              viewLabel={navigator.viewLabel}
+              records={navigator.records}
+            />
+            <CommandBarSeparator />
           </>
-        ) : (
-          closePath && (
-            <Button type="button" variant="outline" render={<Link href={closePath} />}>
-              Zavřít
-            </Button>
-          )
         )}
-      </div>
+        {currentId && closePath && (
+          <CommandBarButton icon={Plus} label="Nový" href={`${closePath}/new`} />
+        )}
+        {currentId && closePath && (
+          <>
+            <CommandBarButton
+              icon={status === "active" ? Ban : CheckCircle2}
+              label={status === "active" ? "Deaktivovat" : "Aktivovat"}
+              onClick={toggleStatus}
+              disabled={statusBusy}
+            />
+            <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+              <DialogTrigger
+                render={
+                  <Button variant="ghost" size="sm" className="gap-1.5 text-foreground/80 hover:text-foreground">
+                    <Trash2 className="size-4" />
+                    Odstranit
+                  </Button>
+                }
+              />
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Odstranit záznam?</DialogTitle>
+                  <DialogDescription>
+                    Tuhle akci nejde vzít zpět. Pokud jde jen o to záznam přestat používat, zvaž
+                    místo toho tlačítko &quot;Deaktivovat&quot;.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={deleteBusy}>
+                    Zrušit
+                  </Button>
+                  <Button variant="destructive" onClick={confirmDelete} disabled={deleteBusy}>
+                    {deleteBusy ? "Odstraňuji…" : "Odstranit"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            <CommandBarButton icon={RefreshCw} label="Aktualizovat" onClick={() => router.refresh()} />
+          </>
+        )}
+
+        <div className="ml-auto flex items-center gap-2">
+          {submitError && <p className="text-sm text-destructive">{submitError}</p>}
+          {!currentId ? (
+            // Nový záznam: Zpět musí jít vždycky, i po rozepsání formuláře — jinak
+            // se z rozdělaného nového záznamu nedá dostat pryč jinak než uložením.
+            <>
+              {closePath && (
+                <Button type="button" variant="outline" render={<Link href={closePath} />}>
+                  Zpět
+                </Button>
+              )}
+              <Button type="button" disabled={submitting} onClick={handleSubmit(makeSubmitHandler(false))}>
+                {submitting ? "Ukládám…" : submitLabel}
+              </Button>
+            </>
+          ) : isDirty ? (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={submitting}
+                onClick={handleSubmit(makeSubmitHandler(false))}
+              >
+                {submitting ? "Ukládám…" : submitLabel}
+              </Button>
+              <Button type="button" disabled={submitting} onClick={handleSubmit(makeSubmitHandler(true))}>
+                {submitting ? "Ukládám…" : `${submitLabel} a zavřít`}
+              </Button>
+            </>
+          ) : (
+            closePath && (
+              <Button type="button" variant="outline" render={<Link href={closePath} />}>
+                Zavřít
+              </Button>
+            )
+          )}
+        </div>
+      </CommandBar>
       {form.tabs.map((tab) => (
         <div key={tab.label} className="space-y-6">
           <h2 className="text-lg font-semibold">{tab.label}</h2>
           {tab.sections.map((section) => (
             <div key={section.label} className="space-y-4 rounded-lg border p-4">
               <h3 className="text-sm font-medium text-muted-foreground">{section.label}</h3>
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className={cn("grid gap-4", COLUMN_CLASSES[form.columns ?? 2])}>
                 {section.fields.map((fieldName) => {
                   const field = resolveField(entity, fieldName);
                   const error = errors[field.name];

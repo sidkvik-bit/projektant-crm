@@ -18,11 +18,9 @@ export default async function ContactDetailPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const record = await getRecordById<EntityFormValues & { first_name: string; last_name: string | null }>(
-    supabase,
-    entity.table,
-    id,
-  ).catch(() => null);
+  const record = await getRecordById<
+    EntityFormValues & { first_name: string; last_name: string | null; email: string | null }
+  >(supabase, entity.table, id).catch(() => null);
 
   if (!record) notFound();
 
@@ -39,6 +37,7 @@ export default async function ContactDetailPage({
       defaultValues={record}
       onSubmit={handleUpdate}
       submitLabel="Uložit změny"
+      timeline={{ relatedEmail: record.email }}
     />
   );
 }

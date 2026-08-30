@@ -5,27 +5,21 @@ import { getRecordById, listRecords } from "@/engine/Database";
 import { getCommonFormContext } from "@/engine/formContext";
 import { getOptionSetValues } from "@/engine/optionSets";
 import { getOrgUserOptions } from "@/engine/users";
+import { getTimelineActivities } from "@/engine/activities";
+import { createTimelineActivity } from "@/engine/entityActions";
 import { FormEngine } from "@/engine/FormEngine";
-import { RecordNavigator } from "@/engine/RecordNavigator";
+import { ActivityTimeline } from "@/engine/ActivityTimeline";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { CalendarLink, DriveLink } from "@/components/SmartLinks";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { EntityDefinition, FormDefinition } from "@/engine/types";
 import type { EntityFormValues } from "@/engine/zodSchema";
-import { entityRegistry } from "@/solutions/Projektant_CRM/registry";
 
 import entity from "@/solutions/Projektant_CRM/Entities/Project/Entity.json";
 import formDef from "@/solutions/Projektant_CRM/Entities/Project/FormXml/main_form.json";
-import {
-  addProjectMilestone,
-  toggleProjectMilestone,
-  deleteProjectMilestone,
-  createMilestoneNotification,
-  addProjectActivity,
-} from "./actions";
+import { addProjectMilestone, toggleProjectMilestone, deleteProjectMilestone, createMilestoneNotification } from "./actions";
 import { updateProject } from "../actions";
 import { MilestonesPanel } from "./MilestonesPanel";
-import { ActivitiesPanel } from "./ActivitiesPanel";
 import { TeamPanel } from "./TeamPanel";
 
 export default async function ProjectDetailPage({
@@ -37,7 +31,7 @@ export default async function ProjectDetailPage({
   const supabase = await createClient();
 
   const record = await getRecordById<
-    EntityFormValues & { name: string; account_id: string; drive_url: string | null }
+    EntityFormValues & { name: string; account_id: string; drive_url: string | null; status: string }
   >(supabase, entity.table, id).catch(() => null);
 
   if (!record) notFound();
@@ -56,13 +50,7 @@ export default async function ProjectDetailPage({
         { select: "id, name, termin_splneni, splneno", filter: { project_id: id } },
       ),
       getOptionSetValues(supabase, "activity_type"),
-      supabase
-        .from("activities")
-        .select("id, subject, description, activity_date, activity_type:option_set_values!activities_activity_type_id_fkey(label)")
-        .eq("entity_type", "Project")
-        .eq("entity_id", id)
-        .order("activity_date", { ascending: false })
-        .then((r) => r.data ?? []),
+      getTimelineActivities(supabase, { entityType: "Project", entityId: id }),
       supabase
         .from("contacts")
         .select("id, first_name, last_name, email, profese:option_set_values!contacts_profese_id_fkey(label)")
@@ -81,17 +69,13 @@ export default async function ProjectDetailPage({
   }
 
   return (
-    <div className="flex h-full">
-      <RecordNavigator
-        basePath={entityRegistry.Project.basePath!}
-        currentId={id}
-        viewLabel={entity.displayNamePlural}
-        storageKey="nav-panel:Project"
-        records={navigatorRecords.map((p) => ({ id: p.id, label: p.name }))}
-      />
-      <div className="min-w-0 flex-1">
+    <div>
       <PageHeader
         title={record.name}
+        badge={{
+          label: record.status === "active" ? "Aktivní" : "Neaktivní",
+          variant: record.status === "active" ? "default" : "secondary",
+        }}
         actions={
           <>
             <CalendarLink title={record.name} />
@@ -101,58 +85,14 @@ export default async function ProjectDetailPage({
       />
 
       <div className="p-6">
-        <Tabs defaultValue="milestones">
+        <Tabs defaultValue="general">
           <TabsList>
-            <TabsTrigger value="milestones">Úkoly / Milníky</TabsTrigger>
+            <TabsTrigger value="general">Obecné</TabsTrigger>
             <TabsTrigger value="activities">Historie a aktivity</TabsTrigger>
             <TabsTrigger value="team">Tým / Subdodavatelé</TabsTrigger>
-            <TabsTrigger value="general">Obecné</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="milestones" className="pt-4">
-            <MilestonesPanel
-              projectId={id}
-              milestones={milestones}
-              userOptions={userOptions}
-              onAdd={addProjectMilestone}
-              onToggle={toggleProjectMilestone}
-              onDelete={deleteProjectMilestone}
-              onCreateNotification={createMilestoneNotification}
-            />
-          </TabsContent>
-
-          <TabsContent value="activities" className="pt-4">
-            <ActivitiesPanel
-              projectId={id}
-              activities={(activities as unknown as Array<{
-                id: string;
-                subject: string;
-                description: string | null;
-                activity_date: string;
-                activity_type: { label: string } | null;
-              }>).map((a) => ({
-                ...a,
-                activity_type: a.activity_type?.label ?? null,
-              }))}
-              activityTypes={activityTypes}
-              onAdd={addProjectActivity}
-            />
-          </TabsContent>
-
-          <TabsContent value="team" className="pt-4">
-            <TeamPanel
-              contacts={(teamContacts as unknown as Array<{
-                id: string;
-                first_name: string;
-                last_name: string | null;
-                email: string | null;
-                profese: { label: string } | null;
-              }>).map((c) => ({ ...c, profese: c.profese?.label ?? null }))}
-              projectName={record.name}
-            />
-          </TabsContent>
-
-          <TabsContent value="general" className="max-w-3xl pt-4">
+          <TabsContent value="general" className="max-w-5xl space-y-8 pt-4">
             <FormEngine
               entity={entity as EntityDefinition}
               form={formDef as FormDefinition}
@@ -169,10 +109,50 @@ export default async function ProjectDetailPage({
               }}
               onSubmit={handleUpdate}
               submitLabel="Uložit změny"
+              navigator={{
+                viewLabel: entity.displayNamePlural,
+                records: navigatorRecords.map((p) => ({ id: p.id, label: p.name })),
+              }}
+            />
+
+            <div className="space-y-3">
+              <h2 className="text-lg font-semibold">Úkoly / Milníky</h2>
+              <MilestonesPanel
+                projectId={id}
+                milestones={milestones}
+                userOptions={userOptions}
+                onAdd={addProjectMilestone}
+                onToggle={toggleProjectMilestone}
+                onDelete={deleteProjectMilestone}
+                onCreateNotification={createMilestoneNotification}
+              />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="activities" className="max-w-3xl pt-4">
+            <ActivityTimeline
+              entityType="Project"
+              entityId={id}
+              detailPath={`/projects/${id}`}
+              activities={activities}
+              activityTypes={activityTypes}
+              onAdd={createTimelineActivity}
+            />
+          </TabsContent>
+
+          <TabsContent value="team" className="pt-4">
+            <TeamPanel
+              contacts={(teamContacts as unknown as Array<{
+                id: string;
+                first_name: string;
+                last_name: string | null;
+                email: string | null;
+                profese: { label: string } | null;
+              }>).map((c) => ({ ...c, profese: c.profese?.label ?? null }))}
+              projectName={record.name}
             />
           </TabsContent>
         </Tabs>
-      </div>
       </div>
     </div>
   );

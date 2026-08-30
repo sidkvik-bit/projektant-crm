@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
-import { getRecordById } from "@/engine/Database";
+import { getRecordById, listRecords } from "@/engine/Database";
 import { EntityFormPage } from "@/engine/EntityFormPage";
 import type { EntityDefinition, FormDefinition } from "@/engine/types";
 import type { EntityFormValues } from "@/engine/zodSchema";
@@ -18,13 +18,23 @@ export default async function AccountDetailPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const record = await getRecordById<EntityFormValues & { name: string }>(
+  const record = await getRecordById<EntityFormValues & { name: string; email: string | null }>(
     supabase,
     entity.table,
     id,
   ).catch(() => null);
 
   if (!record) notFound();
+
+  // Historie a aktivity na Firmě zahrnuje i aktivity jejích Kontaktů a Projektů (rollup, D365 vzor).
+  const [contacts, projects] = await Promise.all([
+    listRecords<{ id: string }>(supabase, "contacts", { select: "id", filter: { account_id: id } }),
+    listRecords<{ id: string }>(supabase, "projects", { select: "id", filter: { account_id: id } }),
+  ]);
+  const relatedActivities = [
+    ...contacts.map((c) => ({ entityType: "Contact", entityId: c.id })),
+    ...projects.map((p) => ({ entityType: "Project", entityId: p.id })),
+  ];
 
   async function handleUpdate(values: EntityFormValues) {
     "use server";
@@ -39,6 +49,7 @@ export default async function AccountDetailPage({
       defaultValues={record}
       onSubmit={handleUpdate}
       submitLabel="Uložit změny"
+      timeline={{ related: relatedActivities, relatedEmail: record.email }}
     />
   );
 }
