@@ -1,0 +1,14 @@
+{
+  "name": "Lead",
+  "table": "leads",
+  "displayName": "Zájemce",
+  "displayNamePlural": "Zájemci",
+  "primaryField": "name",
+  "statusReasonOptionSetKey": "lead_status_reason",
+  "fields": [
+    { "name": "name", "label": "Jméno", "type": "text", "required": true },
+    { "name": "contact_info", "label": "Kontakt", "type": "text" },
+    { "name": "demand_description", "label": "Poptávka", "type": "textarea" },
+    { "name": "expected_value", "label": "Očekávaná hodnota", "type": "currency" }
+  ]
+}

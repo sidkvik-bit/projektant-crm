@@ -1,0 +1,13 @@
+{
+  "entity": "Lead",
+  "name": "active_leads",
+  "label": "Aktivní zájemci",
+  "columns": [
+    { "field": "name" },
+    { "field": "contact_info", "label": "Kontakt" },
+    { "field": "status_reason", "label": "Stav zájemce" },
+    { "field": "expected_value", "label": "Očekávaná hodnota" },
+    { "field": "created_at", "label": "Vytvořeno" }
+  ],
+  "defaultSort": { "field": "created_at", "direction": "desc" }
+}

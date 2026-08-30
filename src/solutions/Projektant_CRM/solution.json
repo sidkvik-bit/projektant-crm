@@ -1,0 +1,6 @@
+{
+  "name": "Projektant_CRM",
+  "displayName": "Projektant CRM",
+  "version": "0.1.0",
+  "entities": ["Lead"]
+}

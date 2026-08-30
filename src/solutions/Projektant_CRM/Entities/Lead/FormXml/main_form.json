@@ -1,0 +1,18 @@
+{
+  "entity": "Lead",
+  "tabs": [
+    {
+      "label": "Obecné",
+      "sections": [
+        {
+          "label": "Detaily zájemce",
+          "fields": ["name", "contact_info", "demand_description", "expected_value"]
+        },
+        {
+          "label": "Stav",
+          "fields": ["status", "status_reason"]
+        }
+      ]
+    }
+  ]
+}
