@@ -15,6 +15,7 @@ interface NotificationConfigRow {
   type: "EMAIL" | "PUSH";
   dni_predem: number;
   recipient_user_id: string;
+  organization_id: string;
   project_milestones: MilestoneRow;
   users: { email: string | null; first_name: string | null } | null;
 }
@@ -63,10 +64,9 @@ export async function GET(request: Request) {
   const { data, error } = await admin
     .from("notifications_config")
     .select(
-      "id, type, dni_predem, recipient_user_id, project_milestones!inner(id, name, termin_splneni, splneno, projects(name)), users(email, first_name)",
+      "id, type, dni_predem, recipient_user_id, organization_id, project_milestones!inner(id, name, termin_splneni, splneno, projects(name)), users!notifications_config_recipient_user_id_fkey(email, first_name)",
     )
     .eq("status", "active")
-    .eq("type", "EMAIL")
     .eq("project_milestones.splneno", false)
     .lte("project_milestones.termin_splneni", today);
 
@@ -74,7 +74,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const rows = (data ?? []) as unknown as NotificationConfigRow[];
+  const allRows = (data ?? []) as unknown as NotificationConfigRow[];
+  const rows = allRows.filter((r) => r.type === "EMAIL");
+  const pushRows = allRows.filter((r) => r.type === "PUSH");
 
   const byRecipient = new Map<
     string,
@@ -115,5 +117,43 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.json({ checkedConfigs: rows.length, sent, failed });
+  // PUSH notifikace — zapíší se do `notifications` (zvoneček v TopBar), jedna
+  // instance na milník/příjemce/den, aby se při opakovaném běhu cronu nedublovaly.
+  let pushCreated = 0;
+  if (pushRows.length > 0) {
+    const todayStart = `${today}T00:00:00.000Z`;
+    const { data: existing } = await admin
+      .from("notifications")
+      .select("user_id, milestone_id")
+      .gte("created_at", todayStart)
+      .in(
+        "milestone_id",
+        pushRows.map((r) => r.project_milestones.id),
+      );
+
+    const alreadyNotified = new Set(
+      (existing ?? []).map((n) => `${n.user_id}:${n.milestone_id}`),
+    );
+
+    const toInsert = pushRows
+      .filter((r) => !alreadyNotified.has(`${r.recipient_user_id}:${r.project_milestones.id}`))
+      .map((r) => {
+        const m = r.project_milestones;
+        const isOverdue = m.termin_splneni < today;
+        const projectLabel = m.projects?.name ? ` — ${m.projects.name}` : "";
+        return {
+          organization_id: r.organization_id,
+          user_id: r.recipient_user_id,
+          milestone_id: m.id,
+          message: `${isOverdue ? "Po termínu" : "Na dnešek"}: ${m.name}${projectLabel} (${m.termin_splneni})`,
+        };
+      });
+
+    if (toInsert.length > 0) {
+      const { error: insertError } = await admin.from("notifications").insert(toInsert);
+      if (!insertError) pushCreated = toInsert.length;
+    }
+  }
+
+  return NextResponse.json({ checkedConfigs: allRows.length, sent, failed, pushCreated });
 }

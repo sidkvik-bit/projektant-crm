@@ -1,17 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
 import { writeFileSync, mkdirSync } from "node:fs";
 import path from "node:path";
+import { TEST_EMAIL, TEST_PASSWORD, TEST_ORG_NAME, buildAuthCookie } from "./lib/testAuth";
 
 // Testovací účet je vytvořen přímo přes Supabase Admin API a session je vložena
 // jako cookie stejného formátu, jaký píše @supabase/ssr — obchází se tak Google
 // OAuth (nejde automatizovat), aniž by šlo o hack mimo standardní auth flow.
-const TEST_EMAIL = "e2e-tester@projektant-crm.test";
-const TEST_PASSWORD = "E2eTest!Passw0rd2026";
-const TEST_ORG_NAME = "E2E Test Org";
-
-function projectRefFromUrl(url: string) {
-  return new URL(url).hostname.split(".")[0];
-}
 
 async function ensureOrganization(admin: ReturnType<typeof createClient>) {
   const { data: existing } = await admin
@@ -154,10 +148,33 @@ async function seedBusinessData(
     },
   ]);
 
-  // PUSH notifikace na milník výše — testuje se generování zvonečku.
+  // PUSH notifikace na milník výše (v budoucnu — nemá se ještě spustit).
   await admin.from("notifications_config").insert({
     organization_id: organizationId,
     milestone_id: milestone.id,
+    recipient_user_id: userId,
+    type: "PUSH",
+    dni_predem: 3,
+  });
+
+  // Druhý, už PO TERMÍNU milník s PUSH konfigurací — cron by na něj měl
+  // vygenerovat zvoneček (viz e2e/tests/notifications.spec.ts).
+  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const { data: overdueMilestone, error: overdueMsErr } = await admin
+    .from("project_milestones")
+    .insert({
+      organization_id: organizationId,
+      project_id: project.id,
+      name: "DSP (test — po termínu)",
+      termin_splneni: yesterday,
+    })
+    .select("id")
+    .single();
+  if (overdueMsErr) throw overdueMsErr;
+
+  await admin.from("notifications_config").insert({
+    organization_id: organizationId,
+    milestone_id: overdueMilestone.id,
     recipient_user_id: userId,
     type: "PUSH",
     dni_predem: 3,
@@ -171,14 +188,13 @@ async function buildStorageState(anonUrl: string, anonKey: string, email: string
   const { data, error } = await anon.auth.signInWithPassword({ email, password });
   if (error || !data.session) throw error ?? new Error("Přihlášení testovacího uživatele selhalo");
 
-  const cookieName = `sb-${projectRefFromUrl(anonUrl)}-auth-token`;
-  const cookieValue = "base64-" + Buffer.from(JSON.stringify(data.session)).toString("base64url");
+  const cookie = buildAuthCookie(anonUrl, data.session);
 
   return {
     cookies: [
       {
-        name: cookieName,
-        value: cookieValue,
+        name: cookie.name,
+        value: cookie.value,
         domain: "localhost",
         path: "/",
         expires: -1,

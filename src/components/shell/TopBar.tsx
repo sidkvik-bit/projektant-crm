@@ -70,7 +70,7 @@ export function TopBar({
               <DropdownMenuItem
                 key={n.id}
                 className="flex flex-col items-start gap-0.5 whitespace-normal py-2"
-                onSelect={() => {
+                onClick={() => {
                   if (n.is_read) return;
                   setItems((prev) => prev.map((x) => (x.id === n.id ? { ...x, is_read: true } : x)));
                   startTransition(() => onMarkRead(n.id));
@@ -109,7 +109,7 @@ export function TopBar({
           <DropdownMenuItem
             variant="destructive"
             disabled={isPending}
-            onSelect={() => startTransition(() => onSignOut())}
+            onClick={() => startTransition(() => onSignOut())}
           >
             <LogOut />
             Odhlásit se
