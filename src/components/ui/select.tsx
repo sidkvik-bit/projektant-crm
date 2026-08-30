@@ -63,7 +63,10 @@ function SelectContent({
   sideOffset = 4,
   align = "center",
   alignOffset = 0,
-  alignItemWithTrigger = true,
+  // Default off: aligning the selected item with the trigger makes the popup open
+  // overlapping the field (native-<select>-like). A plain dropdown below the field
+  // reads clearer for a combobox used throughout business forms like this one.
+  alignItemWithTrigger = false,
   ...props
 }: SelectPrimitive.Popup.Props &
   Pick<
