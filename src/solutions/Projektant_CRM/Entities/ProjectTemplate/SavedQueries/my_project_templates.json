@@ -1,0 +1,12 @@
+{
+  "entity": "ProjectTemplate",
+  "name": "my_project_templates",
+  "label": "Moje šablony",
+  "columns": [
+    { "field": "name" },
+    { "field": "status_reason", "label": "Stav" },
+    { "field": "owner", "label": "Vlastník" }
+  ],
+  "defaultSort": { "field": "created_at", "direction": "desc" },
+  "filters": [{ "field": "owner_id", "value": "$currentUser" }]
+}

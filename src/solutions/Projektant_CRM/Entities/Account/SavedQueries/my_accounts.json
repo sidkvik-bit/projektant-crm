@@ -1,0 +1,14 @@
+{
+  "entity": "Account",
+  "name": "my_accounts",
+  "label": "Moje obchodní vztahy",
+  "columns": [
+    { "field": "name" },
+    { "field": "ico", "label": "IČO" },
+    { "field": "phone", "label": "Telefon" },
+    { "field": "status_reason", "label": "Stav" },
+    { "field": "owner", "label": "Vlastník" }
+  ],
+  "defaultSort": { "field": "created_at", "direction": "desc" },
+  "filters": [{ "field": "owner_id", "value": "$currentUser" }]
+}

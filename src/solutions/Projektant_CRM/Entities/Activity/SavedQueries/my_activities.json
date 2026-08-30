@@ -1,0 +1,14 @@
+{
+  "entity": "Activity",
+  "name": "my_activities",
+  "label": "Moje aktivity",
+  "columns": [
+    { "field": "subject" },
+    { "field": "activity_type", "label": "Typ" },
+    { "field": "entity_type", "label": "Vztahuje se k" },
+    { "field": "activity_date", "label": "Datum" },
+    { "field": "owner", "label": "Vlastník" }
+  ],
+  "defaultSort": { "field": "activity_date", "direction": "desc" },
+  "filters": [{ "field": "owner_id", "value": "$currentUser" }]
+}

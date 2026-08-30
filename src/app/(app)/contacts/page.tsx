@@ -2,7 +2,8 @@ import { EntityListPage } from "@/engine/EntityListPage";
 import type { EntityDefinition, ViewDefinition } from "@/engine/types";
 
 import entity from "@/solutions/Projektant_CRM/Entities/Contact/Entity.json";
-import view from "@/solutions/Projektant_CRM/Entities/Contact/SavedQueries/active_contacts.json";
+import activeView from "@/solutions/Projektant_CRM/Entities/Contact/SavedQueries/active_contacts.json";
+import myView from "@/solutions/Projektant_CRM/Entities/Contact/SavedQueries/my_contacts.json";
 
 export default async function ContactsPage({
   searchParams,
@@ -12,7 +13,7 @@ export default async function ContactsPage({
   return (
     <EntityListPage
       entity={entity as EntityDefinition}
-      view={view as ViewDefinition}
+      views={[activeView, myView] as ViewDefinition[]}
       select="id, first_name, last_name, email, status, created_at, account:accounts(name), profese:option_set_values!contacts_profese_id_fkey(label), status_reason:option_set_values!contacts_status_reason_id_fkey(label)"
       basePath="/contacts"
       newLabel="Nový kontakt"

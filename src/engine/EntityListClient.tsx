@@ -7,6 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -45,6 +52,7 @@ const STATUS_FILTERS = [
 export function EntityListClient({
   entity,
   view,
+  views,
   rows,
   basePath,
   newLabel,
@@ -53,6 +61,8 @@ export function EntityListClient({
 }: {
   entity: EntityDefinition;
   view: ViewDefinition;
+  /** Všechny dostupné views pro přepínač — jen jedna položka, dokud nejde vidět. */
+  views: ViewDefinition[];
   rows: Record<string, unknown>[];
   basePath: string;
   newLabel?: string;
@@ -164,6 +174,27 @@ export function EntityListClient({
   return (
     <div>
       <CommandBar>
+        {views.length > 1 && (
+          <>
+            <Select
+              items={Object.fromEntries(views.map((v) => [v.name, v.label]))}
+              value={view.name}
+              onValueChange={(v) => v && updateParams({ view: v === views[0].name ? null : v })}
+            >
+              <SelectTrigger className="h-8 border-none bg-transparent font-medium shadow-none hover:bg-muted">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {views.map((v) => (
+                  <SelectItem key={v.name} value={v.name}>
+                    {v.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <CommandBarSeparator />
+          </>
+        )}
         {newLabel && <CommandBarButton icon={Plus} label={newLabel} href={`${basePath}/new`} />}
         {isImportable && (
           <CommandBarButton icon={FileSpreadsheet} label="Import z Excelu" href={`/import?entity=${entity.name}`} />

@@ -3,7 +3,8 @@ import { formatUserName } from "@/engine/users";
 import type { EntityDefinition, ViewDefinition } from "@/engine/types";
 
 import entity from "@/solutions/Projektant_CRM/Entities/Project/Entity.json";
-import view from "@/solutions/Projektant_CRM/Entities/Project/SavedQueries/active_projects.json";
+import activeView from "@/solutions/Projektant_CRM/Entities/Project/SavedQueries/active_projects.json";
+import myView from "@/solutions/Projektant_CRM/Entities/Project/SavedQueries/my_projects.json";
 
 export default async function ProjectsPage({
   searchParams,
@@ -13,7 +14,7 @@ export default async function ProjectsPage({
   return (
     <EntityListPage
       entity={entity as EntityDefinition}
-      view={view as ViewDefinition}
+      views={[activeView, myView] as ViewDefinition[]}
       select="id, name, deadline, status, created_at, account:accounts(name), status_reason:option_set_values!projects_status_reason_id_fkey(label), owner:users!projects_owner_id_fkey(first_name, last_name, email)"
       basePath="/projects"
       newLabel="Nový projekt"

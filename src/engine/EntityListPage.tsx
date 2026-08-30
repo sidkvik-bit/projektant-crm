@@ -6,7 +6,8 @@ import type { EntityDefinition, ViewDefinition } from "./types";
 
 export interface EntityListPageProps {
   entity: EntityDefinition;
-  view: ViewDefinition;
+  /** První view je výchozí. Přepínání jde přes ?view=<name>, viz EntityListClient. */
+  views: ViewDefinition[];
   select: string;
   basePath: string;
   /** Vynech, pokud entita nemá mít samostatný "+ Nový" formulář (zakládá se jen kontextově). */
@@ -50,7 +51,7 @@ function applyColumnFilter<Q extends FilterableQuery<Q>>(query: Q, field: string
 
 export async function EntityListPage({
   entity,
-  view,
+  views,
   select,
   basePath,
   newLabel,
@@ -61,6 +62,7 @@ export async function EntityListPage({
   const supabase = await createClient();
   const params = (await searchParams) ?? {};
   const status = params.status ?? "active";
+  const view = views.find((v) => v.name === params.view) ?? views[0];
 
   let query = supabase.from(entity.table).select(select);
   if (status !== "all") {
@@ -68,6 +70,16 @@ export async function EntityListPage({
   }
   if (params.q) {
     query = applyColumnFilter(query, entity.primaryField, "contains", params.q);
+  }
+
+  if (view.filters?.length) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    for (const f of view.filters) {
+      const value = f.value === "$currentUser" ? (user?.id ?? "") : f.value;
+      if (value) query = applyColumnFilter(query, f.field, "eq", value);
+    }
   }
 
   // Filtry na jednotlivých sloupcích (cf_<pole>=<operátor>|<hodnota>) — jen na skutečných
@@ -103,6 +115,7 @@ export async function EntityListPage({
       <EntityListClient
         entity={entity}
         view={view}
+        views={views}
         rows={rows}
         basePath={basePath}
         newLabel={newLabel}

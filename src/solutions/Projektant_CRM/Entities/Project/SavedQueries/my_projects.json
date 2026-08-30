@@ -1,0 +1,14 @@
+{
+  "entity": "Project",
+  "name": "my_projects",
+  "label": "Moje projekty",
+  "columns": [
+    { "field": "name" },
+    { "field": "account", "label": "Klient" },
+    { "field": "status_reason", "label": "Fáze" },
+    { "field": "deadline", "label": "Deadline" },
+    { "field": "owner", "label": "Vlastník" }
+  ],
+  "defaultSort": { "field": "created_at", "direction": "desc" },
+  "filters": [{ "field": "owner_id", "value": "$currentUser" }]
+}

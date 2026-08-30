@@ -75,4 +75,7 @@ export interface ViewDefinition {
   label: string;
   columns: ViewColumn[];
   defaultSort?: { field: string; direction: "asc" | "desc" };
+  /** Filtry pevně dané view (na rozdíl od sloupcových filtrů, co si nastaví uživatel).
+   * `value: "$currentUser"` se dosadí za id přihlášeného uživatele. */
+  filters?: { field: string; value: string }[];
 }

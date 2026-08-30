@@ -1,0 +1,15 @@
+{
+  "entity": "Lead",
+  "name": "my_leads",
+  "label": "Moji zájemci",
+  "columns": [
+    { "field": "name" },
+    { "field": "company_name", "label": "Firma" },
+    { "field": "status_reason", "label": "Stav" },
+    { "field": "expected_value", "label": "Očekávaná hodnota" },
+    { "field": "owner", "label": "Vlastník" },
+    { "field": "created_at", "label": "Vytvořeno" }
+  ],
+  "defaultSort": { "field": "created_at", "direction": "desc" },
+  "filters": [{ "field": "owner_id", "value": "$currentUser" }]
+}

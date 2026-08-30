@@ -1,0 +1,15 @@
+{
+  "entity": "Contact",
+  "name": "my_contacts",
+  "label": "Moje kontakty",
+  "columns": [
+    { "field": "first_name", "label": "Jméno" },
+    { "field": "last_name", "label": "Příjmení" },
+    { "field": "account", "label": "Obchodní vztah" },
+    { "field": "profese", "label": "Profese" },
+    { "field": "email" },
+    { "field": "status_reason", "label": "Stav" }
+  ],
+  "defaultSort": { "field": "created_at", "direction": "desc" },
+  "filters": [{ "field": "owner_id", "value": "$currentUser" }]
+}

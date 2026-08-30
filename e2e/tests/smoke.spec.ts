@@ -182,6 +182,24 @@ test("grid bulk delete: select rows via checkbox and delete them", async ({ page
   await expect(page.getByText(name)).toHaveCount(0);
 });
 
+test("view switcher: switching to 'Moje' scopes the grid to records owned by the current user", async ({
+  page,
+}) => {
+  await page.goto("/accounts");
+  const viewSwitcher = page.getByRole("combobox").first();
+  await expect(viewSwitcher).toContainText("Aktivní obchodní vztahy");
+  const rowsBefore = await page.locator("table tbody tr").count();
+  expect(rowsBefore).toBeGreaterThan(0);
+
+  await viewSwitcher.click();
+  await page.getByRole("option", { name: "Moje obchodní vztahy" }).click();
+  await page.waitForURL(/view=my_accounts/);
+
+  // seeded test data is all owned by the test user, so the "Moje" view should show the same rows
+  await expect(page.locator("table tbody tr")).toHaveCount(rowsBefore);
+  await expect(viewSwitcher).toContainText("Moje obchodní vztahy");
+});
+
 test("export to Excel downloads a file with all entity columns", async ({ page }) => {
   await page.goto("/accounts");
   const [download] = await Promise.all([
