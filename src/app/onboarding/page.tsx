@@ -12,7 +12,7 @@ export default async function OnboardingPage() {
   if (!user) redirect("/login");
 
   const { data: prefs } = await supabase
-    .from("user_preferences")
+    .from("users")
     .select("user_id")
     .eq("user_id", user.id)
     .maybeSingle();

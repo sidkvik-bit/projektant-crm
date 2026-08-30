@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { extractProfileFields } from "@/lib/googleProfile";
 
 export async function joinOrganization(organizationId: string) {
   const supabase = await createClient();
@@ -23,9 +24,10 @@ export async function joinOrganization(organizationId: string) {
     throw new Error("Pozvánka k této organizaci nebyla nalezena.");
   }
 
-  const { error: prefsError } = await supabase.from("user_preferences").insert({
+  const { error: prefsError } = await supabase.from("users").insert({
     user_id: user.id,
     organization_id: invite.organization_id,
+    ...extractProfileFields(user),
   });
   if (prefsError) throw prefsError;
 
@@ -50,9 +52,10 @@ export async function completeOnboarding(organizationName: string) {
     .single();
   if (orgError) throw orgError;
 
-  const { error: prefsError } = await admin.from("user_preferences").insert({
+  const { error: prefsError } = await admin.from("users").insert({
     user_id: user.id,
     organization_id: org.id,
+    ...extractProfileFields(user),
   });
   if (prefsError) throw prefsError;
 

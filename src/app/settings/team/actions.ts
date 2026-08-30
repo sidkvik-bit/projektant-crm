@@ -11,7 +11,7 @@ export async function inviteMember(email: string) {
   if (!user) throw new Error("Nepřihlášeno.");
 
   const { data: prefs } = await supabase
-    .from("user_preferences")
+    .from("users")
     .select("organization_id")
     .eq("user_id", user.id)
     .single();
