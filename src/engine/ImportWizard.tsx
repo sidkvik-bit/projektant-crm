@@ -92,12 +92,19 @@ function scalarFieldSchema(field: FieldDefinition): z.ZodTypeAny {
     default:
       schema = z.string();
   }
-  if (field.required) {
-    if (schema instanceof z.ZodString) schema = schema.min(1, "Povinné pole");
-  } else {
-    schema = schema.nullable().optional();
+
+  const isBlank = (v: unknown) => v === undefined || v === null || v === "";
+
+  if (!field.required) {
+    return z.preprocess((v) => (isBlank(v) ? undefined : v), schema.nullable().optional());
   }
-  return schema;
+
+  // Check blankness up front so a missing required cell reports "Povinné pole"
+  // instead of the type coercion's generic "expected string, received undefined".
+  return z
+    .any()
+    .refine((v) => !isBlank(v), { message: "Povinné pole" })
+    .pipe(schema);
 }
 
 type Step = "entity" | "upload" | "map" | "review" | "done";
@@ -330,6 +337,10 @@ export function ImportWizard({ defaultEntityName }: { defaultEntityName?: string
                 <span className="w-48 shrink-0 truncate text-sm font-medium">{header}</span>
                 <ArrowRight className="size-4 shrink-0 text-muted-foreground" />
                 <Select
+                  items={{
+                    __ignore__: "Nepoužívat",
+                    ...Object.fromEntries(entity.fields.map((f) => [f.name, f.label])),
+                  }}
                   value={mapping[header] || "__ignore__"}
                   onValueChange={(v) => setMapping((prev) => ({ ...prev, [header]: v === "__ignore__" ? "" : (v ?? "") }))}
                 >
