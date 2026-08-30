@@ -23,7 +23,7 @@ export const mainNav: NavItem[] = [
   { label: "Můj den", href: "/dashboard", icon: LayoutDashboard },
   { label: "Kanban", href: "/kanban", icon: KanbanSquare },
   { label: "Zájemci", href: "/leads", icon: Target },
-  { label: "Firmy", href: "/accounts", icon: Building2 },
+  { label: "Obchodní vztahy", href: "/accounts", icon: Building2 },
   { label: "Kontakty", href: "/contacts", icon: Users },
   { label: "Projekty", href: "/projects", icon: FolderKanban },
   { label: "Šablony projektů", href: "/project-templates", icon: ClipboardList },

@@ -138,7 +138,11 @@ export function FormEngine({
                         render={({ field: rhf }) => {
                           if (field.name === "status") {
                             return (
-                              <Select value={String(rhf.value ?? "active")} onValueChange={rhf.onChange}>
+                              <Select
+                                items={{ active: "Aktivní", inactive: "Neaktivní" }}
+                                value={String(rhf.value ?? "active")}
+                                onValueChange={rhf.onChange}
+                              >
                                 <SelectTrigger id={field.name} className="w-full">
                                   <SelectValue />
                                 </SelectTrigger>
@@ -153,6 +157,7 @@ export function FormEngine({
                           if (field.type === "optionset") {
                             return (
                               <Select
+                                items={Object.fromEntries(options.map((opt) => [opt.id, opt.label]))}
                                 value={rhf.value ? String(rhf.value) : ""}
                                 onValueChange={rhf.onChange}
                                 disabled={field.readOnly}
@@ -174,6 +179,7 @@ export function FormEngine({
                           if (field.type === "lookup") {
                             return (
                               <Select
+                                items={Object.fromEntries(lookups.map((opt) => [opt.id, opt.label]))}
                                 value={rhf.value ? String(rhf.value) : ""}
                                 onValueChange={rhf.onChange}
                                 disabled={field.readOnly}

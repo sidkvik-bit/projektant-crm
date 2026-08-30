@@ -157,7 +157,11 @@ function NotificationDialog({
         <div className="space-y-4 py-2">
           <div className="space-y-1.5">
             <Label>Typ</Label>
-            <Select value={type} onValueChange={(v) => setType(v as "EMAIL" | "PUSH")}>
+            <Select
+              items={{ EMAIL: "E-mail", PUSH: "Zvoneček (PUSH)" }}
+              value={type}
+              onValueChange={(v) => setType(v as "EMAIL" | "PUSH")}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
@@ -178,7 +182,11 @@ function NotificationDialog({
           </div>
           <div className="space-y-1.5">
             <Label>Příjemce</Label>
-            <Select value={recipient} onValueChange={(v) => setRecipient(v ?? "")}>
+            <Select
+              items={Object.fromEntries(userOptions.map((u) => [u.id, u.label]))}
+              value={recipient}
+              onValueChange={(v) => setRecipient(v ?? "")}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Vyberte…" />
               </SelectTrigger>

@@ -1,7 +1,7 @@
 {
   "entity": "Account",
   "name": "active_accounts",
-  "label": "Aktivní firmy",
+  "label": "Aktivní obchodní vztahy",
   "columns": [
     { "field": "name" },
     { "field": "ico", "label": "IČO" },

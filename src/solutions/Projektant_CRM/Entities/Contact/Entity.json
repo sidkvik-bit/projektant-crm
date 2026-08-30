@@ -6,7 +6,7 @@
   "primaryField": "first_name",
   "statusReasonOptionSetKey": "contact_status_reason",
   "fields": [
-    { "name": "account_id", "label": "Firma", "type": "lookup", "targetEntity": "Account", "required": true },
+    { "name": "account_id", "label": "Obchodní vztah", "type": "lookup", "targetEntity": "Account" },
     { "name": "first_name", "label": "Jméno", "type": "text", "required": true },
     { "name": "last_name", "label": "Příjmení", "type": "text" },
     { "name": "email", "label": "E-mail", "type": "email" },

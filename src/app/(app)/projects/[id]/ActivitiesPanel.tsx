@@ -93,7 +93,11 @@ export function ActivitiesPanel({
           </div>
           <div className="w-48 space-y-1.5">
             <Label>Typ</Label>
-            <Select value={typeId} onValueChange={(v) => setTypeId(v ?? "")}>
+            <Select
+              items={Object.fromEntries(activityTypes.map((t) => [t.id, t.label]))}
+              value={typeId}
+              onValueChange={(v) => setTypeId(v ?? "")}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Vyberte…" />
               </SelectTrigger>

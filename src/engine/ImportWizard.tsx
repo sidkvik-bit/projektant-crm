@@ -263,7 +263,11 @@ export function ImportWizard({ defaultEntityName }: { defaultEntityName?: string
       {step === "entity" && (
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">Do které tabulky chceš data importovat?</p>
-          <Select value={entityName} onValueChange={(v) => v && setEntityName(v)}>
+          <Select
+            items={Object.fromEntries(importableEntities.map((e) => [e.name, e.displayNamePlural]))}
+            value={entityName}
+            onValueChange={(v) => v && setEntityName(v)}
+          >
             <SelectTrigger className="w-full max-w-xs">
               <SelectValue />
             </SelectTrigger>

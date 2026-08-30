@@ -7,7 +7,7 @@ import view from "@/solutions/Projektant_CRM/Entities/Activity/SavedQueries/acti
 
 const ENTITY_TYPE_LABELS: Record<string, string> = {
   Lead: "Zájemce",
-  Account: "Firma",
+  Account: "Obchodní vztah",
   Contact: "Kontakt",
   Project: "Projekt",
 };

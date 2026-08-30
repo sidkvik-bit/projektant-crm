@@ -98,7 +98,7 @@ export default async function DashboardPage() {
           <div className="flex flex-col gap-2">
             <Button variant="outline" render={<Link href="/leads/new">Nový zájemce</Link>} />
             <Button variant="outline" render={<Link href="/projects/new">Nový projekt</Link>} />
-            <Button variant="outline" render={<Link href="/accounts/new">Nová firma</Link>} />
+            <Button variant="outline" render={<Link href="/accounts/new">Nový obchodní vztah</Link>} />
             <Button variant="outline" render={<Link href="/contacts/new">Nový kontakt</Link>} />
           </div>
         </Column>

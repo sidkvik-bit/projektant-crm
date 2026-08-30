@@ -8,6 +8,13 @@ node_modules/
 /coverage
 *.pem
 
+# Playwright
+/e2e/.auth/
+/e2e/report/
+/test-results/
+/playwright-report/
+/blob-report/
+
 # Next.js
 .next/
 out/

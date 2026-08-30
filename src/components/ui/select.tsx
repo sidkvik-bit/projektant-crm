@@ -99,12 +99,16 @@ function SelectLabel({
   className,
   ...props
 }: SelectPrimitive.GroupLabel.Props) {
+  // Select.GroupLabel requires a <Select.Group> ancestor even for a standalone
+  // heading — wrap it so call sites don't need to know that (see DropdownMenuLabel).
   return (
-    <SelectPrimitive.GroupLabel
-      data-slot="select-label"
-      className={cn("px-1.5 py-1 text-xs text-muted-foreground", className)}
-      {...props}
-    />
+    <SelectPrimitive.Group>
+      <SelectPrimitive.GroupLabel
+        data-slot="select-label"
+        className={cn("px-1.5 py-1 text-xs text-muted-foreground", className)}
+        {...props}
+      />
+    </SelectPrimitive.Group>
   )
 }
 
