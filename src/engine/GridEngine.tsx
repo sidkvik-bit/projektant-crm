@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Table,
   TableBody,
@@ -8,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 import type { EntityDefinition, ViewDefinition, FieldDefinition } from "./types";
 
@@ -71,6 +75,7 @@ export function GridEngine<T extends Record<string, unknown>>({
   basePath,
   emptyLabel = "Žádné záznamy",
 }: GridEngineProps<T>) {
+  const router = useRouter();
   const columns = view.columns.map((col) => ({
     ...col,
     field: resolveColumnField(entity, col.field),
@@ -96,28 +101,39 @@ export function GridEngine<T extends Record<string, unknown>>({
               </TableCell>
             </TableRow>
           ) : (
-            rows.map((row, i) => (
-              <TableRow key={(row.id as string) ?? i} className="transition-colors hover:bg-accent/40">
-                {columns.map((col) => {
-                  const value = formatValue(col.field, row[col.field.name]);
-                  const isPrimary = col.field.name === entity.primaryField;
-                  return (
-                    <TableCell key={col.field.name}>
-                      {isPrimary && basePath ? (
-                        <Link
-                          href={`${basePath}/${row.id}`}
-                          className="font-medium text-foreground hover:text-primary hover:underline"
-                        >
-                          {value}
-                        </Link>
-                      ) : (
-                        value
-                      )}
-                    </TableCell>
-                  );
-                })}
-              </TableRow>
-            ))
+            rows.map((row, i) => {
+              const href = basePath ? `${basePath}/${row.id}` : undefined;
+              return (
+                <TableRow
+                  key={(row.id as string) ?? i}
+                  className={cn(
+                    "transition-colors hover:bg-accent/40",
+                    href && "cursor-pointer",
+                  )}
+                  onClick={href ? () => router.push(href) : undefined}
+                >
+                  {columns.map((col) => {
+                    const value = formatValue(col.field, row[col.field.name]);
+                    const isPrimary = col.field.name === entity.primaryField;
+                    return (
+                      <TableCell key={col.field.name}>
+                        {isPrimary && href ? (
+                          <Link
+                            href={href}
+                            className="font-medium text-foreground hover:text-primary hover:underline"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {value}
+                          </Link>
+                        ) : (
+                          value
+                        )}
+                      </TableCell>
+                    );
+                  })}
+                </TableRow>
+              );
+            })
           )}
         </TableBody>
       </Table>

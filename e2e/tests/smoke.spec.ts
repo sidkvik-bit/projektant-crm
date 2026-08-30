@@ -51,7 +51,8 @@ test("can open an individual contact record from the grid", async ({ page }) => 
     /^\/contacts\/[0-9a-f-]{36}$/,
   );
   await firstRowLink.click();
-  await expect(page.getByRole("button", { name: /Uložit změny/i })).toBeVisible();
+  // Untouched record -> form isn't dirty -> top bar shows "Zavřít" (Save/Save&Close only appear once dirty).
+  await expect(page.getByRole("button", { name: "Zavřít" })).toBeVisible();
   expect(errors, `errors opening contact:\n${errors.join("\n")}`).toEqual([]);
 });
 
@@ -61,7 +62,7 @@ test("contact without an account (Eva Volná) opens fine and account field is op
   const errors = trackErrors(page);
   await page.goto("/contacts");
   await page.getByRole("link", { name: "Eva" }).click();
-  await expect(page.getByRole("button", { name: /Uložit změny/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Zavřít" })).toBeVisible();
   // required fields render an asterisk/marker next to the label in FormEngine — Obchodní vztah must not have one
   const accountLabel = page.getByText("Obchodní vztah", { exact: false }).first();
   await expect(accountLabel).toBeVisible();
@@ -74,7 +75,7 @@ test("can create a new contact with no account selected", async ({ page }) => {
   await page.goto("/contacts/new");
   await page.getByLabel(/Jméno/i).fill("Testovací");
   await page.getByLabel(/Příjmení/i).fill("Kontakt E2E");
-  await page.getByRole("button", { name: /Vytvořit/i }).click();
+  await page.getByRole("button", { name: "Vytvořit", exact: true }).click();
   await page.waitForURL(/\/contacts(\/[0-9a-f-]{36})?$/, { timeout: 10_000 });
   expect(errors, `errors creating contact:\n${errors.join("\n")}`).toEqual([]);
 });
@@ -118,12 +119,13 @@ for (const { path: listPath, hasTabs } of RECORD_LIST_PATHS) {
     await firstRowLink.click();
 
     // Project's detail page opens on its Milníky tab by default — the edit form
-    // (and its "Uložit změny" button) only mounts once the Obecné tab is active.
+    // (and its top command bar) only mounts once the Obecné tab is active.
     if (hasTabs) {
       await page.getByRole("tab", { name: /Obecné/i }).click();
     }
 
-    await expect(page.getByRole("button", { name: /Uložit změny/i })).toBeVisible();
+    // Untouched record -> form isn't dirty -> top bar shows "Zavřít".
+    await expect(page.getByRole("button", { name: "Zavřít" })).toBeVisible();
 
     // Regression: Select.Value must resolve lookup/optionset labels, not show raw ids.
     const bodyText = await page.locator("body").innerText();
@@ -132,3 +134,46 @@ for (const { path: listPath, hasTabs } of RECORD_LIST_PATHS) {
     expect(errors, `errors opening record from ${listPath}:\n${errors.join("\n")}`).toEqual([]);
   });
 }
+
+test("clicking anywhere in a grid row (not just the name) opens the record", async ({ page }) => {
+  await page.goto("/accounts");
+  const firstRow = page.locator("table tbody tr").first();
+  await expect(firstRow).toBeVisible();
+  // click a non-link cell in the row (e.g. the IČO column), not the name hyperlink
+  await firstRow.locator("td").nth(1).click();
+  await page.waitForURL(/\/accounts\/[0-9a-f-]{36}$/);
+});
+
+test("editing a field reveals Save / Save & Close, and Save & Close returns to the list", async ({
+  page,
+}) => {
+  await page.goto("/accounts");
+  await page.locator("table tbody tr a").first().click();
+  await page.waitForURL(/\/accounts\/[0-9a-f-]{36}$/);
+
+  await expect(page.getByRole("button", { name: "Zavřít" })).toBeVisible();
+  // must differ from whatever the field already holds (e.g. from a previous run of this same test)
+  // for react-hook-form's isDirty to actually flip true.
+  await page.getByLabel(/Obor/i).fill(`E2E test obor ${Math.random().toString(36).slice(2, 8)}`);
+
+  const saveButton = page.getByRole("button", { name: "Uložit změny", exact: true });
+  const saveAndCloseButton = page.getByRole("button", { name: "Uložit změny a zavřít" });
+  await expect(saveButton).toBeVisible();
+  await expect(saveAndCloseButton).toBeVisible();
+  await expect(page.getByRole("button", { name: "Zavřít", exact: true })).toHaveCount(0);
+
+  await saveAndCloseButton.click();
+  await page.waitForURL(/\/accounts$/, { timeout: 10_000 });
+});
+
+test("a set lookup renders a link to open the related record", async ({ page }) => {
+  await page.goto("/projects");
+  await page.locator("table tbody tr a").first().click();
+  await page.getByRole("tab", { name: /Obecné/i }).click();
+
+  const accountRow = page.locator("div.space-y-1\\.5", { hasText: "Klient" });
+  const openLink = accountRow.getByTitle("Otevřít záznam");
+  await expect(openLink).toBeVisible();
+  await openLink.click();
+  await page.waitForURL(/\/accounts\/[0-9a-f-]{36}$/);
+});

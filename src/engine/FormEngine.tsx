@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ArrowUpRight } from "lucide-react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -20,6 +23,7 @@ import {
 import type { EntityDefinition, FormDefinition, FieldDefinition } from "./types";
 import type { OptionSetValue } from "./optionSets";
 import { buildEntityZodSchema, type EntityFormValues } from "./zodSchema";
+import { entityRegistry } from "@/solutions/Projektant_CRM/registry";
 
 const STATUS_FIELD: FieldDefinition = {
   name: "status",
@@ -82,22 +86,27 @@ export function FormEngine({
 }: FormEngineProps) {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const router = useRouter();
+  const closePath = entityRegistry[entity.name]?.basePath ?? null;
 
   const schema = buildEntityZodSchema(entity);
   const {
     control,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<EntityFormValues>({
     resolver: zodResolver(schema),
     defaultValues: { status: "active", ...defaultValues },
   });
 
-  const handleValid = async (values: EntityFormValues) => {
+  const makeSubmitHandler = (closeAfter: boolean) => async (values: EntityFormValues) => {
     setSubmitting(true);
     setSubmitError(null);
     try {
       await onSubmit(values);
+      // Pro nový záznam server action sama přesměruje na nově vzniklý záznam —
+      // tahle navigace se pak nestihne uplatnit, což je v pořádku (uvidí ho hned).
+      if (closeAfter && closePath) router.push(closePath);
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : "Uložení se nezdařilo.");
     } finally {
@@ -106,7 +115,31 @@ export function FormEngine({
   };
 
   return (
-    <form onSubmit={handleSubmit(handleValid)} className="space-y-8">
+    <form onSubmit={handleSubmit(makeSubmitHandler(false))} className="space-y-8">
+      <div className="sticky top-0 z-10 -mx-6 -mt-6 mb-2 flex items-center justify-end gap-2 border-b bg-background/95 px-6 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        {submitError && <p className="mr-auto text-sm text-destructive">{submitError}</p>}
+        {isDirty ? (
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={submitting}
+              onClick={handleSubmit(makeSubmitHandler(false))}
+            >
+              {submitting ? "Ukládám…" : submitLabel}
+            </Button>
+            <Button type="button" disabled={submitting} onClick={handleSubmit(makeSubmitHandler(true))}>
+              {submitting ? "Ukládám…" : `${submitLabel} a zavřít`}
+            </Button>
+          </>
+        ) : (
+          closePath && (
+            <Button type="button" variant="outline" render={<Link href={closePath} />}>
+              Zavřít
+            </Button>
+          )
+        )}
+      </div>
       {form.tabs.map((tab) => (
         <div key={tab.label} className="space-y-6">
           <h2 className="text-lg font-semibold">{tab.label}</h2>
@@ -177,24 +210,42 @@ export function FormEngine({
                           }
 
                           if (field.type === "lookup") {
+                            const linkBasePath = field.targetEntity
+                              ? entityRegistry[field.targetEntity]?.basePath
+                              : null;
+                            const linkHref =
+                              linkBasePath && rhf.value ? `${linkBasePath}/${rhf.value}` : null;
                             return (
-                              <Select
-                                items={Object.fromEntries(lookups.map((opt) => [opt.id, opt.label]))}
-                                value={rhf.value ? String(rhf.value) : ""}
-                                onValueChange={rhf.onChange}
-                                disabled={field.readOnly}
-                              >
-                                <SelectTrigger id={field.name} className="w-full">
-                                  <SelectValue placeholder="Vyberte…" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {lookups.map((opt) => (
-                                    <SelectItem key={opt.id} value={opt.id}>
-                                      {opt.label}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                              <div className="flex items-center gap-1.5">
+                                <Select
+                                  items={Object.fromEntries(lookups.map((opt) => [opt.id, opt.label]))}
+                                  value={rhf.value ? String(rhf.value) : ""}
+                                  onValueChange={rhf.onChange}
+                                  disabled={field.readOnly}
+                                >
+                                  <SelectTrigger id={field.name} className="w-full">
+                                    <SelectValue placeholder="Vyberte…" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {lookups.map((opt) => (
+                                      <SelectItem key={opt.id} value={opt.id}>
+                                        {opt.label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                {linkHref && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    className="shrink-0"
+                                    title="Otevřít záznam"
+                                    render={<Link href={linkHref} />}
+                                  >
+                                    <ArrowUpRight className="size-4" />
+                                  </Button>
+                                )}
+                              </div>
                             );
                           }
 
@@ -255,11 +306,6 @@ export function FormEngine({
         </div>
       ))}
 
-      {submitError && <p className="text-sm text-destructive">{submitError}</p>}
-
-      <Button type="submit" disabled={submitting}>
-        {submitting ? "Ukládám…" : submitLabel}
-      </Button>
     </form>
   );
 }

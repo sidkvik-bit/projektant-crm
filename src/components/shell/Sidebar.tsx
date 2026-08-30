@@ -4,9 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Building } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { mainNav, settingsNav } from "./nav";
+import { navGroups, type NavItem } from "./nav";
 
-function NavLink({ item }: { item: (typeof mainNav)[number] }) {
+function NavLink({ item }: { item: NavItem }) {
   const pathname = usePathname();
   const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
   const Icon = item.icon;
@@ -43,15 +43,17 @@ export function Sidebar({ organizationName }: { organizationName: string }) {
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-        {mainNav.map((item) => (
-          <NavLink key={item.href} item={item} />
-        ))}
-
-        <p className="px-3 pb-1 pt-4 text-xs font-medium uppercase tracking-wide text-sidebar-foreground/40">
-          Nastavení
-        </p>
-        {settingsNav.map((item) => (
-          <NavLink key={item.href} item={item} />
+        {navGroups.map((group, i) => (
+          <div key={group.label} className={i > 0 ? "pt-4" : undefined}>
+            <p className="px-3 pb-1 text-xs font-medium uppercase tracking-wide text-sidebar-foreground/40">
+              {group.label}
+            </p>
+            <div className="space-y-1">
+              {group.items.map((item) => (
+                <NavLink key={item.href} item={item} />
+              ))}
+            </div>
+          </div>
         ))}
       </nav>
     </aside>
