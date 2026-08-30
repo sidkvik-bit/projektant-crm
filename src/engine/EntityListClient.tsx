@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { Plus, FileSpreadsheet, Trash2, RefreshCw, Search } from "lucide-react";
+import { Plus, FileSpreadsheet, Trash2, RefreshCw, Search, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -17,8 +17,10 @@ import {
 } from "@/components/ui/dialog";
 import { CommandBar, CommandBarButton, CommandBarSeparator } from "@/components/shell/CommandBar";
 import { GridEngine } from "./GridEngine";
+import { ColumnPicker } from "./ColumnPicker";
 import type { ColumnFilter } from "./ColumnFilterPopover";
 import { bulkDeleteEntityRecords } from "./entityActions";
+import { exportEntityToExcel } from "./exportToExcel";
 import type { EntityDefinition, ViewDefinition } from "./types";
 
 const COLUMN_FILTER_PREFIX = "cf_";
@@ -66,6 +68,33 @@ export function EntityListClient({
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [q, setQ] = useState(searchParams.get("q") ?? "");
   const [, startTransition] = useTransition();
+
+  const columnStorageKey = `columns:${entity.name}`;
+  const defaultColumns = view.columns.map((c) => c.field);
+  const allColumnOptions = [
+    ...view.columns.map((c) => ({ field: c.field, label: c.label ?? c.field })),
+    ...entity.fields
+      .filter((f) => !view.columns.some((c) => c.field === f.name))
+      .map((f) => ({ field: f.name, label: f.label })),
+  ];
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(defaultColumns);
+
+  // Reads client-only localStorage after mount to avoid an SSR/hydration mismatch (same
+  // reasoning as RecordNavigator's sessionStorage read).
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(columnStorageKey);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (stored) setVisibleColumns(JSON.parse(stored));
+    } catch {
+      // localStorage nedostupné (soukromé prohlížení) — zůstane výchozí sada sloupců
+    }
+  }, [columnStorageKey]);
+
+  const effectiveView: ViewDefinition = {
+    ...view,
+    columns: visibleColumns.map((field) => view.columns.find((c) => c.field === field) ?? { field }),
+  };
 
   const status = searchParams.get("status") ?? "active";
   const columnFilters = parseColumnFilters(searchParams);
@@ -118,6 +147,18 @@ export function EntityListClient({
     }
   }
 
+  const [exporting, setExporting] = useState(false);
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const ids = selectedIds.size > 0 ? Array.from(selectedIds) : rows.map((r) => r.id as string);
+      await exportEntityToExcel(entity, ids);
+    } finally {
+      setExporting(false);
+    }
+  }
+
   const selectedCount = selectedIds.size;
 
   return (
@@ -127,6 +168,12 @@ export function EntityListClient({
         {isImportable && (
           <CommandBarButton icon={FileSpreadsheet} label="Import z Excelu" href={`/import?entity=${entity.name}`} />
         )}
+        <CommandBarButton
+          icon={Download}
+          label={selectedCount > 0 ? `Exportovat (${selectedCount})` : "Exportovat do Excelu"}
+          onClick={handleExport}
+          disabled={exporting || rows.length === 0}
+        />
         <CommandBarSeparator />
         <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
           <DialogTrigger
@@ -176,25 +223,33 @@ export function EntityListClient({
           />
         </div>
 
-        {hasStatusFilter && (
-          <div className="ml-auto flex items-center gap-1">
-            {STATUS_FILTERS.map((f) => (
-              <Badge
-                key={f.value}
-                variant={status === f.value ? "default" : "outline"}
-                className="cursor-pointer select-none"
-                onClick={() => updateParams({ status: f.value === "active" ? null : f.value })}
-              >
-                {f.label}
-              </Badge>
-            ))}
-          </div>
-        )}
+        <div className="ml-auto flex items-center gap-2">
+          {hasStatusFilter && (
+            <div className="flex items-center gap-1">
+              {STATUS_FILTERS.map((f) => (
+                <Badge
+                  key={f.value}
+                  variant={status === f.value ? "default" : "outline"}
+                  className="cursor-pointer select-none"
+                  onClick={() => updateParams({ status: f.value === "active" ? null : f.value })}
+                >
+                  {f.label}
+                </Badge>
+              ))}
+            </div>
+          )}
+          <ColumnPicker
+            storageKey={columnStorageKey}
+            options={allColumnOptions}
+            visible={visibleColumns}
+            onChange={setVisibleColumns}
+          />
+        </div>
       </CommandBar>
       <div className="p-6">
         <GridEngine
           entity={entity}
-          view={view}
+          view={effectiveView}
           rows={rows}
           basePath={basePath}
           selection={{ selectedIds, onToggleRow: toggleRow, onToggleAll: toggleAll }}

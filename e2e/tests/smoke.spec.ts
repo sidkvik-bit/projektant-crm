@@ -182,6 +182,15 @@ test("grid bulk delete: select rows via checkbox and delete them", async ({ page
   await expect(page.getByText(name)).toHaveCount(0);
 });
 
+test("export to Excel downloads a file with all entity columns", async ({ page }) => {
+  await page.goto("/accounts");
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button", { name: "Exportovat do Excelu" }).click(),
+  ]);
+  expect(download.suggestedFilename()).toMatch(/Obchodní vztahy_export\.xlsx/);
+});
+
 test("grid column header filter: contains operator on a real column", async ({ page }) => {
   await page.goto("/accounts");
   await page.getByRole("button", { name: /IČO/i }).click();
@@ -265,6 +274,34 @@ test("editing a field reveals Save / Save & Close, and Save & Close returns to t
   await page.waitForURL(/\/accounts$/, { timeout: 10_000 });
 });
 
+test("picking a template on an existing project (that had none) generates its milestones", async ({
+  page,
+}) => {
+  await page.goto("/projects/new");
+  await page.getByLabel(/Název/i).fill(`E2E Update Template ${Date.now()}`);
+
+  const clientCombo = page.getByLabel(/^Klient/i);
+  await clientCombo.click();
+  await clientCombo.fill("Novák");
+  await page.locator('[data-slot="combobox-item"]').first().click();
+
+  // no template picked at creation time on purpose — Obecné (with milestones below it) opens by default
+  await page.getByRole("button", { name: "Vytvořit", exact: true }).click();
+  await page.waitForURL(/\/projects\/[0-9a-f-]{36}$/);
+  await expect(page.getByRole("heading", { name: "Úkoly / Milníky" })).toBeVisible();
+  await expect(page.getByText("Zatím žádné milníky.")).toBeVisible();
+
+  const templateCombo = page.getByLabel(/Šablona/i);
+  await expect(templateCombo).toBeEnabled();
+  await templateCombo.click();
+  await templateCombo.fill("Standard");
+  await page.locator('[data-slot="combobox-item"]').first().click();
+  await page.getByRole("button", { name: "Uložit změny", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Zavřít" })).toBeVisible();
+
+  await expect(page.getByText("Zatím žádné milníky.")).toHaveCount(0);
+});
+
 test("record navigator panel lets you browse between records without leaving the form", async ({
   page,
 }) => {
@@ -280,8 +317,14 @@ test("record navigator panel lets you browse between records without leaving the
     await toggle.click();
   }
 
+  // Regression: the flyout previously collapsed to a zero-size box (Tailwind inset-0 vs
+  // top/left conflict inside a sticky/overflow ancestor) — clicks still "worked" geometrically
+  // but nothing was actually visible. Assert real, non-trivial dimensions, not just attached.
   const navLink = page.locator(`a[href="${secondHref}"]`).first();
   await expect(navLink).toBeVisible();
+  const box = await navLink.boundingBox();
+  expect(box?.width, "navigator flyout link has zero width — panel is probably collapsed").toBeGreaterThan(50);
+  expect(box?.height, "navigator flyout link has zero height — panel is probably collapsed").toBeGreaterThan(5);
   await navLink.click();
   await page.waitForURL(new RegExp(secondHref!.replace(/\//g, "\\/") + "$"));
   expect(page.url()).not.toContain(firstHref!);

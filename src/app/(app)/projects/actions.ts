@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { createRecord, listRecords } from "@/engine/Database";
+import { createRecord, listRecords, getRecordById } from "@/engine/Database";
 import { updateEntityRecord } from "@/engine/entityActions";
 import type { EntityFormValues } from "@/engine/zodSchema";
 import entity from "@/solutions/Projektant_CRM/Entities/Project/Entity.json";
@@ -60,5 +60,32 @@ export async function createProject(values: EntityFormValues) {
 }
 
 export async function updateProject(id: string, values: EntityFormValues) {
+  const supabase = await createClient();
+
+  // project_template_id je lockOnceSet (viz Entity.json), takže sem přijde
+  // nová hodnota jen když byla předtím prázdná — šablona se poprvé vybírá až
+  // teď při editaci, ne při založení. I tak vyloučeno raději načtením
+  // aktuálního stavu, ať se milníky nevygenerují znovu při každém uložení.
+  const templateId = values.project_template_id as string | null | undefined;
+  let shouldGenerateMilestones = false;
+  if (templateId) {
+    const current = await getRecordById<{ project_template_id: string | null }>(
+      supabase,
+      entity.table,
+      id,
+      "project_template_id",
+    );
+    shouldGenerateMilestones = !current.project_template_id;
+  }
+
   await updateEntityRecord(entity.table, BASE_PATH, id, values);
+
+  if (shouldGenerateMilestones && templateId) {
+    await generateMilestonesFromTemplate(
+      supabase,
+      id,
+      templateId,
+      (values.datum_zahajeni as string | null) ?? null,
+    );
+  }
 }
