@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import { googleOAuthOptions } from "@/lib/googleOAuthOptions";
 
 export default function LoginPage() {
   const supabase = createClient();
@@ -9,7 +10,7 @@ export default function LoginPage() {
   async function handleLogin() {
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: googleOAuthOptions(`${window.location.origin}/auth/callback`),
     });
   }
 
