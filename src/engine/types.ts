@@ -13,7 +13,8 @@ export type FieldType =
   | "datetime"
   | "boolean"
   | "lookup"
-  | "optionset";
+  | "optionset"
+  | "image";
 
 export interface FieldDefinition {
   /** Musí odpovídat názvu sloupce v DB. */
@@ -30,6 +31,11 @@ export interface FieldDefinition {
   displayField?: string;
   /** Jen pro type: "optionset" — klíč option_setu (option_sets.key). */
   optionSetKey?: string;
+  /** Jen pro type: "image" — název Supabase Storage bucketu, kam se soubor nahraje. */
+  storageBucket?: string;
+  /** Napojí ARES lookup pod tohle pole (viz AresCompanyLookup) — "name" hledá podle
+   * obchodního jména, "ico" podle přesného 8místného IČO. Jen pro type: "text". */
+  aresLookup?: "name" | "ico";
 }
 
 export interface EntityDefinition {

@@ -39,6 +39,8 @@ import {
 } from "@/components/ui/dialog";
 import { CommandBar, CommandBarButton, CommandBarSeparator } from "@/components/shell/CommandBar";
 import { RecordNavigator, type NavigatorRecord } from "./RecordNavigator";
+import { ImageUpload } from "./ImageUpload";
+import { AresCompanyLookup } from "@/components/AresCompanyLookup";
 import { cn } from "@/lib/utils";
 
 import type { EntityDefinition, FormDefinition, FieldDefinition } from "./types";
@@ -71,9 +73,9 @@ const OWNER_FIELD: FieldDefinition = {
 
 /** Literal třídy, ať je Tailwind najde při buildu (dynamický string template by nešlo poznat). */
 const COLUMN_CLASSES: Record<1 | 2 | 3, string> = {
-  1: "sm:grid-cols-1",
-  2: "sm:grid-cols-2",
-  3: "sm:grid-cols-2 lg:grid-cols-3",
+  1: "grid-cols-1",
+  2: "grid-cols-1 sm:grid-cols-2",
+  3: "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3",
 };
 
 interface LookupOption {
@@ -153,6 +155,7 @@ export function FormEngine({
   const {
     control,
     handleSubmit,
+    setValue,
     formState: { errors, isDirty },
   } = useForm<EntityFormValues>({
     resolver: zodResolver(schema),
@@ -384,6 +387,17 @@ export function FormEngine({
                             );
                           }
 
+                          if (field.type === "image") {
+                            return (
+                              <ImageUpload
+                                bucket={field.storageBucket ?? "public"}
+                                value={(rhf.value as string | null) ?? null}
+                                onChange={rhf.onChange}
+                                disabled={field.readOnly}
+                              />
+                            );
+                          }
+
                           if (field.type === "boolean") {
                             return (
                               <Checkbox
@@ -428,6 +442,15 @@ export function FormEngine({
                           );
                         }}
                       />
+
+                      {field.aresLookup && (
+                        <AresCompanyLookup
+                          control={control}
+                          setValue={setValue}
+                          watchField={field.name}
+                          mode={field.aresLookup}
+                        />
+                      )}
 
                       {error && (
                         <p className="text-sm text-destructive">{String(error.message)}</p>

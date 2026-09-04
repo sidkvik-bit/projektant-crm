@@ -6,8 +6,8 @@
   "primaryField": "name",
   "statusReasonOptionSetKey": "account_status_reason",
   "fields": [
-    { "name": "name", "label": "Název", "type": "text", "required": true },
-    { "name": "ico", "label": "IČO", "type": "text" },
+    { "name": "name", "label": "Název", "type": "text", "required": true, "aresLookup": "name" },
+    { "name": "ico", "label": "IČO", "type": "text", "aresLookup": "ico" },
     { "name": "phone", "label": "Telefon", "type": "phone" },
     { "name": "email", "label": "E-mail", "type": "email" },
     { "name": "website", "label": "Web", "type": "url" },
