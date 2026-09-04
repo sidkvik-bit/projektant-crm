@@ -2,17 +2,13 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { formatDistanceToNowStrict } from "date-fns";
+import { cs } from "date-fns/locale";
 import { Plus, FileSpreadsheet, Trash2, RefreshCw, Search, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -28,6 +24,7 @@ import { ColumnPicker } from "./ColumnPicker";
 import type { ColumnFilter } from "./ColumnFilterPopover";
 import { bulkDeleteEntityRecords } from "./entityActions";
 import { exportEntityToExcel } from "./exportToExcel";
+import { resolveFilterField } from "./columnFields";
 import type { EntityDefinition, ViewDefinition } from "./types";
 
 const COLUMN_FILTER_PREFIX = "cf_";
@@ -58,6 +55,7 @@ export function EntityListClient({
   newLabel,
   isImportable,
   hasStatusFilter = true,
+  fieldOptions = {},
 }: {
   entity: EntityDefinition;
   view: ViewDefinition;
@@ -69,6 +67,8 @@ export function EntityListClient({
   isImportable: boolean;
   /** Vypni pro entity bez status sloupce (žádná v aplikaci teď, ale ať to jde). */
   hasStatusFilter?: boolean;
+  /** Možnosti pro lookup/optionset sloupcové filtry, klíč = skutečný DB sloupec — viz resolveFilterField. */
+  fieldOptions?: Record<string, { value: string; label: string }[]>;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -79,10 +79,24 @@ export function EntityListClient({
   const [q, setQ] = useState(searchParams.get("q") ?? "");
   const [, startTransition] = useTransition();
 
+  // "Xm zpět" vedle Aktualizovat — čistě zobrazovací, nastaví se až po mountu (server request
+  // time by se v textu s klientským "teď" jinak neshodovalo a hlásilo hydration mismatch).
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+  const [, forceRelativeTimeTick] = useState(0);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLastRefreshed(new Date());
+    const id = setInterval(() => forceRelativeTimeTick((t) => t + 1), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
   const columnStorageKey = `columns:${entity.name}`;
   const defaultColumns = view.columns.map((c) => c.field);
   const allColumnOptions = [
-    ...view.columns.map((c) => ({ field: c.field, label: c.label ?? c.field })),
+    ...view.columns.map((c) => ({
+      field: c.field,
+      label: c.label ?? resolveFilterField(entity, c.field)?.field.label ?? c.field,
+    })),
     ...entity.fields
       .filter((f) => !view.columns.some((c) => c.field === f.name))
       .map((f) => ({ field: f.name, label: f.label })),
@@ -176,22 +190,23 @@ export function EntityListClient({
       <CommandBar>
         {views.length > 1 && (
           <>
-            <Select
-              items={Object.fromEntries(views.map((v) => [v.name, v.label]))}
-              value={view.name}
-              onValueChange={(v) => v && updateParams({ view: v === views[0].name ? null : v })}
-            >
-              <SelectTrigger className="h-8 border-none bg-transparent font-medium shadow-none hover:bg-muted">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {views.map((v) => (
-                  <SelectItem key={v.name} value={v.name}>
-                    {v.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-1 rounded-full bg-muted/60 p-1">
+              {views.map((v) => (
+                <button
+                  key={v.name}
+                  type="button"
+                  onClick={() => updateParams({ view: v.name === views[0].name ? null : v.name })}
+                  className={cn(
+                    "rounded-full px-3 py-1 text-sm font-medium transition-colors",
+                    v.name === view.name
+                      ? "bg-status-success/15 text-status-success"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {v.label}
+                </button>
+              ))}
+            </div>
             <CommandBarSeparator />
           </>
         )}
@@ -238,10 +253,24 @@ export function EntityListClient({
             </DialogFooter>
           </DialogContent>
         </Dialog>
-        <CommandBarButton icon={RefreshCw} label="Aktualizovat" onClick={() => router.refresh()} />
+        <div className="flex items-center gap-1.5">
+          <CommandBarButton
+            icon={RefreshCw}
+            label="Aktualizovat"
+            onClick={() => {
+              router.refresh();
+              setLastRefreshed(new Date());
+            }}
+          />
+          {lastRefreshed && (
+            <span className="hidden text-xs text-muted-foreground sm:inline">
+              {formatDistanceToNowStrict(lastRefreshed, { locale: cs, addSuffix: true })}
+            </span>
+          )}
+        </div>
         <CommandBarSeparator />
         <div className="relative">
-          <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={q}
             onChange={(e) => setQ(e.target.value)}
@@ -250,7 +279,7 @@ export function EntityListClient({
             }}
             onBlur={() => updateParams({ q })}
             placeholder={`Hledat v poli "${entity.fields.find((f) => f.name === entity.primaryField)?.label ?? entity.primaryField}"…`}
-            className="h-8 w-64 pl-7"
+            className="h-8 w-64 rounded-full pl-8"
           />
         </div>
 
@@ -289,6 +318,7 @@ export function EntityListClient({
             onSortChange: handleSortChange,
             filters: columnFilters,
             onFilterChange: handleFilterChange,
+            fieldOptions,
           }}
         />
       </div>

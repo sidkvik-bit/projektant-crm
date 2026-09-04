@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { ArrowUpRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { FormEngine } from "./FormEngine";
 import { PageHeader } from "@/components/shell/PageHeader";
@@ -36,6 +38,8 @@ export interface EntityFormPageProps {
   submitLabel?: string;
   /** Zapne historii aktivit pod formulářem — s rollupem z navázaných záznamů (`related`). */
   timeline?: { related?: EntityRef[]; relatedEmail?: string | null };
+  /** Jen pro Activity — read-only box "Vztahuje se k" (polymorfní entity_type/entity_id). */
+  regarding?: { typeLabel: string; recordLabel: string; href: string | null };
 }
 
 export async function EntityFormPage({
@@ -48,6 +52,7 @@ export async function EntityFormPage({
   onSubmit,
   submitLabel = "Uložit",
   timeline,
+  regarding,
 }: EntityFormPageProps) {
   const supabase = await createClient();
 
@@ -114,7 +119,31 @@ export async function EntityFormPage({
             : undefined
         }
       />
-      <div className={cn("mx-auto p-6", (form.columns ?? 2) >= 3 ? "max-w-5xl" : "max-w-3xl")}>
+      <div
+        className={cn(
+          "mx-auto space-y-4 p-6",
+          form.columns === 3 ? "max-w-6xl" : form.columns === 1 ? "max-w-2xl" : "max-w-4xl",
+        )}
+      >
+        {regarding && (
+          <div className="flex items-center justify-between rounded-lg border bg-muted/40 px-4 py-2.5 text-sm">
+            <span className="text-muted-foreground">
+              Vztahuje se k: <span className="font-medium text-foreground">{regarding.typeLabel}</span> —{" "}
+              {regarding.href ? (
+                <Link href={regarding.href} className="font-medium text-foreground hover:text-primary hover:underline">
+                  {regarding.recordLabel}
+                </Link>
+              ) : (
+                <span className="font-medium text-foreground">{regarding.recordLabel}</span>
+              )}
+            </span>
+            {regarding.href && (
+              <Link href={regarding.href} className="text-muted-foreground hover:text-foreground" title="Otevřít záznam">
+                <ArrowUpRight className="size-4" />
+              </Link>
+            )}
+          </div>
+        )}
         <FormEngine
           entity={entity}
           form={form}

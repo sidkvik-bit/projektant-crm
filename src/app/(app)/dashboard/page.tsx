@@ -80,7 +80,9 @@ export default async function DashboardPage() {
       <div className="flex flex-col gap-6 p-6 md:flex-row">
         <Column icon={<Flame className="size-4 text-destructive" />} title="Hoří" count={overdue.length}>
           {overdue.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nic po termínu. 🎉</p>
+            <p className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
+              Nic po termínu. 🎉
+            </p>
           ) : (
             overdue.map((m) => <MilestoneCard key={m.id} milestone={m} />)
           )}
@@ -88,7 +90,9 @@ export default async function DashboardPage() {
 
         <Column icon={<CalendarClock className="size-4 text-primary" />} title="Dalších 7 dní" count={upcoming.length}>
           {upcoming.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Žádné blížící se termíny.</p>
+            <p className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
+              Žádné blížící se termíny.
+            </p>
           ) : (
             upcoming.map((m) => <MilestoneCard key={m.id} milestone={m} />)
           )}

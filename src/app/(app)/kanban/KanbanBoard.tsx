@@ -12,6 +12,7 @@ import {
   useDroppable,
 } from "@dnd-kit/core";
 import { cn } from "@/lib/utils";
+import { resolveStatusTone, STATUS_TONE_DOT_CLASS } from "@/engine/statusColor";
 
 export interface KanbanColumn {
   id: string;
@@ -79,7 +80,10 @@ function Column({
       )}
     >
       <div className="mb-3 flex items-center justify-between px-1">
-        <h3 className="text-sm font-semibold">{column.label}</h3>
+        <h3 className="flex items-center gap-1.5 text-sm font-semibold">
+          <span className={cn("size-2 shrink-0 rounded-full", STATUS_TONE_DOT_CLASS[resolveStatusTone(column.label)])} />
+          {column.label}
+        </h3>
         <span className="rounded-full bg-background px-2 py-0.5 text-xs text-muted-foreground">
           {cards.length}
         </span>

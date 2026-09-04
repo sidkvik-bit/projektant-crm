@@ -10,10 +10,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { ColumnFilterPopover, type ColumnFilter } from "./ColumnFilterPopover";
+import { resolveFilterField } from "./columnFields";
+import { resolveStatusTone, computeStatusBreakdown, STATUS_TONE_DOT_CLASS } from "./statusColor";
 
 import type { EntityDefinition, ViewDefinition, FieldDefinition } from "./types";
 
@@ -32,19 +33,56 @@ function resolveColumnField(entity: EntityDefinition, name: string): FieldDefini
   return entity.fields.find((f) => f.name === name) ?? { name, label: name, type: "text" };
 }
 
+function StatusDot({ label, tone }: { label: string; tone: keyof typeof STATUS_TONE_DOT_CLASS }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span className={cn("size-2 shrink-0 rounded-full", STATUS_TONE_DOT_CLASS[tone])} />
+      {label}
+    </span>
+  );
+}
+
+function initialsFromName(name: string) {
+  return (
+    name
+      .split(" ")
+      .map((part) => part[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "?"
+  );
+}
+
 function formatValue(field: FieldDefinition, value: unknown) {
   if (value === null || value === undefined || value === "") return "—";
 
   if (field.name === "status") {
+    return <StatusDot label={value === "active" ? "Aktivní" : "Neaktivní"} tone={value === "active" ? "success" : "neutral"} />;
+  }
+
+  if (field.name === "status_reason") {
+    return <StatusDot label={String(value)} tone={resolveStatusTone(String(value))} />;
+  }
+
+  if (field.name === "owner") {
     return (
-      <Badge variant={value === "active" ? "default" : "secondary"}>
-        {value === "active" ? "Aktivní" : "Neaktivní"}
-      </Badge>
+      <span className="inline-flex items-center gap-2">
+        <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-medium text-muted-foreground">
+          {initialsFromName(String(value))}
+        </span>
+        {String(value)}
+      </span>
     );
   }
 
   if (field.type === "boolean") {
     return value ? "Ano" : "Ne";
+  }
+
+  if (field.type === "image") {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={String(value)} alt="" className="h-8 w-8 rounded object-cover" />;
   }
 
   if (field.type === "date" || field.type === "datetime") {
@@ -80,6 +118,8 @@ export interface GridEngineProps<T extends Record<string, unknown>> {
     onSortChange: (field: string, direction: "asc" | "desc") => void;
     filters: Record<string, ColumnFilter>;
     onFilterChange: (field: string, filter: ColumnFilter | null) => void;
+    /** Možnosti pro lookup/optionset filtry (D365 "rovná se" na konkrétní hodnotu), klíč = skutečný DB sloupec. */
+    fieldOptions?: Record<string, { value: string; label: string }[]>;
   };
 }
 
@@ -93,14 +133,25 @@ export function GridEngine<T extends Record<string, unknown>>({
   columnControls,
 }: GridEngineProps<T>) {
   const router = useRouter();
-  const columns = view.columns.map((col) => ({
-    ...col,
-    field: resolveColumnField(entity, col.field),
-    // Filtr/řazení jde jen na skutečné sloupce entity (ne na dopočtené account/owner/status_reason labely).
-    isFilterable: entity.fields.some((f) => f.name === col.field),
-  }));
+  const columns = view.columns.map((col) => {
+    const filterable = resolveFilterField(entity, col.field);
+    return {
+      ...col,
+      field: resolveColumnField(entity, col.field),
+      // Filtr/řazení jde na skutečný DB sloupec za dopočteným aliasem (account -> account_id atd.),
+      // ne na text zobrazený v gridu — viz resolveFilterField.
+      isFilterable: Boolean(filterable),
+      filterDbColumn: filterable?.dbColumn ?? null,
+      filterFieldType: filterable?.field.type ?? null,
+    };
+  });
   const colSpan = columns.length + (selection ? 1 : 0);
   const allSelected = selection ? rows.length > 0 && rows.every((r) => selection.selectedIds.has(r.id as string)) : false;
+
+  // Souhrnný řádek dole (D365/Orbit vzor) — rozpad podle "Důvod stavu", jen když ho grid
+  // vůbec zobrazuje (jinak by "Bez stavu: N" matlo, protože sloupec ani není vidět).
+  const hasStatusReasonColumn = columns.some((c) => c.field.name === "status_reason");
+  const statusReasonBreakdown = hasStatusReasonColumn ? computeStatusBreakdown(rows) : [];
 
   return (
     <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
@@ -114,14 +165,15 @@ export function GridEngine<T extends Record<string, unknown>>({
             )}
             {columns.map((col) => (
               <TableHead key={col.field.name} className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                {columnControls && col.isFilterable ? (
+                {columnControls && col.isFilterable && col.filterDbColumn && col.filterFieldType ? (
                   <ColumnFilterPopover
                     label={col.label ?? col.field.label}
-                    fieldType={col.field.type}
-                    sortDirection={columnControls.sort?.field === col.field.name ? columnControls.sort.direction : null}
-                    onSort={(dir) => columnControls.onSortChange(col.field.name, dir)}
-                    filter={columnControls.filters[col.field.name] ?? null}
-                    onFilterChange={(f) => columnControls.onFilterChange(col.field.name, f)}
+                    fieldType={col.filterFieldType}
+                    sortDirection={columnControls.sort?.field === col.filterDbColumn ? columnControls.sort.direction : null}
+                    onSort={(dir) => columnControls.onSortChange(col.filterDbColumn as string, dir)}
+                    filter={columnControls.filters[col.filterDbColumn] ?? null}
+                    onFilterChange={(f) => columnControls.onFilterChange(col.filterDbColumn as string, f)}
+                    options={columnControls.fieldOptions?.[col.filterDbColumn]}
                   />
                 ) : (
                   col.label ?? col.field.label
@@ -161,12 +213,23 @@ export function GridEngine<T extends Record<string, unknown>>({
                   {columns.map((col) => {
                     const value = formatValue(col.field, row[col.field.name]);
                     const isPrimary = col.field.name === entity.primaryField;
+                    // Dopočtený odkaz na navázaný záznam (např. Activity "Vztahuje se k") — viz mapRow,
+                    // které vedle "regarding" naplní i "regarding_href".
+                    const computedHref = row[`${col.field.name}_href`] as string | null | undefined;
                     return (
                       <TableCell key={col.field.name}>
                         {isPrimary && href ? (
                           <Link
                             href={href}
                             className="font-medium text-foreground hover:text-primary hover:underline"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {value}
+                          </Link>
+                        ) : computedHref ? (
+                          <Link
+                            href={computedHref}
+                            className="hover:text-primary hover:underline"
                             onClick={(e) => e.stopPropagation()}
                           >
                             {value}
@@ -183,6 +246,22 @@ export function GridEngine<T extends Record<string, unknown>>({
           )}
         </TableBody>
       </Table>
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t bg-muted/20 px-4 py-2.5 text-xs text-muted-foreground">
+        <span>
+          <span className="font-medium text-foreground">{rows.length}</span>{" "}
+          {rows.length === 1 ? "zobrazený záznam" : "zobrazených záznamů"}
+        </span>
+        {statusReasonBreakdown.length > 0 && (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+            {statusReasonBreakdown.map(({ label, count, tone }) => (
+              <span key={label} className="flex items-center gap-1.5">
+                <span className={cn("size-2 shrink-0 rounded-full", STATUS_TONE_DOT_CLASS[tone])} />
+                {label} <span className="font-medium text-foreground">{count}</span>
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

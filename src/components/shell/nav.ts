@@ -11,6 +11,9 @@ import {
   UsersRound,
   ListTree,
   FileSpreadsheet,
+  Bug,
+  HardDrive,
+  Receipt,
 } from "lucide-react";
 
 export interface NavItem {
@@ -42,7 +45,9 @@ export const navGroups: NavGroup[] = [
       { label: "Obchodní vztahy", href: "/accounts", icon: Building2 },
       { label: "Kontakty", href: "/contacts", icon: Users },
       { label: "Projekty", href: "/projects", icon: FolderKanban },
+      { label: "Nabídky", href: "/quotes", icon: Receipt },
       { label: "Aktivity", href: "/activities", icon: Activity },
+      { label: "Bugy", href: "/bugs", icon: Bug },
     ],
   },
   {
@@ -56,6 +61,7 @@ export const navGroups: NavGroup[] = [
     label: "Nastavení",
     items: [
       { label: "Tým", href: "/settings/team", icon: UsersRound },
+      { label: "Google Drive", href: "/settings/google-drive", icon: HardDrive },
       { label: "Import z Excelu", href: "/import", icon: FileSpreadsheet },
     ],
   },

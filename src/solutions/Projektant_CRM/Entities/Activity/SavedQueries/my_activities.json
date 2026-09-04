@@ -5,7 +5,8 @@
   "columns": [
     { "field": "subject" },
     { "field": "activity_type", "label": "Typ" },
-    { "field": "entity_type", "label": "Vztahuje se k" },
+    { "field": "entity_type", "label": "Typ záznamu" },
+    { "field": "regarding", "label": "Vztahuje se k" },
     { "field": "activity_date", "label": "Datum" },
     { "field": "owner", "label": "Vlastník" }
   ],

@@ -7,9 +7,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-geist-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -39,6 +39,11 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-status-info: var(--status-info);
+  --color-status-warning: var(--status-warning);
+  --color-status-success: var(--status-success);
+  --color-status-neutral: var(--status-neutral);
+  --color-status-danger: var(--status-danger);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -81,40 +86,53 @@
   --sidebar-accent-foreground: oklch(0.3 0.06 265);
   --sidebar-border: oklch(0.91 0.01 265);
   --sidebar-ring: oklch(0.6 0.14 265);
+  --status-info: oklch(0.55 0.18 255);
+  --status-warning: oklch(0.72 0.16 55);
+  --status-success: oklch(0.6 0.15 145);
+  --status-neutral: oklch(0.55 0.02 265);
+  --status-danger: oklch(0.577 0.245 27.325);
 }
 
+/* Navertica Orbit-inspired dark palette — this is the app's one real theme (applied via
+   `dark` on <html>, see layout.tsx): near-black chrome, a barely-elevated card surface for
+   table containers, and a distinct (slightly darker) sidebar tone, matching the reference. */
 .dark {
-  --background: oklch(0.16 0.012 265);
-  --foreground: oklch(0.96 0.005 265);
-  --card: oklch(0.2 0.014 265);
-  --card-foreground: oklch(0.96 0.005 265);
-  --popover: oklch(0.2 0.014 265);
-  --popover-foreground: oklch(0.96 0.005 265);
-  --primary: oklch(0.68 0.17 265);
-  --primary-foreground: oklch(0.16 0.012 265);
-  --secondary: oklch(0.26 0.016 265);
-  --secondary-foreground: oklch(0.96 0.005 265);
-  --muted: oklch(0.26 0.016 265);
-  --muted-foreground: oklch(0.66 0.02 265);
-  --accent: oklch(0.3 0.05 265);
+  --background: oklch(0.15 0.012 265);
+  --foreground: oklch(0.94 0.006 265);
+  --card: oklch(0.18 0.013 265);
+  --card-foreground: oklch(0.94 0.006 265);
+  --popover: oklch(0.19 0.014 265);
+  --popover-foreground: oklch(0.94 0.006 265);
+  --primary: oklch(0.63 0.19 255);
+  --primary-foreground: oklch(0.98 0.004 265);
+  --secondary: oklch(0.24 0.014 265);
+  --secondary-foreground: oklch(0.94 0.006 265);
+  --muted: oklch(0.22 0.013 265);
+  --muted-foreground: oklch(0.63 0.02 265);
+  --accent: oklch(0.28 0.045 255);
   --accent-foreground: oklch(0.94 0.02 265);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.6 0.15 265);
-  --chart-1: oklch(0.68 0.17 265);
+  --destructive: oklch(0.66 0.2 22);
+  --border: oklch(1 0 0 / 8%);
+  --input: oklch(1 0 0 / 12%);
+  --ring: oklch(0.6 0.16 255);
+  --chart-1: oklch(0.63 0.19 255);
   --chart-2: oklch(0.65 0.15 200);
   --chart-3: oklch(0.7 0.17 150);
   --chart-4: oklch(0.75 0.17 60);
   --chart-5: oklch(0.65 0.2 20);
-  --sidebar: oklch(0.19 0.014 265);
-  --sidebar-foreground: oklch(0.96 0.005 265);
-  --sidebar-primary: oklch(0.68 0.17 265);
-  --sidebar-primary-foreground: oklch(0.16 0.012 265);
-  --sidebar-accent: oklch(0.28 0.03 265);
-  --sidebar-accent-foreground: oklch(0.94 0.02 265);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.6 0.15 265);
+  --sidebar: oklch(0.11 0.012 265);
+  --sidebar-foreground: oklch(0.9 0.006 265);
+  --sidebar-primary: oklch(0.63 0.19 255);
+  --sidebar-primary-foreground: oklch(0.98 0.004 265);
+  --sidebar-accent: oklch(0.24 0.05 255);
+  --sidebar-accent-foreground: oklch(0.96 0.02 255);
+  --sidebar-border: oklch(1 0 0 / 8%);
+  --sidebar-ring: oklch(0.6 0.16 255);
+  --status-info: oklch(0.68 0.17 255);
+  --status-warning: oklch(0.78 0.15 60);
+  --status-success: oklch(0.72 0.16 145);
+  --status-neutral: oklch(0.55 0.015 265);
+  --status-danger: oklch(0.7 0.19 22);
 }
 
 @layer base {

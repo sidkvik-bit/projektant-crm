@@ -38,6 +38,8 @@ const OPERATORS_BY_TYPE: Record<string, { value: string; label: string }[]> = {
     { value: "before", label: "Před" },
   ],
   boolean: [{ value: "eq", label: "Je rovno" }],
+  /** Lookup/optionset — jen "rovná se", ale na konkrétní vybranou hodnotu (viz `options`). */
+  choice: [{ value: "eq", label: "Je rovno" }],
 };
 
 function operatorsFor(type: FieldType): { value: string; label: string }[] | null {
@@ -45,7 +47,8 @@ function operatorsFor(type: FieldType): { value: string; label: string }[] | nul
   if (["number", "currency"].includes(type)) return OPERATORS_BY_TYPE.number;
   if (["date", "datetime"].includes(type)) return OPERATORS_BY_TYPE.date;
   if (type === "boolean") return OPERATORS_BY_TYPE.boolean;
-  return null; // lookup/optionset — zatím bez filtru (potřebuje seznam možností per sloupec)
+  if (type === "lookup" || type === "optionset") return OPERATORS_BY_TYPE.choice;
+  return null;
 }
 
 export function ColumnFilterPopover({
@@ -55,6 +58,7 @@ export function ColumnFilterPopover({
   onSort,
   filter,
   onFilterChange,
+  options,
 }: {
   label: string;
   fieldType: FieldType;
@@ -62,6 +66,8 @@ export function ColumnFilterPopover({
   onSort: (direction: "asc" | "desc") => void;
   filter: ColumnFilter | null;
   onFilterChange: (filter: ColumnFilter | null) => void;
+  /** Jen pro lookup/optionset — seznam možností pro výběr hodnoty místo volného textu. */
+  options?: { value: string; label: string }[];
 }) {
   const [open, setOpen] = useState(false);
   const operators = operatorsFor(fieldType);
@@ -71,7 +77,13 @@ export function ColumnFilterPopover({
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      const target = e.target as HTMLElement | null;
+      if (!ref.current || ref.current.contains(target)) return;
+      // The operator/value <Select> renders its popup in a portal (document.body), so a
+      // click on one of its options is technically "outside" this popover's ref — without
+      // this check the popover would close itself before the selection ever registers.
+      if (target?.closest('[data-slot="select-content"]')) return;
+      setOpen(false);
     }
     if (open) document.addEventListener("mousedown", onClickOutside);
     return () => document.removeEventListener("mousedown", onClickOutside);
@@ -133,13 +145,32 @@ export function ColumnFilterPopover({
                   ))}
                 </SelectContent>
               </Select>
-              <Input
-                className="h-7 text-xs"
-                type={fieldType === "date" || fieldType === "datetime" ? "date" : fieldType === "number" || fieldType === "currency" ? "number" : "text"}
-                value={value}
-                onChange={(e) => setValue(e.target.value)}
-                placeholder="Hodnota…"
-              />
+              {(fieldType === "lookup" || fieldType === "optionset") && options ? (
+                <Select
+                  items={Object.fromEntries(options.map((o) => [o.value, o.label]))}
+                  value={value}
+                  onValueChange={(v) => setValue(v ?? "")}
+                >
+                  <SelectTrigger className="h-7 w-full text-xs">
+                    <SelectValue placeholder="Vyberte…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {options.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  className="h-7 text-xs"
+                  type={fieldType === "date" || fieldType === "datetime" ? "date" : fieldType === "number" || fieldType === "currency" ? "number" : "text"}
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                  placeholder="Hodnota…"
+                />
+              )}
               <div className="flex gap-1">
                 <Button
                   size="sm"

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Building } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { navGroups, type NavItem } from "./nav";
+import { ThemeToggle } from "./ThemeToggle";
 
 function NavLink({ item }: { item: NavItem }) {
   const pathname = usePathname();
@@ -56,6 +57,9 @@ export function Sidebar({ organizationName }: { organizationName: string }) {
           </div>
         ))}
       </nav>
+      <div className="border-t border-sidebar-border p-3">
+        <ThemeToggle />
+      </div>
     </aside>
   );
 }
