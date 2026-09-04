@@ -1,0 +1,19 @@
+{
+  "entity": "Bug",
+  "tabs": [
+    {
+      "label": "Obecné",
+      "sections": [
+        {
+          "label": "Chyba",
+          "fields": ["name", "description", "image_url"]
+        },
+        {
+          "label": "Stav a vlastník",
+          "fields": ["status", "status_reason", "owner_id"]
+        }
+      ]
+    }
+  ],
+  "columns": 1
+}

@@ -1,0 +1,12 @@
+{
+  "entity": "Bug",
+  "name": "active_bugs",
+  "label": "Aktivní bugy",
+  "columns": [
+    { "field": "name" },
+    { "field": "status_reason", "label": "Stav" },
+    { "field": "owner", "label": "Nahlásil" },
+    { "field": "created_at", "label": "Vytvořeno" }
+  ],
+  "defaultSort": { "field": "created_at", "direction": "desc" }
+}
