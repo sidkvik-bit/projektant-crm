@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createRecord, listRecords, getRecordById } from "@/engine/Database";
 import { updateEntityRecord } from "@/engine/entityActions";
+import { computeMilestoneDueDates } from "@/engine/milestoneDates";
 import type { EntityFormValues } from "@/engine/zodSchema";
 import entity from "@/solutions/Projektant_CRM/Entities/Project/Entity.json";
 
@@ -25,17 +26,10 @@ async function generateMilestonesFromTemplate(
 
   if (templateMilestones.length === 0) return;
 
-  const base = startDate ? new Date(startDate) : new Date();
-  const rows = templateMilestones.map((tm) => {
-    const due = new Date(base);
-    due.setDate(due.getDate() + tm.offset_dni);
-    return {
-      project_id: projectId,
-      name: tm.name,
-      termin_splneni: due.toISOString().slice(0, 10),
-      splneno: false,
-    };
-  });
+  const rows = computeMilestoneDueDates(templateMilestones, startDate).map((m) => ({
+    project_id: projectId,
+    ...m,
+  }));
 
   const { error } = await supabase.from("project_milestones").insert(rows);
   if (error) throw error;

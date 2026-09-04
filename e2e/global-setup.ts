@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { writeFileSync, mkdirSync } from "node:fs";
 import path from "node:path";
-import { TEST_EMAIL, TEST_PASSWORD, TEST_ORG_NAME, buildAuthCookie } from "./lib/testAuth";
+import { TEST_EMAIL, TEST_PASSWORD, TEST_ORG_NAME, buildStorageState } from "./lib/testAuth";
 
 // Testovací účet je vytvořen přímo přes Supabase Admin API a session je vložena
 // jako cookie stejného formátu, jaký píše @supabase/ssr — obchází se tak Google
@@ -179,32 +179,6 @@ async function seedBusinessData(
     type: "PUSH",
     dni_predem: 3,
   });
-}
-
-async function buildStorageState(anonUrl: string, anonKey: string, email: string, password: string) {
-  const anon = createClient(anonUrl, anonKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-  const { data, error } = await anon.auth.signInWithPassword({ email, password });
-  if (error || !data.session) throw error ?? new Error("Přihlášení testovacího uživatele selhalo");
-
-  const cookie = buildAuthCookie(anonUrl, data.session);
-
-  return {
-    cookies: [
-      {
-        name: cookie.name,
-        value: cookie.value,
-        domain: "localhost",
-        path: "/",
-        expires: -1,
-        httpOnly: false,
-        secure: false,
-        sameSite: "Lax" as const,
-      },
-    ],
-    origins: [],
-  };
 }
 
 export default async function globalSetup() {

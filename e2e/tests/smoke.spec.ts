@@ -1,4 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 
 function trackErrors(page: Page) {
   const errors: string[] = [];
@@ -20,6 +23,7 @@ const LIST_PAGES = [
   { path: "/projects", heading: /Projekty/i },
   { path: "/project-templates", heading: /Šablon/i },
   { path: "/activities", heading: /Aktivit/i },
+  { path: "/bugs", heading: /Bugy/i },
   { path: "/kanban", heading: /Kanban/i },
   { path: "/settings/option-sets", heading: /Číselník/i },
   { path: "/settings/team", heading: /Tým/i },
@@ -186,18 +190,17 @@ test("view switcher: switching to 'Moje' scopes the grid to records owned by the
   page,
 }) => {
   await page.goto("/accounts");
-  const viewSwitcher = page.getByRole("combobox").first();
-  await expect(viewSwitcher).toContainText("Aktivní obchodní vztahy");
+  const activePill = page.getByRole("button", { name: "Aktivní obchodní vztahy" });
+  const myPill = page.getByRole("button", { name: "Moje obchodní vztahy" });
+  await expect(activePill).toBeVisible();
   const rowsBefore = await page.locator("table tbody tr").count();
   expect(rowsBefore).toBeGreaterThan(0);
 
-  await viewSwitcher.click();
-  await page.getByRole("option", { name: "Moje obchodní vztahy" }).click();
+  await myPill.click();
   await page.waitForURL(/view=my_accounts/);
 
   // seeded test data is all owned by the test user, so the "Moje" view should show the same rows
   await expect(page.locator("table tbody tr")).toHaveCount(rowsBefore);
-  await expect(viewSwitcher).toContainText("Moje obchodní vztahy");
 });
 
 test("export to Excel downloads a file with all entity columns", async ({ page }) => {
@@ -392,4 +395,117 @@ test("a set lookup renders a link to open the related record", async ({ page }) 
   await expect(openLink).toBeVisible();
   await openLink.click();
   await page.waitForURL(/\/accounts\/[0-9a-f-]{36}$/);
+});
+
+test("bug report: create with name, description and a screenshot image", async ({ page }) => {
+  const pngBuffer = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+    "base64",
+  );
+  const dir = mkdtempSync(path.join(tmpdir(), "e2e-bug-"));
+  const filePath = path.join(dir, "screenshot.png");
+  writeFileSync(filePath, pngBuffer);
+
+  await page.goto("/bugs/new");
+  const name = `E2E Bug ${Date.now()}`;
+  await page.getByLabel(/Název/i).fill(name);
+  await page.getByLabel(/Popis problému/i).fill("Tlačítko Uložit nereaguje na klik v mobilním Safari.");
+
+  await page.locator('input[type="file"]').setInputFiles(filePath);
+  const uploadedImage = page.locator('img[src*="bug-screenshots"]');
+  await expect(uploadedImage).toBeVisible({ timeout: 15_000 });
+
+  await page.getByRole("button", { name: "Nahlásit", exact: true }).click();
+  await page.waitForURL(/\/bugs\/[0-9a-f-]{36}$/);
+  await expect(page.getByRole("heading", { name })).toBeVisible();
+  await expect(page.locator('img[src*="bug-screenshots"]')).toBeVisible();
+
+  await page.goto("/bugs");
+  await expect(page.getByRole("link", { name })).toBeVisible();
+});
+
+test("activities grid shows the real linked record name for 'Vztahuje se k', not just the type", async ({
+  page,
+}) => {
+  await page.goto("/projects");
+  await page.locator("table tbody tr a").first().click();
+  await page.getByRole("tab", { name: "Historie a aktivity" }).click();
+  const subject = `E2E regarding check ${Date.now()}`;
+  await page.getByRole("button", { name: "Poznámka", exact: true }).click();
+  await page.getByLabel(/Předmět/i).fill(subject);
+  await page.getByRole("button", { name: "Uložit aktivitu" }).click();
+  await expect(page.getByText(subject)).toBeVisible();
+
+  await page.goto("/activities");
+  await expect(page.getByText("Vztahuje se k", { exact: true })).toBeVisible();
+
+  const row = page.locator("table tbody tr", { hasText: subject });
+  await expect(row).toBeVisible();
+  const regardingLink = row.getByRole("link").last();
+  await expect(regardingLink).toBeVisible();
+  const linkText = (await regardingLink.textContent())?.trim();
+  expect(linkText, "regarding column should show the real linked record's name, not be blank").not.toBe("");
+  expect(linkText).not.toBe("—");
+  await expect(regardingLink).toHaveAttribute("href", /\/projects\/[0-9a-f-]{36}$/);
+});
+
+test("milestones: row multiselect is separate from the complete toggle, and notifications list/remove works", async ({
+  page,
+}) => {
+  await page.goto("/projects");
+  await page.locator("table tbody tr a").first().click();
+  await page.waitForURL(/\/projects\/[0-9a-f-]{36}$/);
+  await expect(page.getByRole("heading", { name: "Úkoly / Milníky" })).toBeVisible();
+
+  const milestoneName = `E2E Milestone ${Date.now()}`;
+  await page.getByLabel(/Název milníku/i).fill(milestoneName);
+  await page.getByRole("button", { name: "Přidat", exact: true }).click();
+  const row = page.locator("table tbody tr", { hasText: milestoneName });
+  await expect(row).toBeVisible();
+
+  // left column: row multiselect (bulk delete), independent of the milestone's own state
+  await row.getByRole("checkbox").click();
+  await expect(page.getByRole("button", { name: "Odstranit (1)" })).toBeVisible();
+  await row.getByRole("checkbox").click();
+  await expect(page.getByRole("button", { name: "Odstranit (1)" })).toHaveCount(0);
+
+  // right column: single toggle button, checkmark <-> x depending on current state
+  await row.getByTitle("Splnit").click();
+  await expect(row.getByText("Splněno")).toBeVisible();
+  await row.getByTitle("Zrušit splnění").click();
+  await expect(row.getByText("Splněno")).toHaveCount(0);
+
+  // notifications: previously the bell only opened an "add new" form with no way to see
+  // what's already configured, or remove it.
+  await row.getByTitle("Notifikace").click();
+  await expect(page.getByRole("heading", { name: `Notifikace — ${milestoneName}` })).toBeVisible();
+  await page.getByRole("button", { name: "Uložit notifikaci" }).click();
+  const configuredRow = page.getByText(/E-mail · 1 den předem/);
+  await expect(configuredRow).toBeVisible();
+
+  await page.getByTitle("Odebrat notifikaci").click();
+  await expect(configuredRow).toHaveCount(0);
+});
+
+test("grid column filter on a lookup/optionset column offers real values, and the column picker shows real labels", async ({
+  page,
+}) => {
+  await page.goto("/accounts");
+
+  // regression: columns without an explicit label override in the view used to show the
+  // raw DB field key ("name") in the "Sloupce" picker instead of the real label. Column
+  // picker options render as <label> (unlike the grid's own "Název" column header button).
+  await page.getByRole("button", { name: "Sloupce" }).click();
+  await expect(page.locator('label[data-slot="label"]', { hasText: "Název" })).toBeVisible();
+  await expect(page.locator('label[data-slot="label"]', { hasText: /^name$/ })).toHaveCount(0);
+  await page.keyboard.press("Escape");
+
+  // "Stav" (status_reason) is a choice field — must offer a value dropdown, not free text.
+  await page.getByRole("button", { name: "Stav", exact: true }).click();
+  await expect(page.getByPlaceholder("Hodnota…")).toHaveCount(0);
+  await page.getByText("Vyberte…").click();
+  await expect(page.getByRole("option", { name: "Aktivní", exact: true })).toBeVisible();
+  await page.getByRole("option", { name: "Aktivní", exact: true }).click();
+  await page.getByRole("button", { name: "Použít" }).click();
+  await page.waitForURL(/cf_status_reason_id=/);
 });

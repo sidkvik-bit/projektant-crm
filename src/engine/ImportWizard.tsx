@@ -16,6 +16,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { getOptionSetValues } from "./optionSets";
 import { bulkInsertRecords } from "./entityActions";
+import { fieldToZod } from "./zodSchema";
 import { importableEntities } from "@/solutions/Projektant_CRM/entities";
 import { entityRegistry } from "@/solutions/Projektant_CRM/registry";
 import type { EntityDefinition, FieldDefinition } from "./types";
@@ -73,38 +74,11 @@ function dedupeOptions(options: ReferenceOption[]): ResolvedReference {
   return { labelToId, displayOptions };
 }
 
+// Import řádky se zobrazují jako kompaktní tabulka pod sloupci entity, takže sloupec
+// už říká, které pole chybí — proto tu zůstává obecné "Povinné pole", ne "<Label> je
+// povinné pole" jako ve FormEngine. Sdílená blank-handling logika viz fieldToZod.
 function scalarFieldSchema(field: FieldDefinition): z.ZodTypeAny {
-  let schema: z.ZodTypeAny;
-  switch (field.type) {
-    case "number":
-    case "currency":
-      schema = z.coerce.number();
-      break;
-    case "boolean":
-      schema = z.coerce.boolean();
-      break;
-    case "email":
-      schema = z.email("Neplatný e-mail");
-      break;
-    case "url":
-      schema = z.url("Neplatná URL");
-      break;
-    default:
-      schema = z.string();
-  }
-
-  const isBlank = (v: unknown) => v === undefined || v === null || v === "";
-
-  if (!field.required) {
-    return z.preprocess((v) => (isBlank(v) ? undefined : v), schema.nullable().optional());
-  }
-
-  // Check blankness up front so a missing required cell reports "Povinné pole"
-  // instead of the type coercion's generic "expected string, received undefined".
-  return z
-    .any()
-    .refine((v) => !isBlank(v), { message: "Povinné pole" })
-    .pipe(schema);
+  return fieldToZod(field, "Povinné pole");
 }
 
 type Step = "entity" | "upload" | "map" | "review" | "done";
@@ -129,6 +103,7 @@ export function ImportWizard({ defaultEntityName }: { defaultEntityName?: string
 
   useEffect(() => {
     if (!entity) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoadingRefs(true);
     const supabase = createClient();
     (async () => {
@@ -329,7 +304,7 @@ export function ImportWizard({ defaultEntityName }: { defaultEntityName?: string
       {step === "map" && entity && (
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Přiřaď sloupce ze souboru k polím entity {entity.displayName}. Nepoužité sloupce nech "Nepoužívat".
+            Přiřaď sloupce ze souboru k polím entity {entity.displayName}. Nepoužité sloupce nech &quot;Nepoužívat&quot;.
           </p>
           <div className="space-y-2">
             {fileHeaders.map((header) => (

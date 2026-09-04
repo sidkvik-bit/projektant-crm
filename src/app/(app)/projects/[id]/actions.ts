@@ -35,6 +35,13 @@ export async function deleteProjectMilestone(projectId: string, milestoneId: str
   revalidatePath(basePath(projectId));
 }
 
+export async function bulkDeleteProjectMilestones(projectId: string, milestoneIds: string[]) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("project_milestones").delete().in("id", milestoneIds);
+  if (error) throw error;
+  revalidatePath(basePath(projectId));
+}
+
 export async function createMilestoneNotification(
   projectId: string,
   milestoneId: string,
@@ -49,6 +56,13 @@ export async function createMilestoneNotification(
     dni_predem: dniPredem,
     recipient_user_id: recipientUserId,
   });
+  if (error) throw error;
+  revalidatePath(basePath(projectId));
+}
+
+export async function deleteMilestoneNotification(projectId: string, notificationConfigId: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("notifications_config").delete().eq("id", notificationConfigId);
   if (error) throw error;
   revalidatePath(basePath(projectId));
 }

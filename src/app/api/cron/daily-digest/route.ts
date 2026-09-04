@@ -24,7 +24,7 @@ function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function renderDigestHtml({
+export function renderDigestHtml({
   firstName,
   dueToday,
   overdue,
