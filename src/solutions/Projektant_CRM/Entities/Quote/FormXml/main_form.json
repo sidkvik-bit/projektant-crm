@@ -1,0 +1,23 @@
+{
+  "entity": "Quote",
+  "tabs": [
+    {
+      "label": "Obecné",
+      "sections": [
+        {
+          "label": "Nabídka",
+          "fields": ["name", "project_id", "account_id", "contact_id"]
+        },
+        {
+          "label": "Podmínky",
+          "fields": ["valid_until", "vat_rate", "note"]
+        },
+        {
+          "label": "Stav a vlastník",
+          "fields": ["status", "status_reason", "owner_id"]
+        }
+      ]
+    }
+  ],
+  "columns": 2
+}

@@ -1,0 +1,15 @@
+{
+  "entity": "Quote",
+  "name": "active_quotes",
+  "label": "Aktivní nabídky",
+  "columns": [
+    { "field": "number", "label": "Číslo" },
+    { "field": "name" },
+    { "field": "project", "label": "Projekt" },
+    { "field": "account", "label": "Objednatel" },
+    { "field": "status_reason", "label": "Stav" },
+    { "field": "valid_until", "label": "Platnost do" },
+    { "field": "total", "label": "Celkem s DPH" }
+  ],
+  "defaultSort": { "field": "created_at", "direction": "desc" }
+}

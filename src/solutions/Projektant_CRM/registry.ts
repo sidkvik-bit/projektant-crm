@@ -20,4 +20,6 @@ export const entityRegistry: Record<string, EntityRegistryEntry> = {
   Project: { table: "projects", labelFields: ["name"], basePath: "/projects" },
   Lead: { table: "leads", labelFields: ["name"], basePath: "/leads" },
   Activity: { table: "activities", labelFields: ["subject"], basePath: "/activities" },
+  Bug: { table: "bugs", labelFields: ["name"], basePath: "/bugs" },
+  Quote: { table: "quotes", labelFields: ["name"], basePath: "/quotes" },
 };

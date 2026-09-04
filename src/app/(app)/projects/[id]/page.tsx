@@ -1,25 +1,38 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
+import { Receipt, Plus } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 import { getRecordById, listRecords } from "@/engine/Database";
 import { getCommonFormContext } from "@/engine/formContext";
 import { getOptionSetValues } from "@/engine/optionSets";
-import { getOrgUserOptions } from "@/engine/users";
+import { getOrgUserOptions, formatUserName } from "@/engine/users";
 import { getTimelineActivities } from "@/engine/activities";
 import { createTimelineActivity } from "@/engine/entityActions";
 import { FormEngine } from "@/engine/FormEngine";
 import { ActivityTimeline } from "@/engine/ActivityTimeline";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { CalendarLink, DriveLink } from "@/components/SmartLinks";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getProjectDriveFiles, type DriveListResult } from "@/lib/googleDrive";
 import type { EntityDefinition, FormDefinition } from "@/engine/types";
 import type { EntityFormValues } from "@/engine/zodSchema";
 
 import entity from "@/solutions/Projektant_CRM/Entities/Project/Entity.json";
 import formDef from "@/solutions/Projektant_CRM/Entities/Project/FormXml/main_form.json";
-import { addProjectMilestone, toggleProjectMilestone, deleteProjectMilestone, createMilestoneNotification } from "./actions";
+import {
+  addProjectMilestone,
+  toggleProjectMilestone,
+  deleteProjectMilestone,
+  bulkDeleteProjectMilestones,
+  createMilestoneNotification,
+  deleteMilestoneNotification,
+} from "./actions";
 import { updateProject } from "../actions";
-import { MilestonesPanel } from "./MilestonesPanel";
+import { MilestonesPanel, type MilestoneNotification } from "./MilestonesPanel";
+import { DriveFilesPanel } from "./DriveFilesPanel";
 import { TeamPanel } from "./TeamPanel";
 
 export default async function ProjectDetailPage({
@@ -36,8 +49,25 @@ export default async function ProjectDetailPage({
 
   if (!record) notFound();
 
-  const [common, accounts, contacts, templates, milestones, activityTypes, activities, teamContacts, userOptions, navigatorRecords] =
-    await Promise.all([
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const [
+    common,
+    accounts,
+    contacts,
+    templates,
+    milestones,
+    activityTypes,
+    activities,
+    teamContacts,
+    userOptions,
+    navigatorRecords,
+    notificationConfigs,
+    driveFiles,
+    quotes,
+  ] = await Promise.all([
       getCommonFormContext(supabase, entity as EntityDefinition),
       listRecords<{ id: string; name: string }>(supabase, "accounts", { select: "id, name" }),
       listRecords<{ id: string; first_name: string; last_name: string | null }>(supabase, "contacts", {
@@ -61,7 +91,38 @@ export default async function ProjectDetailPage({
         select: "id, name",
         sort: { field: "created_at", direction: "desc" },
       }),
+      supabase
+        .from("notifications_config")
+        .select(
+          "id, milestone_id, type, dni_predem, recipient:users!notifications_config_recipient_user_id_fkey(first_name, last_name, email), project_milestones!inner(project_id)",
+        )
+        .eq("project_milestones.project_id", id)
+        .then((r) => r.data ?? []),
+      user ? getProjectDriveFiles(user.id, record.drive_url) : Promise.resolve<DriveListResult>({ status: "no-connection" }),
+      listRecords<{ id: string; number: string; name: string; status: string; total: number }>(supabase, "quotes", {
+        select: "id, number, name, status, total",
+        filter: { project_id: id },
+        sort: { field: "created_at", direction: "desc" },
+      }),
     ]);
+
+  const notificationsByMilestone = (
+    notificationConfigs as unknown as Array<{
+      id: string;
+      milestone_id: string;
+      type: "EMAIL" | "PUSH";
+      dni_predem: number;
+      recipient: { first_name: string | null; last_name: string | null; email: string | null } | null;
+    }>
+  ).reduce<Record<string, MilestoneNotification[]>>((acc, n) => {
+    (acc[n.milestone_id] ??= []).push({
+      id: n.id,
+      type: n.type,
+      dni_predem: n.dni_predem,
+      recipientLabel: formatUserName(n.recipient),
+    });
+    return acc;
+  }, {});
 
   async function handleUpdate(values: EntityFormValues) {
     "use server";
@@ -121,10 +182,64 @@ export default async function ProjectDetailPage({
                 projectId={id}
                 milestones={milestones}
                 userOptions={userOptions}
+                notificationsByMilestone={notificationsByMilestone}
                 onAdd={addProjectMilestone}
                 onToggle={toggleProjectMilestone}
                 onDelete={deleteProjectMilestone}
+                onBulkDelete={bulkDeleteProjectMilestones}
                 onCreateNotification={createMilestoneNotification}
+                onDeleteNotification={deleteMilestoneNotification}
+              />
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold">Nabídky</h2>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  render={
+                    <Link href={`/quotes/new?project_id=${id}&account_id=${record.account_id}`}>
+                      <Plus className="size-4" />
+                      Nová nabídka
+                    </Link>
+                  }
+                />
+              </div>
+              {quotes.length === 0 ? (
+                <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+                  K tomuto projektu zatím nebyla vytvořena žádná nabídka.
+                </p>
+              ) : (
+                <div className="space-y-1.5">
+                  {quotes.map((quote) => (
+                    <Link
+                      key={quote.id}
+                      href={`/quotes/${quote.id}`}
+                      className="flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5 transition-colors hover:border-primary/40 hover:bg-accent/40"
+                    >
+                      <Receipt className="size-4 shrink-0 text-muted-foreground" />
+                      <span className="text-xs font-medium text-muted-foreground">{quote.number}</span>
+                      <span className="min-w-0 flex-1 truncate text-sm font-medium">{quote.name}</span>
+                      <Badge variant={quote.status === "active" ? "default" : "secondary"}>
+                        {quote.status === "active" ? "Aktivní" : "Neaktivní"}
+                      </Badge>
+                      <span className="shrink-0 text-sm font-medium">
+                        {new Intl.NumberFormat("cs-CZ", { style: "currency", currency: "CZK" }).format(Number(quote.total) || 0)}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              <h2 className="text-lg font-semibold">Soubory (Google Drive)</h2>
+              <DriveFilesPanel
+                projectId={id}
+                projectName={record.name}
+                driveUrl={record.drive_url}
+                result={driveFiles}
               />
             </div>
           </TabsContent>
