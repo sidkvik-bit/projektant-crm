@@ -449,6 +449,7 @@ export function FormEngine({
                           setValue={setValue}
                           watchField={field.name}
                           mode={field.aresLookup}
+                          legalFormOptions={optionSetValues.pravni_forma ?? []}
                         />
                       )}
 

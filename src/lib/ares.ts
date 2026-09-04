@@ -5,12 +5,20 @@
 const ARES_BASE = "https://ares.gov.cz/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty";
 
 interface AresSidlo {
+  nazevUlice?: string;
+  cisloDomovni?: number;
+  cisloOrientacni?: number;
+  cisloOrientacniPismeno?: string;
+  nazevObce?: string;
+  psc?: number;
+  nazevStatu?: string;
   textovaAdresa?: string;
 }
 
 interface AresSubject {
   ico: string;
   obchodniJmeno: string;
+  pravniForma?: string;
   sidlo?: AresSidlo;
 }
 
@@ -21,11 +29,36 @@ interface AresSearchResponse {
 export interface AresMatch {
   ico: string;
   name: string;
+  /** Celá adresa jako jeden řádek (zobrazení v dropdownu) — jednotlivá pole níž jsou pro předvyplnění. */
   address: string | null;
+  street: string | null;
+  houseNumber: string | null;
+  city: string | null;
+  zip: string | null;
+  country: string | null;
+  /** Kód z číselníku RÚIAN "Právní forma" (viz option_sets.key = 'pravni_forma') — ne popisek. */
+  legalFormCode: string | null;
+}
+
+function buildHouseNumber(sidlo?: AresSidlo): string | null {
+  if (!sidlo?.cisloDomovni) return null;
+  const orientacni = sidlo.cisloOrientacni ? `/${sidlo.cisloOrientacni}${sidlo.cisloOrientacniPismeno ?? ""}` : "";
+  return `${sidlo.cisloDomovni}${orientacni}`;
 }
 
 export function toAresMatch(subject: AresSubject): AresMatch {
-  return { ico: subject.ico, name: subject.obchodniJmeno, address: subject.sidlo?.textovaAdresa ?? null };
+  const sidlo = subject.sidlo;
+  return {
+    ico: subject.ico,
+    name: subject.obchodniJmeno,
+    address: sidlo?.textovaAdresa ?? null,
+    street: sidlo?.nazevUlice ?? null,
+    houseNumber: buildHouseNumber(sidlo),
+    city: sidlo?.nazevObce ?? null,
+    zip: sidlo?.psc ? String(sidlo.psc) : null,
+    country: sidlo?.nazevStatu ?? null,
+    legalFormCode: subject.pravniForma ?? null,
+  };
 }
 
 const REQUEST_TIMEOUT_MS = 5000;

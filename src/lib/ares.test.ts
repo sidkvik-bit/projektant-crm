@@ -5,22 +5,49 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+const FULL_SIDLO = {
+  nazevUlice: "Maříkova",
+  cisloDomovni: 2287,
+  cisloOrientacni: 1,
+  cisloOrientacniPismeno: "a",
+  nazevObce: "Brno",
+  psc: 62100,
+  nazevStatu: "Česká republika",
+  textovaAdresa: "Maříkova 2287/1a, Řečkovice, 62100 Brno",
+};
+
 describe("toAresMatch", () => {
-  it("maps an ARES subject to the flat shape the UI needs", () => {
+  it("maps an ARES subject to the flat shape the UI needs, splitting the address into fields", () => {
     expect(
-      toAresMatch({
-        ico: "25585207",
-        obchodniJmeno: "NAVERTICA a.s.",
-        sidlo: { textovaAdresa: "Maříkova 2287/1a, Řečkovice, 62100 Brno" },
-      }),
-    ).toEqual({ ico: "25585207", name: "NAVERTICA a.s.", address: "Maříkova 2287/1a, Řečkovice, 62100 Brno" });
+      toAresMatch({ ico: "25585207", obchodniJmeno: "NAVERTICA a.s.", pravniForma: "121", sidlo: FULL_SIDLO }),
+    ).toEqual({
+      ico: "25585207",
+      name: "NAVERTICA a.s.",
+      address: "Maříkova 2287/1a, Řečkovice, 62100 Brno",
+      street: "Maříkova",
+      houseNumber: "2287/1a",
+      city: "Brno",
+      zip: "62100",
+      country: "Česká republika",
+      legalFormCode: "121",
+    });
   });
 
-  it("falls back to null address when sidlo is missing", () => {
+  it("omits the orientační číslo suffix when ARES doesn't have one", () => {
+    expect(toAresMatch({ ico: "1", obchodniJmeno: "x", sidlo: { cisloDomovni: 10 } }).houseNumber).toBe("10");
+  });
+
+  it("falls back to nulls when sidlo/pravniForma are missing", () => {
     expect(toAresMatch({ ico: "25585207", obchodniJmeno: "NAVERTICA a.s." })).toEqual({
       ico: "25585207",
       name: "NAVERTICA a.s.",
       address: null,
+      street: null,
+      houseNumber: null,
+      city: null,
+      zip: null,
+      country: null,
+      legalFormCode: null,
     });
   });
 });
@@ -37,10 +64,12 @@ describe("lookupAresByIco", () => {
       vi.fn().mockResolvedValue({
         status: 200,
         ok: true,
-        json: async () => ({ ico: "25585207", obchodniJmeno: "NAVERTICA a.s.", sidlo: { textovaAdresa: "Brno" } }),
+        json: async () => ({ ico: "25585207", obchodniJmeno: "NAVERTICA a.s.", pravniForma: "121", sidlo: FULL_SIDLO }),
       }),
     );
-    expect(await lookupAresByIco("25585207")).toEqual({ ico: "25585207", name: "NAVERTICA a.s.", address: "Brno" });
+    const match = await lookupAresByIco("25585207");
+    expect(match?.legalFormCode).toBe("121");
+    expect(match?.city).toBe("Brno");
   });
 
   it("throws on a non-404 error status, instead of silently returning null", async () => {
@@ -57,16 +86,16 @@ describe("searchAresByName", () => {
         ok: true,
         json: async () => ({
           ekonomickeSubjekty: [
-            { ico: "25585207", obchodniJmeno: "NAVERTICA a.s.", sidlo: { textovaAdresa: "Brno" } },
+            { ico: "25585207", obchodniJmeno: "NAVERTICA a.s.", pravniForma: "121", sidlo: FULL_SIDLO },
             { ico: "06859101", obchodniJmeno: "ELSI CZ s.r.o." },
           ],
         }),
       }),
     );
-    expect(await searchAresByName("Nav")).toEqual([
-      { ico: "25585207", name: "NAVERTICA a.s.", address: "Brno" },
-      { ico: "06859101", name: "ELSI CZ s.r.o.", address: null },
-    ]);
+    const matches = await searchAresByName("Nav");
+    expect(matches).toHaveLength(2);
+    expect(matches[0]).toMatchObject({ ico: "25585207", name: "NAVERTICA a.s.", legalFormCode: "121" });
+    expect(matches[1]).toMatchObject({ ico: "06859101", name: "ELSI CZ s.r.o.", legalFormCode: null });
   });
 
   it("returns an empty array when ARES finds nothing", async () => {

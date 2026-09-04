@@ -5,11 +5,12 @@ import { useWatch, type Control, type UseFormSetValue } from "react-hook-form";
 import { Building2, Loader2 } from "lucide-react";
 import type { AresMatch } from "@/lib/ares";
 import type { EntityFormValues } from "@/engine/zodSchema";
+import type { OptionSetValue } from "@/engine/optionSets";
 
 /**
  * Vyhledávání v ARES napojené na jedno pole formuláře (Název, nebo IČO) — jak uživatel píše,
- * pod polem se objeví nalezené firmy; klikem se předvyplní Název/IČO/Fakturační adresa,
- * ale formulář se NEUKLÁDÁ (jen `setValue(..., { shouldDirty: true })` — uloží se běžným Uložit).
+ * pod polem se objeví nalezené firmy; klikem se předvyplní Název/IČO/sídlo/právní forma, ale
+ * formulář se NEUKLÁDÁ (jen `setValue(..., { shouldDirty: true })` — uloží se běžným Uložit).
  *
  * Nesmí se spustit hned po načtení existujícího záznamu (watch by jinak okamžitě viděl už
  * vyplněnou hodnotu) — proto čeká na první skutečnou změnu hodnoty pole od mountu.
@@ -19,11 +20,14 @@ export function AresCompanyLookup({
   setValue,
   watchField,
   mode,
+  legalFormOptions = [],
 }: {
   control: Control<EntityFormValues>;
   setValue: UseFormSetValue<EntityFormValues>;
   watchField: string;
   mode: "name" | "ico";
+  /** option_set_values pro 'pravni_forma' — mapuje ARES kód (value_key) na naše UUID. */
+  legalFormOptions?: OptionSetValue[];
 }) {
   const rawValue = useWatch({ control, name: watchField }) as string | undefined;
   const mountValueRef = useRef(rawValue);
@@ -84,7 +88,15 @@ export function AresCompanyLookup({
   function pick(match: AresMatch) {
     setValue("name", match.name, { shouldDirty: true });
     setValue("ico", match.ico, { shouldDirty: true });
-    if (match.address) setValue("billing_address", match.address, { shouldDirty: true });
+    if (match.street) setValue("address_street", match.street, { shouldDirty: true });
+    if (match.houseNumber) setValue("address_house_number", match.houseNumber, { shouldDirty: true });
+    if (match.city) setValue("address_city", match.city, { shouldDirty: true });
+    if (match.zip) setValue("address_zip", match.zip, { shouldDirty: true });
+    if (match.country) setValue("address_country", match.country, { shouldDirty: true });
+    if (match.legalFormCode) {
+      const option = legalFormOptions.find((o) => o.value_key === match.legalFormCode);
+      if (option) setValue("pravni_forma_id", option.id, { shouldDirty: true });
+    }
     setOpen(false);
     setDismissedFor(mode === "ico" ? match.ico : match.name);
   }

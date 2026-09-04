@@ -6,11 +6,15 @@
       "sections": [
         {
           "label": "Základní údaje",
-          "fields": ["name", "ico", "industry", "website"]
+          "fields": ["name", "ico", "pravni_forma_id", "industry", "website"]
         },
         {
           "label": "Kontakt",
-          "fields": ["phone", "email", "billing_address"]
+          "fields": ["phone", "email"]
+        },
+        {
+          "label": "Sídlo",
+          "fields": ["address_street", "address_house_number", "address_city", "address_zip", "address_country"]
         },
         {
           "label": "Poznámky",
