@@ -11,5 +11,8 @@
     { "field": "owner", "label": "Vlastník" }
   ],
   "defaultSort": { "field": "activity_date", "direction": "desc" },
-  "filters": [{ "field": "owner_id", "value": "$currentUser" }]
+  "conditions": [
+    { "field": "owner_id", "operator": "eq", "value": "$currentUser" },
+    { "field": "status", "operator": "eq", "value": "active" }
+  ]
 }

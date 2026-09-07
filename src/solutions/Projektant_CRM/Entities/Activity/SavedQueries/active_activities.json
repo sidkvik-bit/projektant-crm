@@ -1,7 +1,5 @@
 {
   "entity": "Activity",
-  "name": "active_activities",
-  "label": "Aktivity",
   "columns": [
     { "field": "subject" },
     { "field": "activity_type", "label": "Typ" },

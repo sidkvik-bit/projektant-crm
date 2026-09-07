@@ -75,25 +75,31 @@ export async function EntityListPage({
 }: EntityListPageProps) {
   const supabase = await createClient();
   const params = (await searchParams) ?? {};
-  const status = params.status ?? "active";
   const view = views.find((v) => v.name === params.view) ?? views[0];
 
   let query = supabase.from(entity.table).select(select);
-  if (status !== "all") {
-    query = applyColumnFilter(query, "status", "eq", status);
-  }
-  if (params.q) {
-    query = applyColumnFilter(query, entity.primaryField, "contains", params.q);
+
+  // Každé view nese svoje vlastní podmínky (status, vlastník…) — nic se nekombinuje s
+  // odjinud, viz buildStatusViews. Všechny se aplikují zároveň (AND).
+  if (view.conditions?.length) {
+    let currentUserId: string | null | undefined;
+    for (const cond of view.conditions) {
+      let value = cond.value;
+      if (value === "$currentUser") {
+        if (currentUserId === undefined) {
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
+          currentUserId = user?.id ?? null;
+        }
+        value = currentUserId ?? "";
+      }
+      if (value) query = applyColumnFilter(query, cond.field, cond.operator, value);
+    }
   }
 
-  if (view.filters?.length) {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    for (const f of view.filters) {
-      const value = f.value === "$currentUser" ? (user?.id ?? "") : f.value;
-      if (value) query = applyColumnFilter(query, f.field, "eq", value);
-    }
+  if (params.q) {
+    query = applyColumnFilter(query, entity.primaryField, "contains", params.q);
   }
 
   // GridEngine posílá cf_/sort už namapované na skutečný DB sloupec (viz resolveFilterField) —

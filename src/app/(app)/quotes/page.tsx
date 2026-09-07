@@ -1,9 +1,10 @@
 import { EntityListPage } from "@/engine/EntityListPage";
 import { formatUserName } from "@/engine/users";
-import type { EntityDefinition, ViewDefinition } from "@/engine/types";
+import { buildStatusViews } from "@/engine/statusViews";
+import type { EntityDefinition, ViewDefinition, ViewTemplate } from "@/engine/types";
 
 import entity from "@/solutions/Projektant_CRM/Entities/Quote/Entity.json";
-import activeView from "@/solutions/Projektant_CRM/Entities/Quote/SavedQueries/active_quotes.json";
+import viewTemplate from "@/solutions/Projektant_CRM/Entities/Quote/SavedQueries/active_quotes.json";
 import myView from "@/solutions/Projektant_CRM/Entities/Quote/SavedQueries/my_quotes.json";
 
 const currencyFormat = new Intl.NumberFormat("cs-CZ", { style: "currency", currency: "CZK" });
@@ -16,7 +17,7 @@ export default async function QuotesPage({
   return (
     <EntityListPage
       entity={entity as EntityDefinition}
-      views={[activeView, myView] as ViewDefinition[]}
+      views={[...buildStatusViews(entity as EntityDefinition, viewTemplate as ViewTemplate), myView as ViewDefinition]}
       select="id, number, name, status, valid_until, total, created_at, project:projects!quotes_project_id_fkey(name), account:accounts!quotes_account_id_fkey(name), status_reason:option_set_values!quotes_status_reason_id_fkey(label), owner:users!quotes_owner_id_fkey(first_name, last_name, email)"
       basePath="/quotes"
       newLabel="Nová nabídka"

@@ -75,13 +75,36 @@ export interface ViewColumn {
   label?: string;
 }
 
+export type ViewConditionOperator = "eq" | "neq" | "contains" | "notcontains" | "startswith" | "gt" | "lt";
+
+export interface ViewCondition {
+  field: string;
+  operator: ViewConditionOperator;
+  /** `"$currentUser"` se dosadí za id přihlášeného uživatele. */
+  value: string;
+}
+
 export interface ViewDefinition {
   entity: string;
   name: string;
   label: string;
   columns: ViewColumn[];
   defaultSort?: { field: string; direction: "asc" | "desc" };
-  /** Filtry pevně dané view (na rozdíl od sloupcových filtrů, co si nastaví uživatel).
-   * `value: "$currentUser"` se dosadí za id přihlášeného uživatele. */
-  filters?: { field: string; value: string }[];
+  /** Filtry pevně dané tímhle view (na rozdíl od sloupcových filtrů, co si nastaví uživatel
+   * v gridu) — VŠECHNY se aplikují zároveň (AND). Každé view je takhle samo o sobě úplné
+   * (FetchXML/D365 vzor) — žádný samostatný "status" přepínač navíc vedle view, který by s
+   * ním mohl být nekonzistentní. Viz `buildStatusViews` pro Aktivní/Neaktivní/Vše. */
+  conditions?: ViewCondition[];
+  /** Zobrazí se v přepínači schované za dropdown ("Další ▾"), ne jako samostatná pilulka —
+   * pro views používané míň často (viz `buildStatusViews`: Neaktivní/Vše), ať přepínač
+   * nezavazí, i když má entita víc views. */
+  overflow?: boolean;
+}
+
+/** Vstup pro `buildStatusViews` — sloupce/řazení jedné entity, bez name/label/conditions
+ * (ty se odvodí automaticky pro každou ze tří generovaných status variant). */
+export interface ViewTemplate {
+  entity: string;
+  columns: ViewColumn[];
+  defaultSort?: { field: string; direction: "asc" | "desc" };
 }

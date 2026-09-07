@@ -1,7 +1,5 @@
 {
   "entity": "Project",
-  "name": "active_projects",
-  "label": "Aktivní projekty",
   "columns": [
     { "field": "name" },
     { "field": "account", "label": "Klient" },

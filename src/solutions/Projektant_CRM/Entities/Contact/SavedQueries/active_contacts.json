@@ -1,7 +1,5 @@
 {
   "entity": "Contact",
-  "name": "active_contacts",
-  "label": "Aktivní kontakty",
   "columns": [
     { "field": "first_name", "label": "Jméno" },
     { "field": "last_name", "label": "Příjmení" },

@@ -111,7 +111,7 @@ test("submitting a bug report with no description is blocked with a friendly mes
   // must still be on the create form — the record was not created
   await expect(page).toHaveURL(/\/bugs\/new$/);
 
-  await page.goto("/bugs?status=all");
+  await page.goto("/bugs?view=all_bugs");
   await expect(page.getByText(name)).toHaveCount(0);
 });
 
@@ -123,12 +123,20 @@ test("deactivating a record via the form moves it from the Aktivní to the Neakt
   await page.waitForURL(/\/leads\/[0-9a-f-]{36}$/);
 
   await page.getByRole("button", { name: "Deaktivovat" }).click();
-  await expect(page.getByText("Neaktivní", { exact: true })).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Deaktivovat záznam?" })).toBeVisible();
+  await page.getByRole("button", { name: "Ano, deaktivovat" }).click();
+
+  // Both the header badge and the form's own "Stav" field should now say "Neaktivní" — the
+  // form re-syncs from the server after this action's router.refresh(), not just the badge.
+  await expect(page.locator('[data-slot="badge"]', { hasText: "Neaktivní" })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Stav *" })).toContainText("Neaktivní");
   await expect(page.getByRole("button", { name: "Aktivovat" })).toBeVisible();
 
   await page.goto("/leads");
   await expect(page.getByText(name)).toHaveCount(0);
 
-  await page.getByText("Neaktivní", { exact: true }).click();
+  // "Neaktivní" lives behind the view switcher's overflow dropdown, not its own pill.
+  await page.getByRole("button", { name: /^(Další|Neaktivní|Vše)$/ }).click();
+  await page.getByRole("menuitem", { name: "Neaktivní", exact: true }).click();
   await expect(page.getByText(name)).toBeVisible();
 });

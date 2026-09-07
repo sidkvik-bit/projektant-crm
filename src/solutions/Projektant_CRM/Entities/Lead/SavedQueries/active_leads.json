@@ -1,7 +1,5 @@
 {
   "entity": "Lead",
-  "name": "active_leads",
-  "label": "Aktivní zájemci",
   "columns": [
     { "field": "name" },
     { "field": "company_name", "label": "Firma" },

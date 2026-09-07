@@ -15,6 +15,13 @@ function trackErrors(page: Page) {
   return errors;
 }
 
+/** "Neaktivní"/"Vše" live behind a dropdown ("Další ▾" or the currently active overflow
+ * view's own label) in the view switcher, not as their own always-visible pill. */
+async function openOverflowView(page: Page, label: string) {
+  await page.getByRole("button", { name: /^(Další|Neaktivní|Vše)$/ }).click();
+  await page.getByRole("menuitem", { name: label, exact: true }).click();
+}
+
 const LIST_PAGES = [
   { path: "/dashboard", heading: /Můj den|Dashboard/i },
   { path: "/accounts", heading: /Obchodní vztah/i },
@@ -92,6 +99,23 @@ test("notification bell renders without crashing", async ({ page }) => {
   expect(errors, `errors opening notifications:\n${errors.join("\n")}`).toEqual([]);
 });
 
+test("sidebar brand mark is static at rest and animates on hover", async ({ page }) => {
+  const errors = trackErrors(page);
+  await page.goto("/dashboard");
+
+  const logo = page.locator(".animated-logo").first();
+  const mark = page.locator(".animated-logo__mark").first();
+  await expect(mark).toBeVisible();
+
+  await expect(mark).toHaveCSS("animation-name", "none");
+  await logo.hover();
+  const animationName = await mark.evaluate((el) => getComputedStyle(el).animationName);
+  expect(animationName).toContain("logo-spin-y");
+  expect(animationName).toContain("logo-color-drift");
+
+  expect(errors, `errors on logo hover:\n${errors.join("\n")}`).toEqual([]);
+});
+
 test("user menu in top bar opens without crashing", async ({ page }) => {
   const errors = trackErrors(page);
   await page.goto("/dashboard");
@@ -144,8 +168,8 @@ test("grid search filters by the primary field", async ({ page }) => {
   const rowCountBefore = await page.locator("table tbody tr").count();
   expect(rowCountBefore).toBeGreaterThan(1);
 
-  await page.getByPlaceholder(/Hledat/i).fill("Novák Architekti");
-  await page.getByPlaceholder(/Hledat/i).press("Enter");
+  await page.getByPlaceholder(/Hledat v poli/i).fill("Novák Architekti");
+  await page.getByPlaceholder(/Hledat v poli/i).press("Enter");
   await page.waitForURL(/[?&]q=/);
   await expect(page.getByRole("link", { name: "Novák Architekti s.r.o." })).toBeVisible();
   await expect(page.locator("table tbody tr")).toHaveCount(1);
@@ -153,16 +177,37 @@ test("grid search filters by the primary field", async ({ page }) => {
 
 test("grid status filter switches between active/inactive/all", async ({ page }) => {
   await page.goto("/accounts");
-  await expect(page.getByText("Aktivní", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Aktivní", exact: true })).toBeVisible();
 
-  await page.getByText("Vše", { exact: true }).click();
-  await page.waitForURL(/status=all/);
+  await openOverflowView(page, "Vše");
+  await page.waitForURL(/view=all_accounts/);
   const allCount = await page.locator("table tbody tr").count();
 
-  await page.getByText("Neaktivní", { exact: true }).click();
-  await page.waitForURL(/status=inactive/);
+  await openOverflowView(page, "Neaktivní");
+  await page.waitForURL(/view=inactive_accounts/);
   const inactiveCount = await page.locator("table tbody tr").count();
   expect(inactiveCount).toBeLessThanOrEqual(allCount);
+});
+
+test("regression: switching back to 'Aktivní' after 'Vše'/'Neaktivní' shows only active records again", async ({
+  page,
+}) => {
+  // The original bug: "Aktivní" was a separate, unrelated ?status= param from the view
+  // switcher's own ?view= param, so once you'd ever switched to Neaktivní/Vše, clicking
+  // back to "Aktivní" never reset ?status= and kept showing inactive records too. Each view
+  // (including "Aktivní") is now fully self-contained (its own status condition), so this
+  // can no longer happen regardless of switch order.
+  await page.goto("/accounts");
+
+  await openOverflowView(page, "Vše");
+  await page.waitForURL(/view=all_accounts/);
+  await openOverflowView(page, "Neaktivní");
+  await page.waitForURL(/view=inactive_accounts/);
+
+  await page.getByRole("button", { name: "Aktivní", exact: true }).click();
+  await expect(page).not.toHaveURL(/view=inactive_accounts/);
+  await expect(page).not.toHaveURL(/view=all_accounts/);
+  await expect(page.getByRole("row", { name: /Neaktivní/ })).toHaveCount(0);
 });
 
 test("grid bulk delete: select rows via checkbox and delete them", async ({ page }) => {
@@ -190,7 +235,7 @@ test("view switcher: switching to 'Moje' scopes the grid to records owned by the
   page,
 }) => {
   await page.goto("/accounts");
-  const activePill = page.getByRole("button", { name: "Aktivní obchodní vztahy" });
+  const activePill = page.getByRole("button", { name: "Aktivní", exact: true });
   const myPill = page.getByRole("button", { name: "Moje obchodní vztahy" });
   await expect(activePill).toBeVisible();
   const rowsBefore = await page.locator("table tbody tr").count();
@@ -475,16 +520,69 @@ test("milestones: row multiselect is separate from the complete toggle, and noti
   await row.getByTitle("Zrušit splnění").click();
   await expect(row.getByText("Splněno")).toHaveCount(0);
 
-  // notifications: previously the bell only opened an "add new" form with no way to see
-  // what's already configured, or remove it.
-  await row.getByTitle("Notifikace").click();
-  await expect(page.getByRole("heading", { name: `Notifikace — ${milestoneName}` })).toBeVisible();
+  // notifications: configured ones show as indented rows right under the milestone in the
+  // table (not hidden behind a dialog) — the dialog is only for adding a new one.
+  await row.getByTitle("Přidat notifikaci").click();
+  await expect(page.getByRole("heading", { name: `Přidat notifikaci — ${milestoneName}` })).toBeVisible();
   await page.getByRole("button", { name: "Uložit notifikaci" }).click();
-  const configuredRow = page.getByText(/E-mail · 1 den předem/);
-  await expect(configuredRow).toBeVisible();
+  // scoped to the sibling row right under THIS milestone — other leftover test data on the
+  // same shared project can have its own "Odebrat notifikaci" buttons elsewhere on the page.
+  const notificationRow = row.locator("xpath=following-sibling::tr[1]");
+  await expect(notificationRow.getByText(/E-mail · 1 den předem/)).toBeVisible();
 
-  await page.getByTitle("Odebrat notifikaci").click();
-  await expect(configuredRow).toHaveCount(0);
+  await notificationRow.getByTitle("Odebrat notifikaci").click();
+  await expect(notificationRow.getByText(/E-mail · 1 den předem/)).toHaveCount(0);
+});
+
+test("deleting a single milestone asks for confirmation, and cancelling keeps it", async ({ page }) => {
+  await page.goto("/projects");
+  await page.locator("table tbody tr a").first().click();
+  await page.waitForURL(/\/projects\/[0-9a-f-]{36}$/);
+
+  const milestoneName = `E2E Single Delete ${Date.now()}`;
+  await page.getByLabel(/Název milníku/i).fill(milestoneName);
+  await page.getByRole("button", { name: "Přidat", exact: true }).click();
+  const row = page.locator("table tbody tr", { hasText: milestoneName });
+  await expect(row).toBeVisible();
+
+  // cancelling the dialog must not delete anything
+  await row.getByTitle("Odstranit milník").click();
+  await expect(page.getByRole("dialog", { name: `Odstranit milník "${milestoneName}"?` })).toBeVisible();
+  await page.getByRole("button", { name: "Zrušit" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(row).toBeVisible();
+
+  await row.getByTitle("Odstranit milník").click();
+  await page.getByRole("button", { name: "Odstranit", exact: true }).click();
+  await expect(row).toHaveCount(0);
+});
+
+test("milestones: one milestone can have multiple notifications, each shown as its own indented row", async ({
+  page,
+}) => {
+  await page.goto("/projects");
+  await page.locator("table tbody tr a").first().click();
+  await page.waitForURL(/\/projects\/[0-9a-f-]{36}$/);
+  await expect(page.getByRole("heading", { name: "Úkoly / Milníky" })).toBeVisible();
+
+  const milestoneName = `E2E Multi-Notification ${Date.now()}`;
+  await page.getByLabel(/Název milníku/i).fill(milestoneName);
+  await page.getByRole("button", { name: "Přidat", exact: true }).click();
+  const row = page.locator("table tbody tr", { hasText: milestoneName });
+  await expect(row).toBeVisible();
+
+  async function addNotification(dniPredem: string) {
+    await row.getByTitle("Přidat notifikaci").click();
+    await page.getByLabel(/Dní předem/i).fill(dniPredem);
+    await page.getByRole("button", { name: "Uložit notifikaci" }).click();
+  }
+
+  await addNotification("1");
+  await addNotification("3");
+
+  await expect(page.getByText(/E-mail · 1 den předem/)).toBeVisible();
+  await expect(page.getByText(/E-mail · 3 dny předem/)).toBeVisible();
+  await expect(page.getByTitle("Odebrat notifikaci")).toHaveCount(2);
 });
 
 test("grid column filter on a lookup/optionset column offers real values, and the column picker shows real labels", async ({

@@ -1,9 +1,10 @@
 import { EntityListPage } from "@/engine/EntityListPage";
 import { formatUserName } from "@/engine/users";
-import type { EntityDefinition, ViewDefinition } from "@/engine/types";
+import { buildStatusViews } from "@/engine/statusViews";
+import type { EntityDefinition, ViewDefinition, ViewTemplate } from "@/engine/types";
 
 import entity from "@/solutions/Projektant_CRM/Entities/ProjectTemplate/Entity.json";
-import activeView from "@/solutions/Projektant_CRM/Entities/ProjectTemplate/SavedQueries/active_project_templates.json";
+import viewTemplate from "@/solutions/Projektant_CRM/Entities/ProjectTemplate/SavedQueries/active_project_templates.json";
 import myView from "@/solutions/Projektant_CRM/Entities/ProjectTemplate/SavedQueries/my_project_templates.json";
 
 export default async function ProjectTemplatesPage({
@@ -14,7 +15,7 @@ export default async function ProjectTemplatesPage({
   return (
     <EntityListPage
       entity={entity as EntityDefinition}
-      views={[activeView, myView] as ViewDefinition[]}
+      views={[...buildStatusViews(entity as EntityDefinition, viewTemplate as ViewTemplate), myView as ViewDefinition]}
       select="id, name, status, created_at, status_reason:option_set_values!project_templates_status_reason_id_fkey(label), owner:users!project_templates_owner_id_fkey(first_name, last_name, email)"
       basePath="/project-templates"
       newLabel="Nová šablona"

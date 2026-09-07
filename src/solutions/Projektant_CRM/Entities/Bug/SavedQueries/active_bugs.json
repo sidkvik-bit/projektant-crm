@@ -1,7 +1,5 @@
 {
   "entity": "Bug",
-  "name": "active_bugs",
-  "label": "Aktivní bugy",
   "columns": [
     { "field": "name" },
     { "field": "status_reason", "label": "Stav" },

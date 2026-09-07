@@ -4,10 +4,9 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { formatDistanceToNowStrict } from "date-fns";
 import { cs } from "date-fns/locale";
-import { Plus, FileSpreadsheet, Trash2, RefreshCw, Search, Download } from "lucide-react";
+import { Plus, FileSpreadsheet, Trash2, RefreshCw, Search, Download, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
@@ -18,6 +17,12 @@ import {
   DialogFooter,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { CommandBar, CommandBarButton, CommandBarSeparator } from "@/components/shell/CommandBar";
 import { GridEngine } from "./GridEngine";
 import { ColumnPicker } from "./ColumnPicker";
@@ -40,12 +45,6 @@ function parseColumnFilters(searchParams: URLSearchParams): Record<string, Colum
   return filters;
 }
 
-const STATUS_FILTERS = [
-  { value: "active", label: "Aktivní" },
-  { value: "inactive", label: "Neaktivní" },
-  { value: "all", label: "Vše" },
-] as const;
-
 export function EntityListClient({
   entity,
   view,
@@ -54,19 +53,17 @@ export function EntityListClient({
   basePath,
   newLabel,
   isImportable,
-  hasStatusFilter = true,
   fieldOptions = {},
 }: {
   entity: EntityDefinition;
   view: ViewDefinition;
-  /** Všechny dostupné views pro přepínač — jen jedna položka, dokud nejde vidět. */
+  /** Všechny dostupné views pro přepínač — Aktivní/Neaktivní/Vše (buildStatusViews) + případné
+   * vlastní views entity (Moje…), každé se svou vlastní podmínkou (viz ViewDefinition.conditions). */
   views: ViewDefinition[];
   rows: Record<string, unknown>[];
   basePath: string;
   newLabel?: string;
   isImportable: boolean;
-  /** Vypni pro entity bez status sloupce (žádná v aplikaci teď, ale ať to jde). */
-  hasStatusFilter?: boolean;
   /** Možnosti pro lookup/optionset sloupcové filtry, klíč = skutečný DB sloupec — viz resolveFilterField. */
   fieldOptions?: Record<string, { value: string; label: string }[]>;
 }) {
@@ -120,7 +117,10 @@ export function EntityListClient({
     columns: visibleColumns.map((field) => view.columns.find((c) => c.field === field) ?? { field }),
   };
 
-  const status = searchParams.get("status") ?? "active";
+  const primaryViews = views.filter((v) => !v.overflow);
+  const overflowViews = views.filter((v) => v.overflow);
+  const activeOverflowView = overflowViews.find((v) => v.name === view.name);
+
   const columnFilters = parseColumnFilters(searchParams);
   const sortField = searchParams.get("sort");
   const sortDirection = searchParams.get("dir") as "asc" | "desc" | null;
@@ -191,7 +191,7 @@ export function EntityListClient({
         {views.length > 1 && (
           <>
             <div className="flex items-center gap-1 rounded-full bg-muted/60 p-1">
-              {views.map((v) => (
+              {primaryViews.map((v) => (
                 <button
                   key={v.name}
                   type="button"
@@ -206,6 +206,36 @@ export function EntityListClient({
                   {v.label}
                 </button>
               ))}
+              {overflowViews.length > 0 && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    render={
+                      <button
+                        type="button"
+                        className={cn(
+                          "flex items-center gap-1 rounded-full px-3 py-1 text-sm font-medium transition-colors",
+                          activeOverflowView
+                            ? "bg-status-success/15 text-status-success"
+                            : "text-muted-foreground hover:text-foreground",
+                        )}
+                      >
+                        {activeOverflowView?.label ?? "Další"}
+                        <ChevronDown className="size-3.5" />
+                      </button>
+                    }
+                  />
+                  <DropdownMenuContent align="start">
+                    {overflowViews.map((v) => (
+                      <DropdownMenuItem
+                        key={v.name}
+                        onClick={() => updateParams({ view: v.name === views[0].name ? null : v.name })}
+                      >
+                        {v.label}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
             <CommandBarSeparator />
           </>
@@ -284,20 +314,6 @@ export function EntityListClient({
         </div>
 
         <div className="ml-auto flex items-center gap-2">
-          {hasStatusFilter && (
-            <div className="flex items-center gap-1">
-              {STATUS_FILTERS.map((f) => (
-                <Badge
-                  key={f.value}
-                  variant={status === f.value ? "default" : "outline"}
-                  className="cursor-pointer select-none"
-                  onClick={() => updateParams({ status: f.value === "active" ? null : f.value })}
-                >
-                  {f.label}
-                </Badge>
-              ))}
-            </div>
-          )}
           <ColumnPicker
             storageKey={columnStorageKey}
             options={allColumnOptions}

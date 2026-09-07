@@ -1,7 +1,5 @@
 {
   "entity": "Quote",
-  "name": "active_quotes",
-  "label": "Aktivní nabídky",
   "columns": [
     { "field": "number", "label": "Číslo" },
     { "field": "name" },
