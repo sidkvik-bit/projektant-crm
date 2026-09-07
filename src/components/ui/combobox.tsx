@@ -21,9 +21,10 @@ function ComboboxInputGroup({ className, ...props }: ComboboxPrimitive.InputGrou
   )
 }
 
-function ComboboxInput({ className, ...props }: ComboboxPrimitive.Input.Props) {
+function ComboboxInput({ className, ref, ...props }: ComboboxPrimitive.Input.Props & { ref?: React.Ref<HTMLInputElement> }) {
   return (
     <ComboboxPrimitive.Input
+      ref={ref}
       data-slot="combobox-input"
       className={cn(
         "h-8 w-full bg-transparent py-2 pr-8 pl-7 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50",

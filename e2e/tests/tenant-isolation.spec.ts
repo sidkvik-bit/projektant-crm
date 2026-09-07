@@ -89,7 +89,7 @@ test("tenant B's grid shows only its own data — the default test org's seeded 
 }) => {
   const context = await browser.newContext({ storageState: tenantBStorageState });
   const page = await context.newPage();
-  await page.goto("/accounts?status=all");
+  await page.goto("/accounts?view=all_accounts");
 
   await expect(page.getByText(TENANT_B_ACCOUNT_NAME)).toBeVisible();
   await expect(page.getByText("Novák Architekti s.r.o.")).toHaveCount(0);
@@ -99,7 +99,7 @@ test("tenant B's grid shows only its own data — the default test org's seeded 
 });
 
 test("the default test org's grid never shows tenant B's data", async ({ page }) => {
-  await page.goto("/accounts?status=all");
+  await page.goto("/accounts?view=all_accounts");
   await expect(page.getByText(TENANT_B_ACCOUNT_NAME)).toHaveCount(0);
 });
 
@@ -107,4 +107,26 @@ test("opening another tenant's record by direct URL 404s instead of leaking its 
   const res = await page.goto(`/accounts/${tenantBAccountId}`);
   expect(res?.status(), "RLS should make this row invisible to the query, so the page must 404").toBe(404);
   await expect(page.getByText(TENANT_B_ACCOUNT_NAME)).toHaveCount(0);
+});
+
+test("global_search (fulltext RPC) respects tenant isolation in both directions", async ({ page, browser }) => {
+  // The default test org must never find tenant B's account by searching its distinctive name.
+  await page.goto("/dashboard");
+  await page.getByPlaceholder(/Hledat v CRM/i).fill("must never leak");
+  await expect(page.getByText(/Napiš aspoň|Nic nenalezeno/)).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText(TENANT_B_ACCOUNT_NAME)).toHaveCount(0);
+
+  // Tenant B's own search must find its own account by that same distinctive name.
+  const context = await browser.newContext({ storageState: tenantBStorageState });
+  const tenantBPage = await context.newPage();
+  await tenantBPage.goto("/dashboard");
+  await tenantBPage.getByPlaceholder(/Hledat v CRM/i).fill("must never leak");
+  await expect(tenantBPage.getByText(TENANT_B_ACCOUNT_NAME)).toBeVisible({ timeout: 10_000 });
+
+  // ...but must never find the default test org's seeded accounts either.
+  await tenantBPage.getByPlaceholder(/Hledat v CRM/i).fill("Novák Architekti");
+  await expect(tenantBPage.getByText(/Napiš aspoň|Nic nenalezeno/)).toBeVisible({ timeout: 10_000 });
+  await expect(tenantBPage.getByText("Novák Architekti s.r.o.")).toHaveCount(0);
+
+  await context.close();
 });
