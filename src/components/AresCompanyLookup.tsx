@@ -1,11 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import { useWatch, type Control, type UseFormSetValue } from "react-hook-form";
 import { Building2, Loader2 } from "lucide-react";
 import type { AresMatch } from "@/lib/ares";
 import type { EntityFormValues } from "@/engine/zodSchema";
 import type { OptionSetValue } from "@/engine/optionSets";
+
+/** Kolik ms po `pick()` se search ignoruje na SESTERSKÉM poli (Název i IČO obojí sdílí
+ * `lastPickAtRef` — vybrání na jednom pole programově přepíše i to druhé, což by bez
+ * tohohle okna hned znovu otevřelo jeho vlastní dropdown). */
+const SUPPRESS_AFTER_PICK_MS = 1000;
 
 /**
  * Vyhledávání v ARES napojené na jedno pole formuláře (Název, nebo IČO) — jak uživatel píše,
@@ -21,6 +26,7 @@ export function AresCompanyLookup({
   watchField,
   mode,
   legalFormOptions = [],
+  suppressSearchRef,
 }: {
   control: Control<EntityFormValues>;
   setValue: UseFormSetValue<EntityFormValues>;
@@ -28,6 +34,8 @@ export function AresCompanyLookup({
   mode: "name" | "ico";
   /** option_set_values pro 'pravni_forma' — mapuje ARES kód (value_key) na naše UUID. */
   legalFormOptions?: OptionSetValue[];
+  /** Sdílený mezi Název/IČO instancemi (FormEngine drží jeden ref pro obě) — viz SUPPRESS_AFTER_PICK_MS. */
+  suppressSearchRef: MutableRefObject<boolean>;
 }) {
   const rawValue = useWatch({ control, name: watchField }) as string | undefined;
   const mountValueRef = useRef(rawValue);
@@ -45,6 +53,7 @@ export function AresCompanyLookup({
 
   useEffect(() => {
     if (!touchedRef.current) return;
+    if (suppressSearchRef.current) return;
 
     const value = (rawValue ?? "").trim();
     if (dismissedFor === value) return;
@@ -75,7 +84,7 @@ export function AresCompanyLookup({
       }
     }, 300);
     return () => clearTimeout(timer);
-  }, [rawValue, mode, dismissedFor]);
+  }, [rawValue, mode, dismissedFor, suppressSearchRef]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -86,6 +95,10 @@ export function AresCompanyLookup({
   }, []);
 
   function pick(match: AresMatch) {
+    suppressSearchRef.current = true;
+    setTimeout(() => {
+      suppressSearchRef.current = false;
+    }, SUPPRESS_AFTER_PICK_MS);
     setValue("name", match.name, { shouldDirty: true });
     setValue("ico", match.ico, { shouldDirty: true });
     if (match.street) setValue("address_street", match.street, { shouldDirty: true });
