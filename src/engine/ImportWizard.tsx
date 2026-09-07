@@ -7,6 +7,15 @@ import { Download, Upload, CheckCircle2, XCircle, ArrowRight } from "lucide-reac
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -97,6 +106,7 @@ export function ImportWizard({ defaultEntityName }: { defaultEntityName?: string
   const [rowErrors, setRowErrors] = useState<(string | null)[]>([]);
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<{ imported: number } | null>(null);
+  const [confirmImportOpen, setConfirmImportOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const entity = importableEntities.find((e) => e.name === entityName) as EntityDefinition | undefined;
@@ -382,22 +392,40 @@ export function ImportWizard({ defaultEntityName }: { defaultEntityName?: string
             </table>
           </div>
 
-          <Button
-            disabled={!allValid || importing}
-            onClick={async () => {
-              setImporting(true);
-              try {
-                const rows = validIndexes.map((i) => resolvedRows[i]);
-                const res = await bulkInsertRecords(entity.table, rows);
-                setResult(res);
-                setStep("done");
-              } finally {
-                setImporting(false);
-              }
-            }}
-          >
-            {importing ? "Importuji…" : `Importovat ${validIndexes.length} záznamů`}
-          </Button>
+          <Dialog open={confirmImportOpen} onOpenChange={setConfirmImportOpen}>
+            <DialogTrigger render={<Button disabled={!allValid || importing}>{`Importovat ${validIndexes.length} záznamů`}</Button>} />
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Importovat {validIndexes.length} záznamů do {entity.displayNamePlural}?</DialogTitle>
+                <DialogDescription>
+                  Založí se {validIndexes.length} nových záznamů najednou. Tuhle akci nejde hromadně
+                  vrátit zpět — smazat by se musely ručně, jeden po druhém.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setConfirmImportOpen(false)} disabled={importing}>
+                  Zrušit
+                </Button>
+                <Button
+                  disabled={importing}
+                  onClick={async () => {
+                    setImporting(true);
+                    try {
+                      const rows = validIndexes.map((i) => resolvedRows[i]);
+                      const res = await bulkInsertRecords(entity.table, rows);
+                      setResult(res);
+                      setStep("done");
+                      setConfirmImportOpen(false);
+                    } finally {
+                      setImporting(false);
+                    }
+                  }}
+                >
+                  {importing ? "Importuji…" : "Ano, importovat"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       )}
 

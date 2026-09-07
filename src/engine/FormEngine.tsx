@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowUpRight, Plus, Ban, CheckCircle2, Trash2, RefreshCw } from "lucide-react";
@@ -123,10 +123,15 @@ export function FormEngine({
   const [statusBusy, setStatusBusy] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deactivateOpen, setDeactivateOpen] = useState(false);
   const router = useRouter();
   const closePath = entityRegistry[entity.name]?.basePath ?? null;
   const currentId = defaultValues?.id as string | undefined;
   const [status, setStatus] = useState((defaultValues?.status as string | undefined) ?? "active");
+  // Sdílené mezi všemi aresLookup poli tohoto formuláře — vybrání na jednom (např. Název)
+  // programově přepíše i sesterská pole (IČO, adresa…), což by bez tohohle jinak znovu
+  // spustilo JEJICH vlastní ARES hledání. Viz AresCompanyLookup.tsx.
+  const aresSuppressSearchRef = useRef(false);
 
   async function toggleStatus() {
     if (!currentId || !closePath) return;
@@ -138,7 +143,16 @@ export function FormEngine({
       router.refresh();
     } finally {
       setStatusBusy(false);
+      setDeactivateOpen(false);
     }
+  }
+
+  // Deaktivace záznamu se dělá napříč celou appkou a nenápadně ho vyřadí z výchozích
+  // (aktivních) filtrů/výběrů jinde — proto potvrzovací dialog. Aktivace zpátky (opak) je
+  // svým způsobem "undo" a potvrzení nepotřebuje.
+  function handleToggleStatusClick() {
+    if (status === "active") setDeactivateOpen(true);
+    else toggleStatus();
   }
 
   async function confirmDelete() {
@@ -156,11 +170,21 @@ export function FormEngine({
     control,
     handleSubmit,
     setValue,
+    reset,
     formState: { errors, isDirty },
   } = useForm<EntityFormValues>({
     resolver: zodResolver(schema),
     defaultValues: { status: "active", ...defaultValues },
   });
+
+  // react-hook-form only reads `defaultValues` once, at mount — a parent Server Component
+  // re-render (e.g. router.refresh() after another panel on the same page saves something,
+  // like the location map writing a new address) passes a fresh `defaultValues` prop that
+  // would otherwise never reach the form. Re-sync unless the user has unsaved edits in progress.
+  useEffect(() => {
+    if (!isDirty) reset({ status: "active", ...defaultValues });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [defaultValues]);
 
   const makeSubmitHandler = (closeAfter: boolean) => async (values: EntityFormValues) => {
     setSubmitting(true);
@@ -199,9 +223,28 @@ export function FormEngine({
             <CommandBarButton
               icon={status === "active" ? Ban : CheckCircle2}
               label={status === "active" ? "Deaktivovat" : "Aktivovat"}
-              onClick={toggleStatus}
+              onClick={handleToggleStatusClick}
               disabled={statusBusy}
             />
+            <Dialog open={deactivateOpen} onOpenChange={setDeactivateOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Deaktivovat záznam?</DialogTitle>
+                  <DialogDescription>
+                    Aktivní → Neaktivní. Záznam zůstane zachovaný, ale zmizí z výchozích (aktivních)
+                    filtrů, výběrů a vyhledávání jinde v appce.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setDeactivateOpen(false)} disabled={statusBusy}>
+                    Zrušit
+                  </Button>
+                  <Button onClick={toggleStatus} disabled={statusBusy}>
+                    {statusBusy ? "Deaktivuji…" : "Ano, deaktivovat"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
             <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
               <DialogTrigger
                 render={
@@ -450,6 +493,7 @@ export function FormEngine({
                           watchField={field.name}
                           mode={field.aresLookup}
                           legalFormOptions={optionSetValues.pravni_forma ?? []}
+                          suppressSearchRef={aresSuppressSearchRef}
                         />
                       )}
 

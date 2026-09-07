@@ -26,8 +26,13 @@ function writeXlsx(rows: Record<string, unknown>[]) {
 async function goToMapStep(page: import("@playwright/test").Page, filePath: string) {
   await page.goto("/import?entity=Lead");
   await expect(page.getByText(/1\. Entita/)).toBeVisible();
-  await page.getByRole("button", { name: /Pokračovat/i }).click();
-  await expect(page.getByText(/2\. Soubor/)).toBeVisible();
+  // The "Pokračovat" button exists in the server-rendered HTML before React
+  // hydrates and attaches its click handler, so a click that lands in that
+  // window is silently dropped — retry the click until the step actually advances.
+  await expect(async () => {
+    await page.getByRole("button", { name: /Pokračovat/i }).click();
+    await expect(page.getByText(/Přetáhni libovolný Excel/)).toBeVisible({ timeout: 1000 });
+  }).toPass({ timeout: 15_000 });
   await page.locator('input[type="file"]').setInputFiles(filePath);
   await expect(page.getByText(/3\. Mapování/)).toBeVisible();
 }
@@ -47,9 +52,11 @@ test("Excel import: auto-maps columns by label and imports valid rows", async ({
   await page.getByRole("button", { name: /Zkontrolovat řádky/i }).click();
   await expect(page.getByText(/^2 \/ 2 řádků v pořádku$/)).toBeVisible();
 
-  const importButton = page.getByRole("button", { name: /Importovat/i });
+  const importButton = page.getByRole("button", { name: /^Importovat \d+ záznamů$/ });
   await expect(importButton).toBeEnabled();
   await importButton.click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.getByRole("button", { name: "Ano, importovat" }).click();
   await expect(page.getByText(/Naimportováno 2 záznamů\./)).toBeVisible();
 
   await page.goto("/leads");

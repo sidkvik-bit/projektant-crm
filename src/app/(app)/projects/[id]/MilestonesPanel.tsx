@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Trash2, Plus, Bell, CheckCircle2, XCircle, X } from "lucide-react";
+import { Fragment, useState } from "react";
+import { Trash2, Plus, Bell, BellPlus, Mail, CheckCircle2, XCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,6 +20,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
   DialogTrigger,
 } from "@/components/ui/dialog";
@@ -89,6 +90,29 @@ export function MilestonesPanel({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [bulkDeleteBusy, setBulkDeleteBusy] = useState(false);
+  const [removingNotificationId, setRemovingNotificationId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+    setDeleteBusy(true);
+    try {
+      await onDelete(projectId, deleteTarget.id);
+      setDeleteTarget(null);
+    } finally {
+      setDeleteBusy(false);
+    }
+  }
+
+  async function handleRemoveNotification(notificationId: string) {
+    setRemovingNotificationId(notificationId);
+    try {
+      await onDeleteNotification(projectId, notificationId);
+    } finally {
+      setRemovingNotificationId(null);
+    }
+  }
 
   const sorted = [...milestones].sort((a, b) =>
     (a.termin_splneni ?? "9999").localeCompare(b.termin_splneni ?? "9999"),
@@ -150,6 +174,25 @@ export function MilestonesPanel({
         </div>
       )}
 
+      <Dialog open={deleteTarget != null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Odstranit milník &quot;{deleteTarget?.name}&quot;?</DialogTitle>
+            <DialogDescription>
+              Tuto akci nejde vzít zpět, včetně navázaných notifikací u tohoto milníku.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleteBusy}>
+              Zrušit
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete} disabled={deleteBusy}>
+              {deleteBusy ? "Odstraňuji…" : "Odstranit"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
         <Table>
           <TableHeader>
@@ -177,53 +220,88 @@ export function MilestonesPanel({
                 </TableCell>
               </TableRow>
             ) : (
-              sorted.map((m) => (
-                <TableRow key={m.id} className="transition-colors hover:bg-accent/40">
-                  <TableCell>
-                    <Checkbox checked={selectedIds.has(m.id)} onCheckedChange={() => toggleRow(m.id)} />
-                  </TableCell>
-                  <TableCell className={m.splneno ? "text-muted-foreground line-through" : "font-medium"}>
-                    {m.name}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{m.termin_splneni ?? "bez termínu"}</TableCell>
-                  <TableCell>
-                    <MilestoneStatusBadge splneno={m.splneno} terminSplneni={m.termin_splneni} />
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        title={m.splneno ? "Zrušit splnění" : "Splnit"}
-                        onClick={() => onToggle(projectId, m.id, !m.splneno)}
-                      >
-                        {m.splneno ? (
-                          <XCircle className="size-4 text-muted-foreground" />
-                        ) : (
-                          <CheckCircle2 className="size-4 text-primary" />
-                        )}
-                      </Button>
-                      <NotificationDialog
-                        milestoneName={m.name}
-                        userOptions={userOptions}
-                        notifications={notificationsByMilestone[m.id] ?? []}
-                        onSubmit={(type, dniPredem, recipientUserId) =>
-                          onCreateNotification(projectId, m.id, type, dniPredem, recipientUserId)
-                        }
-                        onDelete={(notificationId) => onDeleteNotification(projectId, notificationId)}
-                      />
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        title="Odstranit milník"
-                        onClick={() => onDelete(projectId, m.id)}
-                      >
-                        <Trash2 className="size-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
+              sorted.map((m) => {
+                const notifications = notificationsByMilestone[m.id] ?? [];
+                return (
+                  <Fragment key={m.id}>
+                    <TableRow className="transition-colors hover:bg-accent/40">
+                      <TableCell>
+                        <Checkbox checked={selectedIds.has(m.id)} onCheckedChange={() => toggleRow(m.id)} />
+                      </TableCell>
+                      <TableCell className={m.splneno ? "text-muted-foreground line-through" : "font-medium"}>
+                        {m.name}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">{m.termin_splneni ?? "bez termínu"}</TableCell>
+                      <TableCell>
+                        <MilestoneStatusBadge splneno={m.splneno} terminSplneni={m.termin_splneni} />
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            title={m.splneno ? "Zrušit splnění" : "Splnit"}
+                            onClick={() => onToggle(projectId, m.id, !m.splneno)}
+                          >
+                            {m.splneno ? (
+                              <XCircle className="size-4 text-muted-foreground" />
+                            ) : (
+                              <CheckCircle2 className="size-4 text-primary" />
+                            )}
+                          </Button>
+                          <AddNotificationDialog
+                            milestoneName={m.name}
+                            userOptions={userOptions}
+                            onSubmit={(type, dniPredem, recipientUserId) =>
+                              onCreateNotification(projectId, m.id, type, dniPredem, recipientUserId)
+                            }
+                          />
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            title="Odstranit milník"
+                            onClick={() => setDeleteTarget({ id: m.id, name: m.name })}
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                    {notifications.map((n) => {
+                      const Icon = n.type === "EMAIL" ? Mail : Bell;
+                      return (
+                        <TableRow key={n.id} className="border-none bg-muted/20 hover:bg-muted/30">
+                          <TableCell className="w-8" />
+                          <TableCell colSpan={3} className="py-1.5 pl-6 text-xs text-muted-foreground">
+                            <span className="inline-flex items-center gap-1.5">
+                              <span aria-hidden className="text-muted-foreground/60">
+                                ↳
+                              </span>
+                              <Icon className="size-3 shrink-0" />
+                              {NOTIFICATION_TYPE_LABELS[n.type]} · {n.dni_predem}{" "}
+                              {n.dni_predem === 1 ? "den" : n.dni_predem < 5 ? "dny" : "dní"} předem ·{" "}
+                              {n.recipientLabel}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center justify-end">
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                title="Odebrat notifikaci"
+                                disabled={removingNotificationId === n.id}
+                                onClick={() => handleRemoveNotification(n.id)}
+                              >
+                                <X className="size-3.5" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </Fragment>
+                );
+              })
             )}
           </TableBody>
         </Table>
@@ -265,79 +343,40 @@ const NOTIFICATION_TYPE_LABELS: Record<"EMAIL" | "PUSH", string> = {
   PUSH: "Zvoneček (PUSH)",
 };
 
-function NotificationDialog({
+/**
+ * Jen založení nové notifikace — výpis už existujících se řeší přímo v tabulce
+ * (odsazené řádky pod milníkem), takže tenhle dialog nemusí nic vypisovat.
+ */
+function AddNotificationDialog({
   milestoneName,
   userOptions,
-  notifications,
   onSubmit,
-  onDelete,
 }: {
   milestoneName: string;
   userOptions: UserOption[];
-  notifications: MilestoneNotification[];
   onSubmit: (type: "EMAIL" | "PUSH", dniPredem: number, recipientUserId: string) => Promise<void>;
-  onDelete: (notificationId: string) => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<"EMAIL" | "PUSH">("EMAIL");
   const [dniPredem, setDniPredem] = useState("1");
   const [recipient, setRecipient] = useState<string>(userOptions[0]?.id ?? "");
   const [submitting, setSubmitting] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
         render={
-          <Button variant="ghost" size="icon-sm" className="relative" title="Notifikace">
-            <Bell className="size-4" />
-            {notifications.length > 0 && (
-              <Badge className="absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full px-0.5 text-[9px]">
-                {notifications.length}
-              </Badge>
-            )}
+          <Button variant="ghost" size="icon-sm" title="Přidat notifikaci">
+            <BellPlus className="size-4" />
           </Button>
         }
       />
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Notifikace — {milestoneName}</DialogTitle>
+          <DialogTitle>Přidat notifikaci — {milestoneName}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
-          {notifications.length > 0 && (
-            <div className="space-y-1.5">
-              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Nastavené notifikace</Label>
-              <div className="space-y-1.5">
-                {notifications.map((n) => (
-                  <div key={n.id} className="flex items-center justify-between rounded-md border px-2.5 py-1.5 text-sm">
-                    <span>
-                      {NOTIFICATION_TYPE_LABELS[n.type]} · {n.dni_predem} {n.dni_predem === 1 ? "den" : "dní"} předem ·{" "}
-                      {n.recipientLabel}
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      title="Odebrat notifikaci"
-                      disabled={deletingId === n.id}
-                      onClick={async () => {
-                        setDeletingId(n.id);
-                        try {
-                          await onDelete(n.id);
-                        } finally {
-                          setDeletingId(null);
-                        }
-                      }}
-                    >
-                      <X className="size-3.5" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="space-y-3 border-t pt-3">
-            <Label className="text-xs uppercase tracking-wide text-muted-foreground">Přidat novou</Label>
+          <div className="space-y-3">
             <div className="space-y-1.5">
               <Label>Typ</Label>
               <Select
@@ -355,8 +394,9 @@ function NotificationDialog({
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>Dní předem</Label>
+              <Label htmlFor="notification-dni-predem">Dní předem</Label>
               <Input
+                id="notification-dni-predem"
                 type="number"
                 min={0}
                 value={dniPredem}
@@ -392,6 +432,7 @@ function NotificationDialog({
               try {
                 await onSubmit(type, Number(dniPredem) || 0, recipient);
                 setDniPredem("1");
+                setOpen(false);
               } finally {
                 setSubmitting(false);
               }
