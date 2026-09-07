@@ -146,3 +146,44 @@
     @apply font-sans;
   }
 }
+
+/* Animated brand mark (AnimatedLogo) — slow 3D spin + a blue/cyan/royal-blue color drift +
+   a soft glow, on hover or while `--active` (used as the app's loading indicator). */
+@keyframes logo-spin-y {
+  from {
+    transform: rotateY(0deg);
+  }
+  to {
+    transform: rotateY(360deg);
+  }
+}
+
+@keyframes logo-color-drift {
+  0%,
+  100% {
+    filter: hue-rotate(0deg) drop-shadow(0 0 4px oklch(0.7 0.16 240 / 45%));
+  }
+  33% {
+    filter: hue-rotate(28deg) drop-shadow(0 0 9px oklch(0.78 0.14 210 / 65%));
+  }
+  66% {
+    filter: hue-rotate(-22deg) drop-shadow(0 0 9px oklch(0.55 0.2 265 / 65%));
+  }
+}
+
+.animated-logo {
+  perspective: 500px;
+  display: inline-block;
+}
+
+.animated-logo__mark {
+  transform-style: preserve-3d;
+  will-change: transform, filter;
+}
+
+.animated-logo:hover .animated-logo__mark,
+.animated-logo--active .animated-logo__mark {
+  animation:
+    logo-spin-y 3.2s linear infinite,
+    logo-color-drift 3.2s ease-in-out infinite;
+}
