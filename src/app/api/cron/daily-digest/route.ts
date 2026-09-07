@@ -51,7 +51,14 @@ export function renderDigestHtml({
   `;
 }
 
-// Vercel Cron volá tenhle endpoint denně v 8:00 s hlavičkou Authorization: Bearer $CRON_SECRET.
+// Vercel Cron volá tenhle endpoint denně v 6:30 (viz vercel.json) s hlavičkou
+// Authorization: Bearer $CRON_SECRET (Vercel ji připojí sama, když je CRON_SECRET
+// nastavený v env proměnných projektu — nutné nastavit i pro produkční Vercel projekt,
+// lokální .env.local se tam nekopíruje).
+//
+// Vercel Cron neumí časové pásmo, plán je v UTC — "30 4 * * *" = 6:30 SELČ (léto/CEST,
+// UTC+2). Až se v říjnu přepne na SEČ/CET (UTC+1), poběží fakticky v 7:30 místního času;
+// při přechodu na letní/zimní čas je potřeba schedule v vercel.json ručně posunout o hodinu.
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
