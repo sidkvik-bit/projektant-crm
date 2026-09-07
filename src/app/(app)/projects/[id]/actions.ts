@@ -7,6 +7,37 @@ function basePath(projectId: string) {
   return `/projects/${projectId}`;
 }
 
+// --- Mapa (GPS / adresa z bodu na mapě) ---
+
+/** "Přepsat GPS" — uloží bod vybraný na mapě přímo jako GPS, adresní pole nechá být. */
+export async function setProjectGps(projectId: string, lat: number, lng: number) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("projects").update({ gps_lat: lat, gps_lng: lng }).eq("id", projectId);
+  if (error) throw error;
+  revalidatePath(basePath(projectId));
+}
+
+/** "Přepsat adresu" — reverse geocoding proběhl už v prohlížeči (ProjectLocationMap.tsx),
+ * sem přijde jen hotový výsledek k uložení do adresních polí. GPS se tímhle nemění. */
+export async function setProjectAddressFromPoint(
+  projectId: string,
+  address: { street: string | null; houseNumber: string | null; city: string | null; zip: string | null; country: string | null },
+) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("projects")
+    .update({
+      address_street: address.street,
+      address_house_number: address.houseNumber,
+      address_city: address.city,
+      address_zip: address.zip,
+      address_country: address.country,
+    })
+    .eq("id", projectId);
+  if (error) throw error;
+  revalidatePath(basePath(projectId));
+}
+
 // --- Milníky ---
 
 export async function addProjectMilestone(projectId: string, name: string, terminSplneni: string) {

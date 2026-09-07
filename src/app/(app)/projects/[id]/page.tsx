@@ -17,6 +17,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getProjectDriveFiles, type DriveListResult } from "@/lib/googleDrive";
+import { buildAddressQuery } from "@/lib/mapbox";
+import type { PrefillData } from "@/lib/utilityPrefill";
 import type { EntityDefinition, FormDefinition } from "@/engine/types";
 import type { EntityFormValues } from "@/engine/zodSchema";
 
@@ -29,11 +31,15 @@ import {
   bulkDeleteProjectMilestones,
   createMilestoneNotification,
   deleteMilestoneNotification,
+  setProjectGps,
+  setProjectAddressFromPoint,
 } from "./actions";
 import { updateProject } from "../actions";
 import { MilestonesPanel, type MilestoneNotification } from "./MilestonesPanel";
 import { DriveFilesPanel } from "./DriveFilesPanel";
 import { TeamPanel } from "./TeamPanel";
+import { LocationMapToggle } from "./LocationMapToggle";
+import { PrefillFormButton } from "./PrefillFormButton";
 
 export default async function ProjectDetailPage({
   params,
@@ -44,7 +50,22 @@ export default async function ProjectDetailPage({
   const supabase = await createClient();
 
   const record = await getRecordById<
-    EntityFormValues & { name: string; account_id: string; drive_url: string | null; status: string }
+    EntityFormValues & {
+      name: string;
+      account_id: string;
+      primary_contact_id: string | null;
+      drive_url: string | null;
+      status: string;
+      gps_lat: number | null;
+      gps_lng: number | null;
+      address_street: string | null;
+      address_house_number: string | null;
+      address_city: string | null;
+      address_zip: string | null;
+      address_country: string | null;
+      katastralni_uzemi: string | null;
+      parcelni_cislo: string | null;
+    }
   >(supabase, entity.table, id).catch(() => null);
 
   if (!record) notFound();
@@ -67,6 +88,8 @@ export default async function ProjectDetailPage({
     notificationConfigs,
     driveFiles,
     quotes,
+    applicantAccount,
+    primaryContact,
   ] = await Promise.all([
       getCommonFormContext(supabase, entity as EntityDefinition),
       listRecords<{ id: string; name: string }>(supabase, "accounts", { select: "id, name" }),
@@ -104,6 +127,22 @@ export default async function ProjectDetailPage({
         filter: { project_id: id },
         sort: { field: "created_at", direction: "desc" },
       }),
+      supabase
+        .from("accounts")
+        .select(
+          "name, ico, address_street, address_house_number, address_city, address_zip, address_country, pravni_forma:option_set_values!accounts_pravni_forma_id_fkey(label)",
+        )
+        .eq("id", record.account_id)
+        .maybeSingle()
+        .then((r) => r.data),
+      record.primary_contact_id
+        ? supabase
+            .from("contacts")
+            .select("first_name, last_name, phone, mobile_phone, email")
+            .eq("id", record.primary_contact_id)
+            .maybeSingle()
+            .then((r) => r.data)
+        : Promise.resolve(null),
     ]);
 
   const notificationsByMilestone = (
@@ -129,6 +168,38 @@ export default async function ProjectDetailPage({
     await updateProject(id, values);
   }
 
+  const account = applicantAccount as unknown as {
+    name: string;
+    ico: string | null;
+    address_street: string | null;
+    address_house_number: string | null;
+    address_city: string | null;
+    address_zip: string | null;
+    address_country: string | null;
+    pravni_forma: { label: string } | null;
+  } | null;
+  const contact = primaryContact as unknown as {
+    first_name: string;
+    last_name: string | null;
+    phone: string | null;
+    mobile_phone: string | null;
+    email: string | null;
+  } | null;
+
+  const prefillData: PrefillData = {
+    applicantName: account?.name ?? record.name,
+    applicantIco: account?.ico ?? null,
+    applicantLegalForm: account?.pravni_forma?.label ?? null,
+    applicantAddress: account ? buildAddressQuery(account) : null,
+    contactName: contact ? [contact.first_name, contact.last_name].filter(Boolean).join(" ") : null,
+    contactPhone: contact?.phone ?? contact?.mobile_phone ?? null,
+    contactEmail: contact?.email ?? null,
+    locationAddress: buildAddressQuery(record),
+    gps: record.gps_lat != null && record.gps_lng != null ? { lat: record.gps_lat, lng: record.gps_lng } : null,
+    katastralniUzemi: record.katastralni_uzemi,
+    parcelniCislo: record.parcelni_cislo,
+  };
+
   return (
     <div>
       <PageHeader
@@ -141,6 +212,7 @@ export default async function ProjectDetailPage({
           <>
             <CalendarLink title={record.name} />
             <DriveLink url={record.drive_url} />
+            <PrefillFormButton data={prefillData} />
           </>
         }
       />
@@ -174,6 +246,21 @@ export default async function ProjectDetailPage({
                 viewLabel: entity.displayNamePlural,
                 records: navigatorRecords.map((p) => ({ id: p.id, label: p.name })),
               }}
+            />
+
+            <LocationMapToggle
+              projectId={id}
+              initialLat={record.gps_lat}
+              initialLng={record.gps_lng}
+              currentAddress={{
+                street: record.address_street,
+                houseNumber: record.address_house_number,
+                city: record.address_city,
+                zip: record.address_zip,
+                country: record.address_country,
+              }}
+              onSetGps={setProjectGps}
+              onSetAddress={setProjectAddressFromPoint}
             />
 
             <div className="space-y-3">

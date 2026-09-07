@@ -14,8 +14,22 @@
           "fields": ["datum_zahajeni", "deadline", "budget"]
         },
         {
-          "label": "Odkazy a poznámky",
-          "fields": ["drive_url", "description"]
+          "label": "Poznámky",
+          "fields": ["description"]
+        },
+        {
+          "label": "Místo realizace",
+          "fields": [
+            "address_street",
+            "address_house_number",
+            "address_city",
+            "address_zip",
+            "address_country",
+            "katastralni_uzemi",
+            "parcelni_cislo",
+            "gps_lat",
+            "gps_lng"
+          ]
         },
         {
           "label": "Stav a vlastník",

@@ -6,10 +6,31 @@ import { createClient } from "@/lib/supabase/server";
 import { createRecord, listRecords, getRecordById } from "@/engine/Database";
 import { updateEntityRecord } from "@/engine/entityActions";
 import { computeMilestoneDueDates } from "@/engine/milestoneDates";
+import { ADDRESS_FIELD_KEYS, addressFieldsChanged, buildAddressQuery, geocodeAddress, type AddressFields } from "@/lib/mapbox";
 import type { EntityFormValues } from "@/engine/zodSchema";
 import entity from "@/solutions/Projektant_CRM/Entities/Project/Entity.json";
 
 const BASE_PATH = "/projects";
+
+/**
+ * Přepočte GPS z adresních polí v `values` — jen když je z čeho (aspoň jedno adresní pole
+ * vyplněné). `null` znamená "adresu se nepodařilo geokódovat" (chybí token, nenalezeno, chyba
+ * API) — volající pak GPS ponechá beze změny, ne přepíše nulami (viz volající kód níže).
+ */
+async function geocodeFromValues(values: EntityFormValues) {
+  const query = buildAddressQuery({
+    address_street: values.address_street as string | undefined,
+    address_house_number: values.address_house_number as string | undefined,
+    address_city: values.address_city as string | undefined,
+    address_zip: values.address_zip as string | undefined,
+    address_country: values.address_country as string | undefined,
+  });
+  if (!query) return { gps_lat: null, gps_lng: null };
+
+  const point = await geocodeAddress(query);
+  if (!point) return null;
+  return { gps_lat: point.lat, gps_lng: point.lng };
+}
 
 /** Zkopíruje Template_Milestones do Project_Milestones s dopočtem data (start + offset_dni). */
 async function generateMilestonesFromTemplate(
@@ -37,7 +58,8 @@ async function generateMilestonesFromTemplate(
 
 export async function createProject(values: EntityFormValues) {
   const supabase = await createClient();
-  const record = await createRecord<{ id: string }>(supabase, entity.table, values);
+  const gps = await geocodeFromValues(values);
+  const record = await createRecord<{ id: string }>(supabase, entity.table, { ...values, ...gps });
 
   const templateId = values.project_template_id as string | null | undefined;
   if (templateId) {
@@ -72,7 +94,18 @@ export async function updateProject(id: string, values: EntityFormValues) {
     shouldGenerateMilestones = !current.project_template_id;
   }
 
-  await updateEntityRecord(entity.table, BASE_PATH, id, values);
+  // GPS se přepočítá jen když se adresa opravdu změnila — jinak by každé uložení (i kvůli
+  // nesouvisejícímu poli) přepsalo ruční korekci polohy udělanou přes mapu (viz
+  // ProjectLocationMap.tsx "Přepsat GPS").
+  const currentAddress = await getRecordById<AddressFields>(
+    supabase,
+    entity.table,
+    id,
+    ADDRESS_FIELD_KEYS.join(", "),
+  );
+  const gps = addressFieldsChanged(currentAddress, values) ? await geocodeFromValues(values) : null;
+
+  await updateEntityRecord(entity.table, BASE_PATH, id, { ...values, ...gps });
 
   if (shouldGenerateMilestones && templateId) {
     await generateMilestonesFromTemplate(

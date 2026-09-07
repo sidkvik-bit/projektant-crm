@@ -13,7 +13,15 @@
     { "name": "datum_zahajeni", "label": "Datum zahájení", "type": "date" },
     { "name": "deadline", "label": "Deadline", "type": "date" },
     { "name": "budget", "label": "Rozpočet", "type": "currency" },
-    { "name": "drive_url", "label": "Odkaz na Google Drive", "type": "url" },
-    { "name": "description", "label": "Popis", "type": "textarea" }
+    { "name": "description", "label": "Popis", "type": "textarea" },
+    { "name": "address_street", "label": "Ulice", "type": "text" },
+    { "name": "address_house_number", "label": "Číslo popisné/orientační", "type": "text" },
+    { "name": "address_city", "label": "Obec", "type": "text" },
+    { "name": "address_zip", "label": "PSČ", "type": "text" },
+    { "name": "address_country", "label": "Stát", "type": "text" },
+    { "name": "katastralni_uzemi", "label": "Katastrální území", "type": "text" },
+    { "name": "parcelni_cislo", "label": "Parcelní číslo", "type": "text" },
+    { "name": "gps_lat", "label": "GPS šířka", "type": "number", "readOnly": true },
+    { "name": "gps_lng", "label": "GPS délka", "type": "number", "readOnly": true }
   ]
 }
