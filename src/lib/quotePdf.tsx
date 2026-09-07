@@ -1,5 +1,5 @@
 import path from "node:path";
-import { Document, Page, View, Text, StyleSheet, Font } from "@react-pdf/renderer";
+import { Document, Page, View, Text, Image, StyleSheet, Font } from "@react-pdf/renderer";
 
 // Standardní PDF fonty (Helvetica) neumí českou diakritiku (WinAnsi encoding) — PT Sans
 // (OFL licence, staticky bundlovaná v repu) pokrývá celou českou znakovou sadu.
@@ -13,7 +13,9 @@ Font.register({
 
 const styles = StyleSheet.create({
   page: { fontFamily: "PT Sans", fontSize: 10, padding: 40, color: "#1a1a1a" },
-  headerRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 24 },
+  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 },
+  logoBlock: { flexDirection: "row", alignItems: "center", gap: 8 },
+  logo: { width: 36, height: 36 },
   orgName: { fontSize: 14, fontWeight: "bold" },
   title: { fontSize: 16, fontWeight: "bold", marginBottom: 4 },
   muted: { fontSize: 9, color: "#666666" },
@@ -47,6 +49,7 @@ export interface QuotePdfItem {
 
 export interface QuotePdfData {
   organizationName: string;
+  organizationLogoUrl: string | null;
   number: string;
   name: string;
   createdAt: string;
@@ -68,7 +71,10 @@ export function QuotePdfDocument({ data }: { data: QuotePdfData }) {
     <Document title={`${data.number} – ${data.name}`}>
       <Page size="A4" style={styles.page}>
         <View style={styles.headerRow}>
-          <Text style={styles.orgName}>{data.organizationName}</Text>
+          <View style={styles.logoBlock}>
+            {data.organizationLogoUrl ? <Image src={data.organizationLogoUrl} style={styles.logo} /> : null}
+            <Text style={styles.orgName}>{data.organizationName}</Text>
+          </View>
           <View style={{ alignItems: "flex-end" }}>
             <Text style={styles.title}>Nabídka {data.number}</Text>
             <Text style={styles.muted}>Vystaveno: {formatDate(data.createdAt)}</Text>

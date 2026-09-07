@@ -14,6 +14,8 @@ import {
   Bug,
   HardDrive,
   Receipt,
+  Banknote,
+  Landmark,
 } from "lucide-react";
 
 export interface NavItem {
@@ -46,6 +48,7 @@ export const navGroups: NavGroup[] = [
       { label: "Kontakty", href: "/contacts", icon: Users },
       { label: "Projekty", href: "/projects", icon: FolderKanban },
       { label: "Nabídky", href: "/quotes", icon: Receipt },
+      { label: "Faktury", href: "/invoices", icon: Banknote },
       { label: "Aktivity", href: "/activities", icon: Activity },
       { label: "Bugy", href: "/bugs", icon: Bug },
     ],
@@ -62,6 +65,7 @@ export const navGroups: NavGroup[] = [
     items: [
       { label: "Tým", href: "/settings/team", icon: UsersRound },
       { label: "Google Drive", href: "/settings/google-drive", icon: HardDrive },
+      { label: "Fakturace", href: "/settings/invoicing", icon: Landmark },
       { label: "Import z Excelu", href: "/import", icon: FileSpreadsheet },
     ],
   },

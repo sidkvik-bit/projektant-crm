@@ -49,17 +49,17 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       .eq("id", id)
       .single(),
     supabase.from("quote_items").select("name, quantity, unit, unit_price, line_total").eq("quote_id", id).order("sort_order"),
-    supabase.from("users").select("organizations(name)").eq("user_id", user.id).maybeSingle(),
+    supabase.from("users").select("organizations(name, logo_url)").eq("user_id", user.id).maybeSingle(),
   ]);
 
   if (quoteError || !quote) return NextResponse.json({ error: "Nabídka nenalezena." }, { status: 404 });
 
   const q = quote as unknown as QuoteRow;
-  const organizationName =
-    (profile?.organizations as unknown as { name: string } | null)?.name ?? "Projektant CRM";
+  const org = profile?.organizations as unknown as { name: string; logo_url: string | null } | null;
 
   const data: QuotePdfData = {
-    organizationName,
+    organizationName: org?.name ?? "Projektant CRM",
+    organizationLogoUrl: org?.logo_url ?? null,
     number: q.number,
     name: q.name,
     createdAt: q.created_at,

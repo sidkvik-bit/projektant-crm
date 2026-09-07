@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { Download, FolderKanban, Receipt } from "lucide-react";
+import { Download, FolderKanban, CheckCircle2, XCircle } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 import { getRecordById, listRecords } from "@/engine/Database";
@@ -10,18 +10,19 @@ import { createTimelineActivity } from "@/engine/entityActions";
 import { FormEngine } from "@/engine/FormEngine";
 import { ActivityTimeline } from "@/engine/ActivityTimeline";
 import { PageHeader } from "@/components/shell/PageHeader";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { EntityDefinition, FormDefinition } from "@/engine/types";
 import type { EntityFormValues } from "@/engine/zodSchema";
 
-import entity from "@/solutions/Projektant_CRM/Entities/Quote/Entity.json";
-import formDef from "@/solutions/Projektant_CRM/Entities/Quote/FormXml/main_form.json";
-import { addQuoteItem, updateQuoteItem, deleteQuoteItem, generateInvoiceFromQuote } from "./actions";
-import { updateQuote } from "../actions";
-import { QuoteItemsPanel, type QuoteItem } from "./QuoteItemsPanel";
+import entity from "@/solutions/Projektant_CRM/Entities/Invoice/Entity.json";
+import formDef from "@/solutions/Projektant_CRM/Entities/Invoice/FormXml/main_form.json";
+import { addInvoiceItem, updateInvoiceItem, deleteInvoiceItem, setInvoicePaid } from "./actions";
+import { updateInvoice } from "../actions";
+import { InvoiceItemsPanel, type InvoiceItem } from "./InvoiceItemsPanel";
 
-export default async function QuoteDetailPage({
+export default async function InvoiceDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -36,6 +37,7 @@ export default async function QuoteDetailPage({
       project_id: string;
       vat_rate: number;
       status: string;
+      uhrazeno: boolean;
     }
   >(supabase, entity.table, id).catch(() => null);
 
@@ -49,17 +51,17 @@ export default async function QuoteDetailPage({
     }),
     listRecords<{ id: string; name: string }>(supabase, "projects", { select: "id, name" }),
     getOptionSetValues(supabase, "activity_type"),
-    getTimelineActivities(supabase, { entityType: "Quote", entityId: id }),
-    listRecords<QuoteItem>(supabase, "quote_items", {
+    getTimelineActivities(supabase, { entityType: "Invoice", entityId: id }),
+    listRecords<InvoiceItem>(supabase, "invoice_items", {
       select: "id, name, quantity, unit, unit_price, line_total",
-      filter: { quote_id: id },
+      filter: { invoice_id: id },
       sort: { field: "sort_order", direction: "asc" },
     }),
   ]);
 
   async function handleUpdate(values: EntityFormValues) {
     "use server";
-    await updateQuote(id, values);
+    await updateInvoice(id, values);
   }
 
   return (
@@ -72,6 +74,7 @@ export default async function QuoteDetailPage({
         }}
         actions={
           <>
+            {record.uhrazeno && <Badge>Uhrazeno</Badge>}
             <Button
               variant="outline"
               size="sm"
@@ -85,16 +88,16 @@ export default async function QuoteDetailPage({
             <Button
               size="sm"
               render={
-                <a href={`/api/quotes/${id}/pdf`} target="_blank" rel="noreferrer">
+                <a href={`/api/invoices/${id}/pdf`} target="_blank" rel="noreferrer">
                   <Download className="size-4" />
                   Stáhnout PDF
                 </a>
               }
             />
-            <form action={generateInvoiceFromQuote.bind(null, id)}>
+            <form action={setInvoicePaid.bind(null, id, !record.uhrazeno)}>
               <Button type="submit" variant="outline" size="sm">
-                <Receipt className="size-4" />
-                Vygenerovat fakturu
+                {record.uhrazeno ? <XCircle className="size-4" /> : <CheckCircle2 className="size-4" />}
+                {record.uhrazeno ? "Zrušit uhrazení" : "Označit jako uhrazenou"}
               </Button>
             </form>
           </>
@@ -128,26 +131,23 @@ export default async function QuoteDetailPage({
             />
 
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">Položky nabídky</h2>
-                <span className="text-sm text-muted-foreground">Číslo nabídky: {record.number}</span>
-              </div>
-              <QuoteItemsPanel
-                quoteId={id}
+              <h2 className="text-lg font-semibold">Položky faktury</h2>
+              <InvoiceItemsPanel
+                invoiceId={id}
                 items={items}
                 vatRate={Number(record.vat_rate) || 0}
-                onAdd={addQuoteItem}
-                onUpdate={updateQuoteItem}
-                onDelete={deleteQuoteItem}
+                onAdd={addInvoiceItem}
+                onUpdate={updateInvoiceItem}
+                onDelete={deleteInvoiceItem}
               />
             </div>
           </TabsContent>
 
           <TabsContent value="activities" className="max-w-3xl pt-4">
             <ActivityTimeline
-              entityType="Quote"
+              entityType="Invoice"
               entityId={id}
-              detailPath={`/quotes/${id}`}
+              detailPath={`/invoices/${id}`}
               activities={activities}
               activityTypes={activityTypes}
               onAdd={createTimelineActivity}

@@ -1,0 +1,27 @@
+{
+  "entity": "Invoice",
+  "tabs": [
+    {
+      "label": "Obecné",
+      "sections": [
+        {
+          "label": "Faktura",
+          "fields": ["number", "name", "project_id", "account_id", "contact_id"]
+        },
+        {
+          "label": "Termíny a platba",
+          "fields": ["variabilni_symbol", "datum_vystaveni", "datum_zdanitelneho_plneni", "datum_splatnosti", "forma_uhrady_id", "vat_rate"]
+        },
+        {
+          "label": "Poznámka",
+          "fields": ["note"]
+        },
+        {
+          "label": "Stav a vlastník",
+          "fields": ["status", "status_reason", "owner_id"]
+        }
+      ]
+    }
+  ],
+  "columns": 2
+}
