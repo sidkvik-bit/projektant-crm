@@ -31,6 +31,21 @@ test("typing a query shows matching results across multiple entity types", async
   expect(errors, `errors while searching:\n${errors.join("\n")}`).toEqual([]);
 });
 
+test("matches by prefix, not just whole words — a partial word finds the record being typed", async ({ page }) => {
+  const admin = adminClient();
+  const { data: org } = await admin.from("organizations").select("id").eq("name", "E2E Test Org").single();
+  const name = `E2E Prefix Roztoky ${Date.now()}`;
+  const { data: account } = await admin.from("accounts").insert({ organization_id: org!.id, name }).select("id").single();
+
+  await page.goto("/dashboard");
+  // "Roztoky" is a whole word in the name, "Rozt" is only its prefix — websearch_to_tsquery
+  // would require a complete word match and find nothing for a partial word like this.
+  await page.getByPlaceholder(/Hledat v CRM/i).fill("Rozt");
+  await expect(page.getByRole("option", { name: new RegExp(name) })).toBeVisible({ timeout: 10_000 });
+
+  await admin.from("accounts").delete().eq("id", account!.id);
+});
+
 test("a query under 2 characters shows a hint instead of searching", async ({ page }) => {
   await page.goto("/dashboard");
   await page.getByPlaceholder(/Hledat v CRM/i).fill("N");
