@@ -7,6 +7,10 @@ export interface OptionSetValue {
   color: string | null;
   sort_order: number;
   is_default: boolean;
+  /** Jen pro status_reason číselníky (D365 vzor) — omezí, u kterého stavu (status) záznamu
+   * jde tahle hodnota vybrat. `null` = platí pro libovolný stav (Project/Quote/Invoice mají
+   * svoje důvody jako nezávislý pracovní postup, ne podkategorii aktivní/neaktivní). */
+  status_scope: "active" | "inactive" | null;
 }
 
 /**
@@ -19,7 +23,7 @@ export async function getOptionSetValues(
 ): Promise<OptionSetValue[]> {
   const { data, error } = await supabase
     .from("option_set_values")
-    .select("id, value_key, label, color, sort_order, is_default, option_sets!inner(key)")
+    .select("id, value_key, label, color, sort_order, is_default, status_scope, option_sets!inner(key)")
     .eq("option_sets.key", key)
     .eq("is_active", true)
     .order("sort_order", { ascending: true });
@@ -33,6 +37,7 @@ export async function getOptionSetValues(
     color: row.color as string | null,
     sort_order: row.sort_order as number,
     is_default: row.is_default as boolean,
+    status_scope: row.status_scope as "active" | "inactive" | null,
   }));
 }
 

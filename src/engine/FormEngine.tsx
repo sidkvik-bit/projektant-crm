@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowUpRight, Plus, Ban, CheckCircle2, Trash2, RefreshCw } from "lucide-react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, useWatch, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Button } from "@/components/ui/button";
@@ -177,6 +177,13 @@ export function FormEngine({
     defaultValues: { status: "active", ...defaultValues },
   });
 
+  // Důvod stavu patří ke konkrétnímu stavu (D365 vzor) — combobox níž nabízí jen důvody platné
+  // pro tenhle živý (ne jen výchozí) stav, ať nejde vybrat "Neaktivní" jako důvod u záznamu,
+  // co zůstává "Aktivní". Aktuálně vybraná hodnota se navíc drží zvlášť, ať se u starších
+  // (už nesedících) záznamů nezobrazí prázdno.
+  const watchedStatus = useWatch({ control, name: "status" }) as string | undefined;
+  const watchedStatusReasonId = useWatch({ control, name: "status_reason_id" }) as string | undefined;
+
   // react-hook-form only reads `defaultValues` once, at mount — a parent Server Component
   // re-render (e.g. router.refresh() after another panel on the same page saves something,
   // like the location map writing a new address) passes a fresh `defaultValues` prop that
@@ -328,7 +335,12 @@ export function FormEngine({
                   const error = errors[field.name];
                   const options =
                     field.name === "status_reason_id"
-                      ? optionSetValues[entity.statusReasonOptionSetKey] ?? []
+                      ? (optionSetValues[entity.statusReasonOptionSetKey] ?? []).filter(
+                          (opt) =>
+                            !opt.status_scope ||
+                            opt.status_scope === watchedStatus ||
+                            opt.id === watchedStatusReasonId,
+                        )
                       : field.optionSetKey
                         ? optionSetValues[field.optionSetKey] ?? []
                         : [];

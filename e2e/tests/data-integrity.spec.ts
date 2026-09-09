@@ -140,3 +140,58 @@ test("deactivating a record via the form moves it from the Aktivní to the Neakt
   await page.getByRole("menuitem", { name: "Neaktivní", exact: true }).click();
   await expect(page.getByText(name)).toBeVisible();
 });
+
+test("Důvod stavu only offers reasons matching the record's current Stav (D365 pattern)", async ({ page }) => {
+  const admin = adminClient();
+  const orgId = await getTestOrgId(admin);
+  const { data: account } = await admin
+    .from("accounts")
+    .insert({ organization_id: orgId, name: `E2E Reason Scope ${Date.now()}` })
+    .select("id")
+    .single();
+
+  await page.goto(`/accounts/${account!.id}`);
+  await page.getByLabel("Důvod stavu").click();
+  await expect(page.getByRole("option")).toHaveText(["Aktivní"]);
+  await page.keyboard.press("Escape");
+
+  await page.getByLabel(/^Stav/).click();
+  await page.getByRole("option", { name: "Neaktivní", exact: true }).click();
+  await page.getByLabel("Důvod stavu").click();
+  await expect(page.getByRole("option")).toHaveText(["Neaktivní"]);
+
+  await admin.from("accounts").delete().eq("id", account!.id);
+});
+
+test("a pre-existing mismatched record (Stav Aktivní, Důvod 'Neaktivní') still shows its reason, not blank", async ({
+  page,
+}) => {
+  const admin = adminClient();
+  const orgId = await getTestOrgId(admin);
+  const { data: reason } = await admin
+    .from("option_set_values")
+    .select("id, option_sets!inner(key, organization_id)")
+    .eq("option_sets.key", "account_status_reason")
+    .eq("option_sets.organization_id", orgId)
+    .eq("value_key", "neaktivni")
+    .single();
+  const { data: account } = await admin
+    .from("accounts")
+    .insert({
+      organization_id: orgId,
+      name: `E2E Reason Mismatch ${Date.now()}`,
+      status: "active",
+      status_reason_id: reason!.id,
+    })
+    .select("id")
+    .single();
+
+  await page.goto(`/accounts/${account!.id}`);
+  // the mismatched value must still display (not silently blanked) so the user can see and fix it
+  await expect(page.getByLabel("Důvod stavu")).toContainText("Neaktivní");
+  await page.getByLabel("Důvod stavu").click();
+  await expect(page.getByRole("option", { name: "Aktivní", exact: true })).toBeVisible();
+  await expect(page.getByRole("option", { name: "Neaktivní", exact: true })).toBeVisible();
+
+  await admin.from("accounts").delete().eq("id", account!.id);
+});
