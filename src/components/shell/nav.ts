@@ -17,6 +17,7 @@ import {
   Banknote,
   Landmark,
   Mail,
+  Building,
 } from "lucide-react";
 
 export interface NavItem {
@@ -65,6 +66,7 @@ export const navGroups: NavGroup[] = [
     label: "Nastavení",
     items: [
       { label: "Tým", href: "/settings/team", icon: UsersRound },
+      { label: "Přepnout firmu", href: "/settings/organization", icon: Building },
       { label: "Google Drive", href: "/settings/google-drive", icon: HardDrive },
       { label: "Sledování e-mailů", href: "/settings/email", icon: Mail },
       { label: "Fakturace", href: "/settings/invoicing", icon: Landmark },
