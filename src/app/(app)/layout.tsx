@@ -49,6 +49,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             initials: initials || "?",
           }}
           notifications={notifications ?? []}
+          organizationName={organization?.name ?? ""}
           onSignOut={signOut}
           onMarkRead={markNotificationRead}
         />

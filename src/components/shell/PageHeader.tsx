@@ -19,7 +19,7 @@ export function PageHeader({
   stats?: { total: number; breakdown: StatusBreakdownEntry[] };
 }) {
   return (
-    <div className="flex items-center justify-between gap-4 border-b bg-background px-6 py-4">
+    <div className="flex flex-col gap-3 border-b bg-background px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-6">
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <h1 className="truncate text-xl font-semibold tracking-tight">{title}</h1>
@@ -44,7 +44,7 @@ export function PageHeader({
           </div>
         )}
       </div>
-      {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
+      {actions && <div className="flex flex-wrap items-center gap-2 sm:shrink-0">{actions}</div>}
     </div>
   );
 }

@@ -52,3 +52,5 @@ Thumbs.db
 *.tsbuildinfo
 next-env.d.ts
 New Text Document.txt
+.vercel
+.env*
