@@ -1,6 +1,11 @@
 import { Mail, CalendarPlus, FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+/**
+ * `mail.google.com`'s own compose URL — ne `mailto:`, protože ten otevře cokoliv je nastavené
+ * jako OS výchozí (často ne Gmail vůbec) a appka nemá vlastní odesílání e-mailů. Stejný přístup
+ * jako CalendarLink níž (skutečná Google web URL, ne obecný OS handler).
+ */
 export function EmailLink({
   email,
   subject,
@@ -13,17 +18,16 @@ export function EmailLink({
   label?: string;
 }) {
   if (!email) return null;
-  const params = new URLSearchParams();
-  if (subject) params.set("subject", subject);
+  const params = new URLSearchParams({ view: "cm", fs: "1", to: email });
+  if (subject) params.set("su", subject);
   if (body) params.set("body", body);
-  const query = params.toString();
-  const href = `mailto:${email}${query ? `?${query}` : ""}`;
+  const href = `https://mail.google.com/mail/?${params.toString()}`;
   return (
     <Button
       variant="outline"
       size="sm"
       render={
-        <a href={href}>
+        <a href={href} target="_blank" rel="noreferrer">
           <Mail className="size-4" />
           {label}
         </a>

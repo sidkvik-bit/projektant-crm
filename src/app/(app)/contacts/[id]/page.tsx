@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getRecordById } from "@/engine/Database";
 import { EntityFormPage } from "@/engine/EntityFormPage";
+import { EmailLink } from "@/components/SmartLinks";
 import type { EntityDefinition, FormDefinition } from "@/engine/types";
 import type { EntityFormValues } from "@/engine/zodSchema";
 
@@ -24,6 +25,8 @@ export default async function ContactDetailPage({
 
   if (!record) notFound();
 
+  const fullName = [record.first_name, record.last_name].filter(Boolean).join(" ");
+
   async function handleUpdate(values: EntityFormValues) {
     "use server";
     await updateContact(id, values);
@@ -33,11 +36,12 @@ export default async function ContactDetailPage({
     <EntityFormPage
       entity={entity as EntityDefinition}
       form={formDef as FormDefinition}
-      title={[record.first_name, record.last_name].filter(Boolean).join(" ")}
+      title={fullName}
       defaultValues={record}
       onSubmit={handleUpdate}
       submitLabel="Uložit změny"
       timeline={{ relatedEmail: record.email }}
+      actions={<EmailLink email={record.email} label="Nový e-mail" />}
     />
   );
 }
