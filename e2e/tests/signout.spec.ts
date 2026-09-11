@@ -23,7 +23,7 @@ test("sign out actually signs the user out (regression: Base UI Menu.Item needs 
   ]);
 
   await page.goto("/dashboard");
-  await page.locator("header button").nth(1).click();
+  await page.getByRole("button", { name: "Uživatelský účet" }).click();
   await page.getByRole("menuitem", { name: /Odhlásit se/i }).click();
   await page.waitForURL(/\/login/, { timeout: 10_000 });
 });

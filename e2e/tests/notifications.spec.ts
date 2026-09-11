@@ -26,7 +26,7 @@ test("cron generates a PUSH notification for an overdue milestone, and it shows 
   expect(body.pushCreated, JSON.stringify(body)).toBeGreaterThan(0);
 
   await page.goto("/dashboard");
-  await page.locator("header button").first().click();
+  await page.getByRole("button", { name: "Notifikace" }).click();
   const item = page.getByText(/DSP \(test — po termínu\)/);
   await expect(item).toBeVisible();
 
@@ -35,6 +35,6 @@ test("cron generates a PUSH notification for an overdue milestone, and it shows 
   await expect(item).toHaveClass(/font-medium/);
   await item.click(); // selecting a menu item closes the popup
 
-  await page.locator("header button").first().click();
+  await page.getByRole("button", { name: "Notifikace" }).click();
   await expect(item).toHaveClass(/text-muted-foreground/);
 });
