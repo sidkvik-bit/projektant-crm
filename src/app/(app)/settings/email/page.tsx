@@ -20,9 +20,17 @@ function Step({ n, title, children }: { n: number; title: string; children: Reac
 
 export default async function EmailSettingsPage() {
   const [status, headerList] = await Promise.all([getEmailSyncStatus(), headers()]);
-  const origin = `https://${headerList.get("host") ?? "tvoje-domena.cz"}`;
+  const host = headerList.get("host") ?? "tvoje-domena.cz";
+  // Vercel/proxy nastaví x-forwarded-proto na "https" spolehlivě; lokální `next dev` ho
+  // nenastavuje vůbec (obyčejné http) — bez tyhle podmínky by návod ukazoval "https://localhost"
+  // a Google by pak odmítl redirect_uri, co appka reálně posílá (http://localhost:3000).
+  const protocol = headerList.get("x-forwarded-proto") ?? (host.startsWith("localhost") || host.startsWith("127.0.0.1") ? "http" : "https");
+  const origin = `${protocol}://${host}`;
   const redirectUri = `${origin}/api/google/gmail/callback`;
-  const cronUrl = `${origin}/api/cron/email-sync`;
+  const isLocalhost = host.startsWith("localhost") || host.startsWith("127.0.0.1");
+  // Supabase běží v cloudu a na tvůj lokální počítač se nedostane — tenhle SQL skript musí
+  // vždycky mířit na skutečně nasazenou appku, i když si tuhle stránku prohlížíš z localhostu.
+  const cronUrl = isLocalhost ? "<https://tvoje-nasazena-domena.cz>/api/cron/email-sync" : `${origin}/api/cron/email-sync`;
 
   const cronSql = `-- Jednou spustit v Supabase Dashboardu -> SQL Editor (obsahuje CRON_SECRET z .env, nepatří do gitu)
 select vault.create_secret('<CRON_SECRET z .env.local>', 'cron_secret');
@@ -118,6 +126,12 @@ select cron.schedule(
               jsou součástí i free tieru Supabase — tahle úloha nic nestojí.
             </p>
             <CopyBlock text={cronSql} label="SQL Editor" />
+            {isLocalhost && (
+              <p className="text-xs text-destructive">
+                Prohlížíš si tohle z localhostu — Supabase se na tvůj počítač nedostane. Než skript spustíš,
+                nahraď <code className="rounded bg-muted px-1 py-0.5">{cronUrl}</code> skutečnou nasazenou adresou appky.
+              </p>
+            )}
             <p className="text-xs">
               Bez tohohle kroku se schránka připojí, ale nic se automaticky nesynchronizuje.
             </p>

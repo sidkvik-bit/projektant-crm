@@ -15,6 +15,17 @@ test("email settings page shows the disconnected state, instructions, and a conn
   await expect(page.getByText("Nastav automatické BCC pravidlo")).toBeVisible();
   await expect(page.getByText("Povol Gmail API a přidej redirect URI")).toBeVisible();
   await expect(page.getByText("Zapni pravidelnou synchronizaci")).toBeVisible();
+
+  // Regression: origin se dřív skládal natvrdo s "https://", takže lokálně (obyčejné http)
+  // návod ukazoval "https://localhost:3000/..." — jiný redirect_uri, než jaký appka reálně
+  // posílá Googlu, což by OAuth flow rozbilo hlášením redirect_uri_mismatch.
+  await expect(page.getByText("http://localhost:3000/api/google/gmail/callback")).toBeVisible();
+
+  // Regression: krok 5 dřív ukazoval "url := 'http://localhost:3000/api/cron/email-sync'" —
+  // Supabase (cloud) se na localhost nikdy nedostane, takže tenhle SQL skript by po zkopírování
+  // nikdy nic nesynchronizoval. Na localhostu musí být placeholder + varování, ne skutečný host.
+  await expect(page.getByText("<https://tvoje-nasazena-domena.cz>/api/cron/email-sync").first()).toBeVisible();
+  await expect(page.getByText(/Prohlížíš si tohle z localhostu/)).toBeVisible();
 });
 
 test("the Gmail OAuth authorize route redirects to Google's consent screen (auth'd session, not followed)", async ({ request }) => {
