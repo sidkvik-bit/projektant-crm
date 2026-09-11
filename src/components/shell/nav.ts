@@ -18,6 +18,7 @@ import {
   Landmark,
   Mail,
   Building,
+  Gauge,
 } from "lucide-react";
 
 export interface NavItem {
@@ -39,6 +40,7 @@ export const navGroups: NavGroup[] = [
     label: "Dashboardy",
     items: [
       { label: "Můj den", href: "/dashboard", icon: LayoutDashboard },
+      { label: "Přehled projektů", href: "/project-overview", icon: Gauge },
       { label: "Kanban", href: "/kanban", icon: KanbanSquare },
     ],
   },
