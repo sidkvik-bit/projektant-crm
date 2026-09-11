@@ -1,0 +1,23 @@
+{
+  "name": "Account",
+  "table": "accounts",
+  "displayName": "Obchodní vztah",
+  "displayNamePlural": "Obchodní vztahy",
+  "primaryField": "name",
+  "statusReasonOptionSetKey": "account_status_reason",
+  "fields": [
+    { "name": "name", "label": "Název", "type": "text", "required": true, "aresLookup": "name" },
+    { "name": "ico", "label": "IČO", "type": "text", "aresLookup": "ico" },
+    { "name": "pravni_forma_id", "label": "Právní forma", "type": "optionset", "optionSetKey": "pravni_forma" },
+    { "name": "phone", "label": "Telefon", "type": "phone" },
+    { "name": "email", "label": "E-mail", "type": "email" },
+    { "name": "website", "label": "Web", "type": "url" },
+    { "name": "industry", "label": "Obor", "type": "text" },
+    { "name": "address_street", "label": "Ulice", "type": "text" },
+    { "name": "address_house_number", "label": "Číslo popisné/orientační", "type": "text" },
+    { "name": "address_city", "label": "Obec", "type": "text" },
+    { "name": "address_zip", "label": "PSČ", "type": "text" },
+    { "name": "address_country", "label": "Stát", "type": "text" },
+    { "name": "description", "label": "Popis", "type": "textarea" }
+  ]
+}

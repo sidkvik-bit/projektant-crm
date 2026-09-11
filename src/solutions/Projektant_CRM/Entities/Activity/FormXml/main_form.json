@@ -1,0 +1,22 @@
+{
+  "entity": "Activity",
+  "tabs": [
+    {
+      "label": "Obecné",
+      "sections": [
+        {
+          "label": "Aktivita",
+          "fields": ["subject", "activity_type_id", "activity_date", "duration_minutes"]
+        },
+        {
+          "label": "Poznámky",
+          "fields": ["description"]
+        },
+        {
+          "label": "Stav a vlastník",
+          "fields": ["status", "status_reason", "owner_id"]
+        }
+      ]
+    }
+  ]
+}

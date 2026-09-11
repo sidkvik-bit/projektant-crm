@@ -1,0 +1,22 @@
+{
+  "name": "Invoice",
+  "table": "invoices",
+  "displayName": "Faktura",
+  "displayNamePlural": "Faktury",
+  "primaryField": "name",
+  "statusReasonOptionSetKey": "invoice_status_reason",
+  "fields": [
+    { "name": "number", "label": "Číslo faktury", "type": "text", "required": true },
+    { "name": "name", "label": "Název", "type": "text", "required": true },
+    { "name": "project_id", "label": "Projekt", "type": "lookup", "targetEntity": "Project", "required": true },
+    { "name": "account_id", "label": "Odběratel", "type": "lookup", "targetEntity": "Account", "required": true },
+    { "name": "contact_id", "label": "Kontaktní osoba", "type": "lookup", "targetEntity": "Contact" },
+    { "name": "variabilni_symbol", "label": "Variabilní symbol", "type": "text" },
+    { "name": "datum_vystaveni", "label": "Datum vystavení", "type": "date" },
+    { "name": "datum_zdanitelneho_plneni", "label": "Datum zdanitelného plnění", "type": "date" },
+    { "name": "datum_splatnosti", "label": "Datum splatnosti", "type": "date" },
+    { "name": "forma_uhrady_id", "label": "Forma úhrady", "type": "optionset", "optionSetKey": "forma_uhrady" },
+    { "name": "vat_rate", "label": "Sazba DPH (%)", "type": "number" },
+    { "name": "note", "label": "Poznámka", "type": "textarea" }
+  ]
+}

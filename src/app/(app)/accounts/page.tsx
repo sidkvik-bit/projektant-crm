@@ -1,0 +1,30 @@
+import { EntityListPage } from "@/engine/EntityListPage";
+import { formatUserName } from "@/engine/users";
+import { buildStatusViews } from "@/engine/statusViews";
+import type { EntityDefinition, ViewDefinition, ViewTemplate } from "@/engine/types";
+
+import entity from "@/solutions/Projektant_CRM/Entities/Account/Entity.json";
+import viewTemplate from "@/solutions/Projektant_CRM/Entities/Account/SavedQueries/active_accounts.json";
+import myView from "@/solutions/Projektant_CRM/Entities/Account/SavedQueries/my_accounts.json";
+
+export default async function AccountsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
+  return (
+    <EntityListPage
+      entity={entity as EntityDefinition}
+      views={[...buildStatusViews(entity as EntityDefinition, viewTemplate as ViewTemplate), myView as ViewDefinition]}
+      select="id, name, ico, phone, status, created_at, status_reason:option_set_values!accounts_status_reason_id_fkey(label), owner:users!accounts_owner_id_fkey(first_name, last_name, email)"
+      basePath="/accounts"
+      newLabel="Nový obchodní vztah"
+      searchParams={searchParams}
+      mapRow={(row) => ({
+        ...row,
+        status_reason: (row.status_reason as unknown as { label: string } | null)?.label ?? null,
+        owner: formatUserName(row.owner as never),
+      })}
+    />
+  );
+}

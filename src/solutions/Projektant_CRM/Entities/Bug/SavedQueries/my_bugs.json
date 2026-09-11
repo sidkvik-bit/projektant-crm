@@ -1,0 +1,16 @@
+{
+  "entity": "Bug",
+  "name": "my_bugs",
+  "label": "Moje bugy",
+  "columns": [
+    { "field": "name" },
+    { "field": "status_reason", "label": "Stav" },
+    { "field": "owner", "label": "Nahlásil" },
+    { "field": "created_at", "label": "Vytvořeno" }
+  ],
+  "defaultSort": { "field": "created_at", "direction": "desc" },
+  "conditions": [
+    { "field": "owner_id", "operator": "eq", "value": "$currentUser" },
+    { "field": "status", "operator": "eq", "value": "active" }
+  ]
+}

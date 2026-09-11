@@ -1,0 +1,41 @@
+{
+  "entity": "Project",
+  "columns": 3,
+  "tabs": [
+    {
+      "label": "Obecné",
+      "sections": [
+        {
+          "label": "Základní údaje",
+          "fields": ["name", "account_id", "primary_contact_id", "project_template_id"]
+        },
+        {
+          "label": "Termíny a rozpočet",
+          "fields": ["datum_zahajeni", "deadline", "budget"]
+        },
+        {
+          "label": "Poznámky",
+          "fields": ["description"]
+        },
+        {
+          "label": "Místo realizace",
+          "fields": [
+            "address_street",
+            "address_house_number",
+            "address_city",
+            "address_zip",
+            "address_country",
+            "katastralni_uzemi",
+            "parcelni_cislo",
+            "gps_lat",
+            "gps_lng"
+          ]
+        },
+        {
+          "label": "Stav a vlastník",
+          "fields": ["status", "status_reason", "owner_id"]
+        }
+      ]
+    }
+  ]
+}

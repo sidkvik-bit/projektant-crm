@@ -1,0 +1,22 @@
+{
+  "entity": "Lead",
+  "tabs": [
+    {
+      "label": "Obecné",
+      "sections": [
+        {
+          "label": "Detaily zájemce",
+          "fields": ["name", "company_name", "email", "phone", "demand_description", "expected_value"]
+        },
+        {
+          "label": "Kvalifikace",
+          "fields": ["lead_source_id", "rating_id"]
+        },
+        {
+          "label": "Stav a vlastník",
+          "fields": ["status", "status_reason", "owner_id"]
+        }
+      ]
+    }
+  ]
+}

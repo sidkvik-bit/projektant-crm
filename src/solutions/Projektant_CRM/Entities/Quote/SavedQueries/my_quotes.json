@@ -1,0 +1,18 @@
+{
+  "entity": "Quote",
+  "name": "my_quotes",
+  "label": "Moje nabídky",
+  "columns": [
+    { "field": "number", "label": "Číslo" },
+    { "field": "name" },
+    { "field": "project", "label": "Projekt" },
+    { "field": "status_reason", "label": "Stav" },
+    { "field": "valid_until", "label": "Platnost do" },
+    { "field": "total", "label": "Celkem s DPH" }
+  ],
+  "defaultSort": { "field": "created_at", "direction": "desc" },
+  "conditions": [
+    { "field": "owner_id", "operator": "eq", "value": "$currentUser" },
+    { "field": "status", "operator": "eq", "value": "active" }
+  ]
+}

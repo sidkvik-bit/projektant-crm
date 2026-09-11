@@ -1,6 +1,19 @@
 # Dependencies
 node_modules/
 .pnpm-store/
+/.pnp
+.pnp.*
+
+# Testing / misc
+/coverage
+*.pem
+
+# Playwright
+/e2e/.auth/
+/e2e/report/
+/test-results/
+/playwright-report/
+/blob-report/
 
 # Next.js
 .next/
@@ -38,3 +51,4 @@ Thumbs.db
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+New Text Document.txt

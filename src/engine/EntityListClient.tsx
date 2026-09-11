@@ -1,0 +1,343 @@
+"use client";
+
+import { useEffect, useState, useTransition } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { formatDistanceToNowStrict } from "date-fns";
+import { cs } from "date-fns/locale";
+import { Plus, FileSpreadsheet, Trash2, RefreshCw, Search, Download, ChevronDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { CommandBar, CommandBarButton, CommandBarSeparator } from "@/components/shell/CommandBar";
+import { GridEngine } from "./GridEngine";
+import { ColumnPicker } from "./ColumnPicker";
+import type { ColumnFilter } from "./ColumnFilterPopover";
+import { bulkDeleteEntityRecords } from "./entityActions";
+import { exportEntityToExcel } from "./exportToExcel";
+import { resolveFilterField } from "./columnFields";
+import type { EntityDefinition, ViewDefinition } from "./types";
+
+const COLUMN_FILTER_PREFIX = "cf_";
+
+function parseColumnFilters(searchParams: URLSearchParams): Record<string, ColumnFilter> {
+  const filters: Record<string, ColumnFilter> = {};
+  for (const [key, raw] of searchParams.entries()) {
+    if (!key.startsWith(COLUMN_FILTER_PREFIX)) continue;
+    const [op, ...rest] = raw.split("|");
+    if (!op || rest.length === 0) continue;
+    filters[key.slice(COLUMN_FILTER_PREFIX.length)] = { op, value: rest.join("|") };
+  }
+  return filters;
+}
+
+export function EntityListClient({
+  entity,
+  view,
+  views,
+  rows,
+  basePath,
+  newLabel,
+  isImportable,
+  fieldOptions = {},
+}: {
+  entity: EntityDefinition;
+  view: ViewDefinition;
+  /** Všechny dostupné views pro přepínač — Aktivní/Neaktivní/Vše (buildStatusViews) + případné
+   * vlastní views entity (Moje…), každé se svou vlastní podmínkou (viz ViewDefinition.conditions). */
+  views: ViewDefinition[];
+  rows: Record<string, unknown>[];
+  basePath: string;
+  newLabel?: string;
+  isImportable: boolean;
+  /** Možnosti pro lookup/optionset sloupcové filtry, klíč = skutečný DB sloupec — viz resolveFilterField. */
+  fieldOptions?: Record<string, { value: string; label: string }[]>;
+}) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [q, setQ] = useState(searchParams.get("q") ?? "");
+  const [, startTransition] = useTransition();
+
+  // "Xm zpět" vedle Aktualizovat — čistě zobrazovací, nastaví se až po mountu (server request
+  // time by se v textu s klientským "teď" jinak neshodovalo a hlásilo hydration mismatch).
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+  const [, forceRelativeTimeTick] = useState(0);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLastRefreshed(new Date());
+    const id = setInterval(() => forceRelativeTimeTick((t) => t + 1), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const columnStorageKey = `columns:${entity.name}`;
+  const defaultColumns = view.columns.map((c) => c.field);
+  const allColumnOptions = [
+    ...view.columns.map((c) => ({
+      field: c.field,
+      label: c.label ?? resolveFilterField(entity, c.field)?.field.label ?? c.field,
+    })),
+    ...entity.fields
+      .filter((f) => !view.columns.some((c) => c.field === f.name))
+      .map((f) => ({ field: f.name, label: f.label })),
+  ];
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(defaultColumns);
+
+  // Reads client-only localStorage after mount to avoid an SSR/hydration mismatch (same
+  // reasoning as RecordNavigator's sessionStorage read).
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(columnStorageKey);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (stored) setVisibleColumns(JSON.parse(stored));
+    } catch {
+      // localStorage nedostupné (soukromé prohlížení) — zůstane výchozí sada sloupců
+    }
+  }, [columnStorageKey]);
+
+  const effectiveView: ViewDefinition = {
+    ...view,
+    columns: visibleColumns.map((field) => view.columns.find((c) => c.field === field) ?? { field }),
+  };
+
+  const primaryViews = views.filter((v) => !v.overflow);
+  const overflowViews = views.filter((v) => v.overflow);
+  const activeOverflowView = overflowViews.find((v) => v.name === view.name);
+
+  const columnFilters = parseColumnFilters(searchParams);
+  const sortField = searchParams.get("sort");
+  const sortDirection = searchParams.get("dir") as "asc" | "desc" | null;
+  const sort = sortField && sortDirection ? { field: sortField, direction: sortDirection } : null;
+
+  function updateParams(patch: Record<string, string | null>) {
+    const params = new URLSearchParams(searchParams.toString());
+    for (const [key, value] of Object.entries(patch)) {
+      if (!value) params.delete(key);
+      else params.set(key, value);
+    }
+    const qs = params.toString();
+    startTransition(() => router.push(qs ? `${pathname}?${qs}` : pathname));
+  }
+
+  function handleSortChange(field: string, direction: "asc" | "desc") {
+    updateParams({ sort: field, dir: direction });
+  }
+
+  function handleFilterChange(field: string, filter: ColumnFilter | null) {
+    updateParams({ [`${COLUMN_FILTER_PREFIX}${field}`]: filter ? `${filter.op}|${filter.value}` : null });
+  }
+
+  function toggleRow(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAll() {
+    setSelectedIds((prev) =>
+      prev.size === rows.length ? new Set() : new Set(rows.map((r) => r.id as string)),
+    );
+  }
+
+  async function confirmBulkDelete() {
+    setDeleteBusy(true);
+    try {
+      await bulkDeleteEntityRecords(entity.table, basePath, Array.from(selectedIds));
+      setSelectedIds(new Set());
+      setDeleteOpen(false);
+      router.refresh();
+    } finally {
+      setDeleteBusy(false);
+    }
+  }
+
+  const [exporting, setExporting] = useState(false);
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const ids = selectedIds.size > 0 ? Array.from(selectedIds) : rows.map((r) => r.id as string);
+      await exportEntityToExcel(entity, ids);
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  const selectedCount = selectedIds.size;
+
+  return (
+    <div>
+      <CommandBar>
+        {views.length > 1 && (
+          <>
+            <div className="flex items-center gap-1 rounded-full bg-muted/60 p-1">
+              {primaryViews.map((v) => (
+                <button
+                  key={v.name}
+                  type="button"
+                  onClick={() => updateParams({ view: v.name === views[0].name ? null : v.name })}
+                  className={cn(
+                    "rounded-full px-3 py-1 text-sm font-medium transition-colors",
+                    v.name === view.name
+                      ? "bg-status-success/15 text-status-success"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {v.label}
+                </button>
+              ))}
+              {overflowViews.length > 0 && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    render={
+                      <button
+                        type="button"
+                        className={cn(
+                          "flex items-center gap-1 rounded-full px-3 py-1 text-sm font-medium transition-colors",
+                          activeOverflowView
+                            ? "bg-status-success/15 text-status-success"
+                            : "text-muted-foreground hover:text-foreground",
+                        )}
+                      >
+                        {activeOverflowView?.label ?? "Další"}
+                        <ChevronDown className="size-3.5" />
+                      </button>
+                    }
+                  />
+                  <DropdownMenuContent align="start">
+                    {overflowViews.map((v) => (
+                      <DropdownMenuItem
+                        key={v.name}
+                        onClick={() => updateParams({ view: v.name === views[0].name ? null : v.name })}
+                      >
+                        {v.label}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
+            <CommandBarSeparator />
+          </>
+        )}
+        {newLabel && <CommandBarButton icon={Plus} label={newLabel} href={`${basePath}/new`} />}
+        {isImportable && (
+          <CommandBarButton icon={FileSpreadsheet} label="Import z Excelu" href={`/import?entity=${entity.name}`} />
+        )}
+        <CommandBarButton
+          icon={Download}
+          label={selectedCount > 0 ? `Exportovat (${selectedCount})` : "Exportovat do Excelu"}
+          onClick={handleExport}
+          disabled={exporting || rows.length === 0}
+        />
+        <CommandBarSeparator />
+        <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+          <DialogTrigger
+            render={
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1.5 text-foreground/80 hover:text-foreground"
+                disabled={selectedCount === 0}
+              >
+                <Trash2 className="size-4" />
+                Odstranit{selectedCount > 0 ? ` (${selectedCount})` : ""}
+              </Button>
+            }
+          />
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Odstranit {selectedCount} {selectedCount === 1 ? "záznam" : "záznamů"}?</DialogTitle>
+              <DialogDescription>
+                Tuhle akci nejde vzít zpět. Pokud jde jen o to záznamy přestat používat, deaktivuj je
+                místo toho v detailu.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={deleteBusy}>
+                Zrušit
+              </Button>
+              <Button variant="destructive" onClick={confirmBulkDelete} disabled={deleteBusy}>
+                {deleteBusy ? "Odstraňuji…" : "Odstranit"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        <div className="flex items-center gap-1.5">
+          <CommandBarButton
+            icon={RefreshCw}
+            label="Aktualizovat"
+            onClick={() => {
+              router.refresh();
+              setLastRefreshed(new Date());
+            }}
+          />
+          {lastRefreshed && (
+            <span className="hidden text-xs text-muted-foreground sm:inline">
+              {formatDistanceToNowStrict(lastRefreshed, { locale: cs, addSuffix: true })}
+            </span>
+          )}
+        </div>
+        <CommandBarSeparator />
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") updateParams({ q });
+            }}
+            onBlur={() => updateParams({ q })}
+            placeholder={`Hledat v poli "${entity.fields.find((f) => f.name === entity.primaryField)?.label ?? entity.primaryField}"…`}
+            className="h-8 w-64 rounded-full pl-8"
+          />
+        </div>
+
+        <div className="ml-auto flex items-center gap-2">
+          <ColumnPicker
+            storageKey={columnStorageKey}
+            options={allColumnOptions}
+            visible={visibleColumns}
+            onChange={setVisibleColumns}
+          />
+        </div>
+      </CommandBar>
+      <div className="p-6">
+        <GridEngine
+          entity={entity}
+          view={effectiveView}
+          rows={rows}
+          basePath={basePath}
+          selection={{ selectedIds, onToggleRow: toggleRow, onToggleAll: toggleAll }}
+          columnControls={{
+            sort,
+            onSortChange: handleSortChange,
+            filters: columnFilters,
+            onFilterChange: handleFilterChange,
+            fieldOptions,
+          }}
+        />
+      </div>
+    </div>
+  );
+}

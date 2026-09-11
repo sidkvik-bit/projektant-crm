@@ -1,0 +1,13 @@
+{
+  "name": "Bug",
+  "table": "bugs",
+  "displayName": "Bug",
+  "displayNamePlural": "Bugy",
+  "primaryField": "name",
+  "statusReasonOptionSetKey": "bug_status_reason",
+  "fields": [
+    { "name": "name", "label": "Název", "type": "text", "required": true },
+    { "name": "description", "label": "Popis problému", "type": "textarea", "required": true },
+    { "name": "image_url", "label": "Screenshot", "type": "image", "storageBucket": "bug-screenshots" }
+  ]
+}

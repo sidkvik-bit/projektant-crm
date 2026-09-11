@@ -1,0 +1,9 @@
+{
+  "entity": "ProjectTemplate",
+  "columns": [
+    { "field": "name" },
+    { "field": "status_reason", "label": "Stav" },
+    { "field": "owner", "label": "Vlastník" }
+  ],
+  "defaultSort": { "field": "created_at", "direction": "desc" }
+}

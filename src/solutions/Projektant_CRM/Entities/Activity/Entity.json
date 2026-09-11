@@ -1,0 +1,15 @@
+{
+  "name": "Activity",
+  "table": "activities",
+  "displayName": "Aktivita",
+  "displayNamePlural": "Aktivity",
+  "primaryField": "subject",
+  "statusReasonOptionSetKey": "activity_status_reason",
+  "fields": [
+    { "name": "subject", "label": "Předmět", "type": "text", "required": true },
+    { "name": "description", "label": "Popis", "type": "textarea" },
+    { "name": "activity_type_id", "label": "Typ", "type": "optionset", "optionSetKey": "activity_type" },
+    { "name": "activity_date", "label": "Datum", "type": "datetime" },
+    { "name": "duration_minutes", "label": "Délka (min)", "type": "number" }
+  ]
+}
