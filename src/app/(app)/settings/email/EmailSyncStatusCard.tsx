@@ -64,6 +64,7 @@ export function EmailSyncStatusCard({ status }: { status: EmailSyncStatus }) {
                 {status.lastSyncedAt
                   ? `Naposledy synchronizováno ${formatDistanceToNowStrict(new Date(status.lastSyncedAt), { locale: cs, addSuffix: true })}`
                   : "Zatím nebyla provedena žádná synchronizace."}
+                {" · "}synchronizuje se každých 15 minut
               </p>
             </div>
           ) : (

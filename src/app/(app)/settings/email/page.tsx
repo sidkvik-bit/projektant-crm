@@ -29,7 +29,7 @@ select vault.create_secret('<CRON_SECRET z .env.local>', 'cron_secret');
 
 select cron.schedule(
   'email-sync',
-  '*/15 * * * *', -- každých 15 minut
+  '*/15 * * * *', -- každých 15 minut — stejně "levné" jako hodinu, jen menší zpoždění
   $$
   select net.http_post(
     url := '${cronUrl}',
@@ -53,10 +53,15 @@ select cron.schedule(
         <div className="space-y-2 rounded-lg border bg-muted/20 p-4 text-sm text-muted-foreground">
           <p>
             <strong className="text-foreground">Jak to funguje:</strong> Google Workspace umí na úrovni domény
-            automaticky poslat skrytou kopii (BCC) každého odchozího (a volitelně příchozího) e-mailu na jednu
-            dedikovanou adresu — nikdo si nemusí pamatovat cokoliv kopírovat ručně. Appka tuhle schránku pravidelně
-            čte, a pokud odesílatel/příjemce e-mailu odpovídá e-mailu u Obchodního vztahu, Kontaktu nebo Zájemce v
-            CRM, založí se k němu Aktivita typu E-mail. E-maily bez shody se nikam nelogují.
+            automaticky poslat skrytou kopii (BCC) každého odchozího i příchozího e-mailu na jednu dedikovanou
+            adresu — nikdo si nemusí pamatovat cokoliv kopírovat ručně. Appka tuhle schránku pravidelně
+            přečte, a pokud odesílatel/příjemce e-mailu odpovídá e-mailu u Obchodního vztahu, Kontaktu nebo Zájemce
+            v CRM (podle pole &quot;E-mail&quot; na daném záznamu), založí se k němu Aktivita typu E-mail — subjekt
+            a krátký náhled textu. E-mail bez shody se nikam neukládá, jen se přečte a přeskočí.
+          </p>
+          <p>
+            <strong className="text-foreground">Synchronizace běží každých 15 minut</strong> (viz krok 5) — nový
+            e-mail se v CRM objeví max. s 15minutovým zpožděním, ne okamžitě.
           </p>
         </div>
 
@@ -75,7 +80,10 @@ select cron.schedule(
               <strong>Content compliance</strong> → Add rule (Configure).
             </p>
             <ul className="list-inside list-disc space-y-1">
-              <li>Email messages to affect: zaškrtni <strong>Outbound</strong> (a klidně i Inbound, ať se loguj i odpovědi klientů)</li>
+              <li>
+                Email messages to affect: zaškrtni <strong>Outbound i Inbound</strong> — bez Inbound se do CRM
+                nedostanou odpovědi klientů, jen to, co posíláš ty
+              </li>
               <li>Expression: Simple content match, hodnota <code className="rounded bg-muted px-1 py-0.5">.*</code> (shoduje vše)</li>
               <li>Action: Modify message → Add more recipients → Basic → zadej adresu z kroku 1</li>
             </ul>
@@ -101,10 +109,12 @@ select cron.schedule(
             </p>
           </Step>
 
-          <Step n={5} title="Zapni pravidelnou synchronizaci">
+          <Step n={5} title="Zapni pravidelnou synchronizaci (každých 15 minut)">
             <p>
               Jednorázově spusť v Supabase Dashboardu → SQL Editor (doplň svůj <code className="rounded bg-muted px-1 py-0.5">CRON_SECRET</code>{" "}
-              z <code className="rounded bg-muted px-1 py-0.5">.env.local</code> / Vercel proměnných):
+              z <code className="rounded bg-muted px-1 py-0.5">.env.local</code> / Vercel proměnných).{" "}
+              <code className="rounded bg-muted px-1 py-0.5">pg_cron</code>/<code className="rounded bg-muted px-1 py-0.5">pg_net</code>{" "}
+              jsou součástí i free tieru Supabase — tahle úloha nic nestojí.
             </p>
             <CopyBlock text={cronSql} label="SQL Editor" />
             <p className="text-xs">
