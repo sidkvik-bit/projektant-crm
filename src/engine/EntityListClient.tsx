@@ -299,7 +299,7 @@ export function EntityListClient({
           )}
         </div>
         <CommandBarSeparator />
-        <div className="relative">
+        <div className="relative w-full sm:w-64">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={q}
@@ -309,7 +309,7 @@ export function EntityListClient({
             }}
             onBlur={() => updateParams({ q })}
             placeholder={`Hledat v poli "${entity.fields.find((f) => f.name === entity.primaryField)?.label ?? entity.primaryField}"…`}
-            className="h-8 w-64 rounded-full pl-8"
+            className="h-8 w-full rounded-full pl-8"
           />
         </div>
 

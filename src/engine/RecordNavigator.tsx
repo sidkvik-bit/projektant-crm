@@ -42,13 +42,12 @@ export function RecordNavigator({
       {open &&
         createPortal(
           <div
-            className="fixed inset-0 z-40"
-            style={{ top: "3.5rem", left: "16rem" }}
+            className="fixed inset-x-0 bottom-0 top-14 z-40 md:left-64"
             onClick={() => setOpen(false)}
           >
             <div className="absolute inset-0 bg-black/20" />
             <div
-              className="absolute inset-y-0 left-0 flex w-72 flex-col border-r bg-background shadow-xl"
+              className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col border-r bg-background shadow-xl"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex shrink-0 items-center justify-between border-b px-3 py-2.5">

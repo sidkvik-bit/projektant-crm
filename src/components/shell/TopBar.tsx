@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { GlobalSearch } from "./GlobalSearch";
+import { MobileNav } from "./MobileNav";
 
 export interface NotificationItem {
   id: string;
@@ -32,11 +33,13 @@ export interface CurrentUser {
 export function TopBar({
   user,
   notifications,
+  organizationName,
   onSignOut,
   onMarkRead,
 }: {
   user: CurrentUser;
   notifications: NotificationItem[];
+  organizationName: string;
   onSignOut: () => Promise<void>;
   onMarkRead: (id: string) => Promise<void>;
 }) {
@@ -45,8 +48,9 @@ export function TopBar({
   const unreadCount = items.filter((n) => !n.is_read).length;
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="max-w-md flex-1">
+    <header className="flex h-14 shrink-0 items-center gap-2 border-b bg-background/80 px-3 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:gap-4 sm:px-4">
+      <MobileNav organizationName={organizationName} />
+      <div className="min-w-0 flex-1 sm:max-w-md">
         <GlobalSearch />
       </div>
       <div className="ml-auto flex items-center gap-2">

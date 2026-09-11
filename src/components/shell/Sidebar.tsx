@@ -18,13 +18,14 @@ function NavIcon({ Icon }: { Icon: NavItem["icon"] }) {
   return <Icon className="size-4 shrink-0" />;
 }
 
-function NavLink({ item }: { item: NavItem }) {
+function NavLink({ item, onNavigate }: { item: NavItem; onNavigate?: () => void }) {
   const pathname = usePathname();
   const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
 
   return (
     <Link
       href={item.href}
+      onClick={onNavigate}
       className={cn(
         "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
         active
@@ -38,10 +39,18 @@ function NavLink({ item }: { item: NavItem }) {
   );
 }
 
-export function Sidebar({ organizationName }: { organizationName: string }) {
+/** Sdílený obsah panelu — vykreslí ho jak stálý desktopový Sidebar, tak MobileNav uvnitř Sheetu. */
+export function SidebarContent({
+  organizationName,
+  onNavigate,
+}: {
+  organizationName: string;
+  /** Zavře mobilní Sheet po kliknutí na odkaz — na desktopu (stálý panel) se nepředává. */
+  onNavigate?: () => void;
+}) {
   return (
-    <aside className="flex h-screen w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
-      <div className="flex h-14 items-center gap-2 border-b border-sidebar-border px-4">
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="flex h-14 shrink-0 items-center gap-2 border-b border-sidebar-border px-4">
         <div className="flex size-7 shrink-0 items-center justify-center">
           <AnimatedLogo size={28} />
         </div>
@@ -61,7 +70,7 @@ export function Sidebar({ organizationName }: { organizationName: string }) {
             </p>
             <div className="space-y-1">
               {group.items.map((item) => (
-                <NavLink key={item.href} item={item} />
+                <NavLink key={item.href} item={item} onNavigate={onNavigate} />
               ))}
             </div>
           </div>
@@ -70,6 +79,15 @@ export function Sidebar({ organizationName }: { organizationName: string }) {
       <div className="border-t border-sidebar-border p-3">
         <ThemeToggle />
       </div>
+    </div>
+  );
+}
+
+/** Stálý panel — jen od `md` nahoru, na mobilu/tabletu (na výšku) ho nahrazuje MobileNav's Sheet. */
+export function Sidebar({ organizationName }: { organizationName: string }) {
+  return (
+    <aside className="hidden h-screen w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex">
+      <SidebarContent organizationName={organizationName} />
     </aside>
   );
 }
