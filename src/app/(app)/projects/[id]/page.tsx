@@ -103,7 +103,14 @@ export default async function ProjectDetailPage({
         { select: "id, name, termin_splneni, splneno", filter: { project_id: id } },
       ),
       getOptionSetValues(supabase, "activity_type"),
-      getTimelineActivities(supabase, { entityType: "Project", entityId: id }),
+      // Historie a aktivity na Projektu zahrnuje i aktivity jeho Obchodního vztahu a hlavního
+      // kontaktu (rollup, stejný D365 vzor jako Account -> Contacts/Projects) — typicky sem
+      // spadá e-mailová korespondence zalogovaná přes email tracking, co jinak nikde na
+      // Projektu není vidět, i když se týká přesně jeho.
+      getTimelineActivities(supabase, { entityType: "Project", entityId: id }, [
+        { entityType: "Account", entityId: record.account_id },
+        ...(record.primary_contact_id ? [{ entityType: "Contact", entityId: record.primary_contact_id }] : []),
+      ]),
       supabase
         .from("contacts")
         .select("id, first_name, last_name, email, profese:option_set_values!contacts_profese_id_fkey(label)")
