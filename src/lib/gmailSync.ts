@@ -1,6 +1,13 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getGmailAccessToken } from "./gmailOAuth";
 import { extractEmailAddresses, matchRecordsByEmail, type MatchableRecord } from "./gmailMatch";
+import {
+  buildActivityDescription,
+  extractBodyText,
+  resolvePriorityLabel,
+  stripHtml,
+  type GmailPart,
+} from "./gmailEmailContent";
 
 const GMAIL_API = "https://gmail.googleapis.com/gmail/v1/users/me";
 
@@ -21,7 +28,7 @@ interface GmailMessage {
   id: string;
   internalDate?: string;
   snippet?: string;
-  payload?: { headers?: GmailHeader[] };
+  payload?: GmailPart & { headers?: GmailHeader[] };
 }
 
 function headerValue(message: GmailMessage, name: string): string | null {
@@ -139,15 +146,18 @@ export async function syncOrganizationEmails(organizationId: string): Promise<Em
     const activityRows: Record<string, unknown>[] = [];
 
     for (const messageId of messageIds) {
-      const params = new URLSearchParams({ format: "metadata" });
-      ["From", "To", "Cc", "Subject", "Date"].forEach((h) => params.append("metadataHeaders", h));
-      const message = await gmailFetch<GmailMessage>(accessToken, `/messages/${messageId}?${params.toString()}`);
+      // format=full (ne jen metadata) — potřeba MIME tělo zprávy pro Popis aktivity, ne jen
+      // Gmailem useknutý snippet. Hlavičky přijdou všechny automaticky, není potřeba je vypisovat.
+      const message = await gmailFetch<GmailMessage>(accessToken, `/messages/${messageId}?format=full`);
       if (!message.ok) continue;
 
+      const from = headerValue(message.data, "From");
+      const to = headerValue(message.data, "To");
+      const cc = headerValue(message.data, "Cc");
       const participants = [
-        ...extractEmailAddresses(headerValue(message.data, "From")),
-        ...extractEmailAddresses(headerValue(message.data, "To")),
-        ...extractEmailAddresses(headerValue(message.data, "Cc")),
+        ...extractEmailAddresses(from),
+        ...extractEmailAddresses(to),
+        ...extractEmailAddresses(cc),
       ];
       const matches = matchRecordsByEmail(participants, candidates);
       if (matches.length === 0) continue;
@@ -157,13 +167,18 @@ export async function syncOrganizationEmails(organizationId: string): Promise<Em
         ? new Date(Number(message.data.internalDate)).toISOString()
         : new Date().toISOString();
 
+      const extracted = extractBodyText(message.data.payload);
+      const body = extracted ? (extracted.isHtml ? stripHtml(extracted.text) : extracted.text) : null;
+      const priority = resolvePriorityLabel(headerValue(message.data, "Importance"), headerValue(message.data, "X-Priority"));
+      const description = buildActivityDescription({ from, to, cc, priority, body, snippet: message.data.snippet ?? null });
+
       for (const match of matches) {
         activityRows.push({
           organization_id: organizationId,
           entity_type: match.entityType,
           entity_id: match.entityId,
           subject: `E-mail: ${subject}`,
-          description: message.data.snippet ?? null,
+          description: description || null,
           activity_date: activityDate,
           activity_type_id: emailActivityTypeId,
           gmail_message_id: messageId,

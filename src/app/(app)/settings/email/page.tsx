@@ -56,8 +56,9 @@ select cron.schedule(
             automaticky poslat skrytou kopii (BCC) každého odchozího i příchozího e-mailu na jednu dedikovanou
             adresu — nikdo si nemusí pamatovat cokoliv kopírovat ručně. Appka tuhle schránku pravidelně
             přečte, a pokud odesílatel/příjemce e-mailu odpovídá e-mailu u Obchodního vztahu, Kontaktu nebo Zájemce
-            v CRM (podle pole &quot;E-mail&quot; na daném záznamu), založí se k němu Aktivita typu E-mail — subjekt
-            a krátký náhled textu. E-mail bez shody se nikam neukládá, jen se přečte a přeskočí.
+            v CRM (podle pole &quot;E-mail&quot; na daném záznamu), založí se k němu Aktivita typu E-mail — předmět,
+            Od/Komu/Kopie, případná priorita a text zprávy. E-mail bez shody se nikam neukládá, jen se přečte a
+            přeskočí.
           </p>
           <p>
             <strong className="text-foreground">Synchronizace běží každých 15 minut</strong> (viz krok 5) — nový
