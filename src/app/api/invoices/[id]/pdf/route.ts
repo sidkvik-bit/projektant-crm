@@ -89,7 +89,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   const inv = invoice as unknown as InvoiceRow;
   const org = (profile?.organizations as unknown as OrganizationRow | null) ?? {
-    name: "Projektant CRM",
+    name: "ProjektantCRM",
     logo_url: null,
     ico: null,
     dic: null,

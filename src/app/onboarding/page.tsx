@@ -31,7 +31,7 @@ export default async function OnboardingPage() {
     <div className="flex min-h-screen items-center justify-center">
       <div className="w-full max-w-sm space-y-8">
         <div>
-          <h1 className="text-2xl font-bold">Vítej v Projektant CRM</h1>
+          <h1 className="text-2xl font-bold">Vítej v ProjektantCRM</h1>
           <p className="text-muted-foreground">
             {invitedOrgs.length > 0
               ? "Byl jsi pozván do některé z těchto organizací, nebo si můžeš založit vlastní."

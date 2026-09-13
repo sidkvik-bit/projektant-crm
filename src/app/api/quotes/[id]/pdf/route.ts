@@ -58,7 +58,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const org = profile?.organizations as unknown as { name: string; logo_url: string | null } | null;
 
   const data: QuotePdfData = {
-    organizationName: org?.name ?? "Projektant CRM",
+    organizationName: org?.name ?? "ProjektantCRM",
     organizationLogoUrl: org?.logo_url ?? null,
     number: q.number,
     name: q.name,

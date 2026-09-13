@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Zásady ochrany osobních údajů — Projektant CRM",
+  title: "Zásady ochrany osobních údajů — ProjektantCRM",
 };
 
 export default function PrivacyPolicyPage() {
@@ -12,7 +12,7 @@ export default function PrivacyPolicyPage() {
 
       <h2>1. Kdo je správcem osobních údajů</h2>
       <p>
-        Provozovatelem aplikace Projektant CRM (dostupné na adrese projektant-crm.vercel.app,
+        Provozovatelem aplikace ProjektantCRM (dostupné na adrese projektant-crm.vercel.app,
         dále jen „<strong>Aplikace</strong>“) a správcem osobních údajů ve smyslu Nařízení
         Evropského parlamentu a Rady (EU) 2016/679 (<strong>GDPR</strong>) je:
       </p>
@@ -20,7 +20,7 @@ export default function PrivacyPolicyPage() {
         <li>Jan Kvíčala, IČO: 04323980</li>
         <li>Místo podnikání: Bělá 103, 511 01 Turnov, Česká republika</li>
         <li>
-          Kontaktní e-mail: jan.kvicala@navertica.com
+          Kontaktní e-mail: jan.kvicala.29@gmail.com
         </li>
       </ul>
       <p>
@@ -154,7 +154,7 @@ export default function PrivacyPolicyPage() {
         <li>vznést námitku proti zpracování na základě oprávněného zájmu,</li>
         <li>podat stížnost u Úřadu pro ochranu osobních údajů (uoou.cz), pokud se domníváte, že zpracování porušuje GDPR.</li>
       </ul>
-      <p>Pro uplatnění kteréhokoliv z těchto práv nás kontaktujte na jan.kvicala@navertica.com.</p>
+      <p>Pro uplatnění kteréhokoliv z těchto práv nás kontaktujte na jan.kvicala.29@gmail.com.</p>
 
       <h2>10. Cookies</h2>
       <p>

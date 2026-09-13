@@ -8,7 +8,7 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b px-6 py-4">
         <Link href="/" className="text-sm font-semibold">
-          Projektant CRM
+          ProjektantCRM
         </Link>
       </header>
       <main className="mx-auto max-w-3xl px-6 py-10">

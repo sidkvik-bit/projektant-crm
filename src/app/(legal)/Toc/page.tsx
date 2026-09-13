@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Podmínky užití — Projektant CRM",
+  title: "Podmínky užití — ProjektantCRM",
 };
 
 export default function TermsOfServicePage() {
@@ -13,13 +13,13 @@ export default function TermsOfServicePage() {
       <h2>1. Úvodní ustanovení</h2>
       <p>
         Tyto podmínky užití (dále jen „<strong>Podmínky</strong>“) upravují užívání aplikace
-        Projektant CRM dostupné na adrese projektant-crm.vercel.app (dále jen „
+        ProjektantCRM dostupné na adrese projektant-crm.vercel.app (dále jen „
         <strong>Aplikace</strong>“), kterou provozuje:
       </p>
       <ul>
         <li>Jan Kvíčala, IČO: 04323980</li>
         <li>Místo podnikání: Bělá 103, 511 01 Turnov, Česká republika</li>
-        <li>Kontaktní e-mail: jan.kvicala@navertica.com</li>
+        <li>Kontaktní e-mail: jan.kvicala.29@gmail.com</li>
       </ul>
       <p>
         (dále jen „<strong>Provozovatel</strong>“). Registrací nebo přihlášením do Aplikace uživatel
@@ -127,7 +127,7 @@ export default function TermsOfServicePage() {
 
       <h2>11. Kontakt</h2>
       <p>
-        Dotazy k těmto Podmínkám směřujte na jan.kvicala@navertica.com.
+        Dotazy k těmto Podmínkám směřujte na jan.kvicala.29@gmail.com.
       </p>
     </>
   );
