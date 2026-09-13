@@ -117,13 +117,13 @@ describe("buildActivityDescription", () => {
     const result = buildActivityDescription({
       from: "Jan Novák <jan@example.cz>",
       to: "klient@firma.cz",
-      cc: "kolega@navertica.com",
+      cc: "kolega@firma.cz",
       priority: "Vysoká",
       body: "Dobrý den, posílám nabídku.",
       snippet: "fallback snippet",
     });
     expect(result).toBe(
-      "Od: Jan Novák <jan@example.cz>\nKomu: klient@firma.cz\nKopie: kolega@navertica.com\nPriorita: Vysoká\n\nDobrý den, posílám nabídku.",
+      "Od: Jan Novák <jan@example.cz>\nKomu: klient@firma.cz\nKopie: kolega@firma.cz\nPriorita: Vysoká\n\nDobrý den, posílám nabídku.",
     );
   });
 

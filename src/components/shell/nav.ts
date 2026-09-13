@@ -19,6 +19,9 @@ import {
   Mail,
   Building,
   Gauge,
+  ShieldCheck,
+  ScrollText,
+  UserCog,
 } from "lucide-react";
 
 export interface NavItem {
@@ -76,3 +79,14 @@ export const navGroups: NavGroup[] = [
     ],
   },
 ];
+
+/** Zvlášť od navGroups — vykresluje se jen uživateli s rolí Platform Superadmin (viz
+ * SidebarContent). Skrytí odkazu ale není ochrana; tu vynucuje src/app/(app)/admin/layout.tsx. */
+export const adminNavGroup: NavGroup = {
+  label: "Admin",
+  items: [
+    { label: "Organizace", href: "/admin/organizations", icon: ShieldCheck },
+    { label: "Uživatelé a role", href: "/admin/users", icon: UserCog },
+    { label: "Log změn", href: "/admin/audit-log", icon: ScrollText },
+  ],
+};

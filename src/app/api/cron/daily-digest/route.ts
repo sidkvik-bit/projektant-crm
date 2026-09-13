@@ -46,7 +46,7 @@ export function renderDigestHtml({
       <p>Ahoj${firstName ? ` ${firstName}` : ""},</p>
       ${overdue.length > 0 ? `<p><strong>Po termínu:</strong></p><ul>${renderList(overdue)}</ul>` : ""}
       ${dueToday.length > 0 ? `<p><strong>Na dnešek:</strong></p><ul>${renderList(dueToday)}</ul>` : ""}
-      <p>— Projektant CRM</p>
+      <p>— ProjektantCRM</p>
     </div>
   `;
 }
@@ -113,7 +113,7 @@ export async function GET(request: Request) {
     const { error: sendError } = await resend.emails.send({
       from: DIGEST_FROM_ADDRESS,
       to: recipient.email,
-      subject: "Projektant CRM — denní přehled úkolů",
+      subject: "ProjektantCRM — denní přehled úkolů",
       html: renderDigestHtml({ firstName: recipient.firstName, dueToday, overdue }),
     });
 

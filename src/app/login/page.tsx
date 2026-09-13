@@ -17,7 +17,7 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center">
       <div className="space-y-4 text-center">
-        <h1 className="text-2xl font-bold">Projektant CRM</h1>
+        <h1 className="text-2xl font-bold">ProjektantCRM</h1>
         <Button onClick={handleLogin}>Přihlásit se přes Google</Button>
       </div>
     </div>
