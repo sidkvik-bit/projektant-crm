@@ -34,12 +34,14 @@ export function TopBar({
   user,
   notifications,
   organizationName,
+  isSuperadmin,
   onSignOut,
   onMarkRead,
 }: {
   user: CurrentUser;
   notifications: NotificationItem[];
   organizationName: string;
+  isSuperadmin?: boolean;
   onSignOut: () => Promise<void>;
   onMarkRead: (id: string) => Promise<void>;
 }) {
@@ -49,7 +51,7 @@ export function TopBar({
 
   return (
     <header className="flex h-14 shrink-0 items-center gap-2 border-b bg-background/80 px-3 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:gap-4 sm:px-4">
-      <MobileNav organizationName={organizationName} />
+      <MobileNav organizationName={organizationName} isSuperadmin={isSuperadmin} />
       <div className="min-w-0 flex-1 sm:max-w-md">
         <GlobalSearch />
       </div>

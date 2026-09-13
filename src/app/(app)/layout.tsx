@@ -14,7 +14,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const { data: profile } = await supabase
     .from("users")
-    .select("first_name, last_name, email, avatar_url, organizations(name)")
+    .select("first_name, last_name, email, avatar_url, role, organizations(name)")
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -36,10 +36,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     .toUpperCase();
 
   const organization = profile.organizations as unknown as { name: string } | null;
+  const isSuperadmin = profile.role === "Platform Superadmin";
 
   return (
     <div className="flex h-screen overflow-hidden bg-muted/30">
-      <Sidebar organizationName={organization?.name ?? ""} />
+      <Sidebar organizationName={organization?.name ?? ""} isSuperadmin={isSuperadmin} />
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar
           user={{
@@ -50,6 +51,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           }}
           notifications={notifications ?? []}
           organizationName={organization?.name ?? ""}
+          isSuperadmin={isSuperadmin}
           onSignOut={signOut}
           onMarkRead={markNotificationRead}
         />

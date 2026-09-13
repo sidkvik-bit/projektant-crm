@@ -3,7 +3,7 @@
 import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { navGroups, type NavItem } from "./nav";
+import { navGroups, adminNavGroup, type NavItem } from "./nav";
 import { ThemeToggle } from "./ThemeToggle";
 import { AnimatedLogo } from "./AnimatedLogo";
 
@@ -42,9 +42,13 @@ function NavLink({ item, onNavigate }: { item: NavItem; onNavigate?: () => void 
 /** Sdílený obsah panelu — vykreslí ho jak stálý desktopový Sidebar, tak MobileNav uvnitř Sheetu. */
 export function SidebarContent({
   organizationName,
+  isSuperadmin = false,
   onNavigate,
 }: {
   organizationName: string;
+  /** Platform Superadmin vidí navíc skupinu Admin — viz src/app/(app)/admin/layout.tsx, kde se
+   * přístup taky reálně vynucuje (tohle jen skrývá odkaz, samo o sobě není ochrana). */
+  isSuperadmin?: boolean;
   /** Zavře mobilní Sheet po kliknutí na odkaz — na desktopu (stálý panel) se nepředává. */
   onNavigate?: () => void;
 }) {
@@ -55,7 +59,7 @@ export function SidebarContent({
           <AnimatedLogo size={28} />
         </div>
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold leading-tight">Projektant CRM</p>
+          <p className="truncate text-sm font-semibold leading-tight">ProjektantCRM</p>
           <p className="truncate text-xs leading-tight text-sidebar-foreground/60">
             {organizationName}
           </p>
@@ -75,6 +79,19 @@ export function SidebarContent({
             </div>
           </div>
         ))}
+
+        {isSuperadmin && (
+          <div className="pt-4">
+            <p className="px-3 pb-1 text-xs font-medium uppercase tracking-wide text-sidebar-foreground/40">
+              {adminNavGroup.label}
+            </p>
+            <div className="space-y-1">
+              {adminNavGroup.items.map((item) => (
+                <NavLink key={item.href} item={item} onNavigate={onNavigate} />
+              ))}
+            </div>
+          </div>
+        )}
       </nav>
       <div className="border-t border-sidebar-border p-3">
         <ThemeToggle />
@@ -84,10 +101,16 @@ export function SidebarContent({
 }
 
 /** Stálý panel — jen od `md` nahoru, na mobilu/tabletu (na výšku) ho nahrazuje MobileNav's Sheet. */
-export function Sidebar({ organizationName }: { organizationName: string }) {
+export function Sidebar({
+  organizationName,
+  isSuperadmin,
+}: {
+  organizationName: string;
+  isSuperadmin?: boolean;
+}) {
   return (
     <aside className="hidden h-screen w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex">
-      <SidebarContent organizationName={organizationName} />
+      <SidebarContent organizationName={organizationName} isSuperadmin={isSuperadmin} />
     </aside>
   );
 }

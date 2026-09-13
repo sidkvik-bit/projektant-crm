@@ -7,7 +7,13 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { SidebarContent } from "./Sidebar";
 
 /** Hamburger + zásuvka s navigací pro mobil/tablet — stálý Sidebar je od `md` schovaný (viz Sidebar.tsx). */
-export function MobileNav({ organizationName }: { organizationName: string }) {
+export function MobileNav({
+  organizationName,
+  isSuperadmin,
+}: {
+  organizationName: string;
+  isSuperadmin?: boolean;
+}) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -23,7 +29,11 @@ export function MobileNav({ organizationName }: { organizationName: string }) {
       </Button>
       <SheetContent side="left" className="w-72 max-w-[85vw] gap-0 p-0 sm:max-w-xs">
         <SheetTitle className="sr-only">Navigace</SheetTitle>
-        <SidebarContent organizationName={organizationName} onNavigate={() => setOpen(false)} />
+        <SidebarContent
+          organizationName={organizationName}
+          isSuperadmin={isSuperadmin}
+          onNavigate={() => setOpen(false)}
+        />
       </SheetContent>
     </Sheet>
   );
