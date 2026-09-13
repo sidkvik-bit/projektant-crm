@@ -57,7 +57,7 @@ export function TopBar({
         <DropdownMenu>
           <DropdownMenuTrigger
             render={
-              <Button variant="ghost" size="icon" className="relative">
+              <Button variant="ghost" size="icon" className="relative" aria-label="Notifikace">
                 <Bell className="size-4" />
                 {unreadCount > 0 && (
                   <Badge className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px]">
@@ -100,7 +100,7 @@ export function TopBar({
         <DropdownMenu>
           <DropdownMenuTrigger
             render={
-              <Button variant="ghost" className="gap-2 px-2">
+              <Button variant="ghost" className="gap-2 px-2" aria-label="Uživatelský účet">
                 <Avatar className="size-7">
                   <AvatarImage src={user.avatarUrl ?? undefined} alt={user.name} />
                   <AvatarFallback>{user.initials}</AvatarFallback>

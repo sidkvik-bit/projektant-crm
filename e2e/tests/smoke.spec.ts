@@ -94,7 +94,7 @@ test("can create a new contact with no account selected", async ({ page }) => {
 test("notification bell renders without crashing", async ({ page }) => {
   const errors = trackErrors(page);
   await page.goto("/dashboard");
-  await page.locator("header button").first().click();
+  await page.getByRole("button", { name: "Notifikace" }).click();
   await expect(page.getByText("Notifikace", { exact: true })).toBeVisible();
   expect(errors, `errors opening notifications:\n${errors.join("\n")}`).toEqual([]);
 });
@@ -119,7 +119,7 @@ test("sidebar brand mark is static at rest and animates on hover", async ({ page
 test("user menu in top bar opens without crashing", async ({ page }) => {
   const errors = trackErrors(page);
   await page.goto("/dashboard");
-  await page.locator("header button").nth(1).click();
+  await page.getByRole("button", { name: "Uživatelský účet" }).click();
   await expect(page.getByRole("menuitem", { name: /Odhlásit se/i })).toBeVisible();
   expect(errors, `errors opening user menu:\n${errors.join("\n")}`).toEqual([]);
 });

@@ -12,7 +12,7 @@ import { createTimelineActivity } from "@/engine/entityActions";
 import { FormEngine } from "@/engine/FormEngine";
 import { ActivityTimeline } from "@/engine/ActivityTimeline";
 import { PageHeader } from "@/components/shell/PageHeader";
-import { CalendarLink, DriveLink } from "@/components/SmartLinks";
+import { CalendarLink, DriveLink, EmailLink } from "@/components/SmartLinks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -103,7 +103,14 @@ export default async function ProjectDetailPage({
         { select: "id, name, termin_splneni, splneno", filter: { project_id: id } },
       ),
       getOptionSetValues(supabase, "activity_type"),
-      getTimelineActivities(supabase, { entityType: "Project", entityId: id }),
+      // Historie a aktivity na Projektu zahrnuje i aktivity jeho Obchodního vztahu a hlavního
+      // kontaktu (rollup, stejný D365 vzor jako Account -> Contacts/Projects) — typicky sem
+      // spadá e-mailová korespondence zalogovaná přes email tracking, co jinak nikde na
+      // Projektu není vidět, i když se týká přesně jeho.
+      getTimelineActivities(supabase, { entityType: "Project", entityId: id }, [
+        { entityType: "Account", entityId: record.account_id },
+        ...(record.primary_contact_id ? [{ entityType: "Contact", entityId: record.primary_contact_id }] : []),
+      ]),
       supabase
         .from("contacts")
         .select("id, first_name, last_name, email, profese:option_set_values!contacts_profese_id_fkey(label)")
@@ -130,7 +137,7 @@ export default async function ProjectDetailPage({
       supabase
         .from("accounts")
         .select(
-          "name, ico, address_street, address_house_number, address_city, address_zip, address_country, pravni_forma:option_set_values!accounts_pravni_forma_id_fkey(label)",
+          "name, email, ico, address_street, address_house_number, address_city, address_zip, address_country, pravni_forma:option_set_values!accounts_pravni_forma_id_fkey(label)",
         )
         .eq("id", record.account_id)
         .maybeSingle()
@@ -170,6 +177,7 @@ export default async function ProjectDetailPage({
 
   const account = applicantAccount as unknown as {
     name: string;
+    email: string | null;
     ico: string | null;
     address_street: string | null;
     address_house_number: string | null;
@@ -210,6 +218,7 @@ export default async function ProjectDetailPage({
         }}
         actions={
           <>
+            <EmailLink email={contact?.email ?? account?.email ?? null} label="Nový e-mail" />
             <CalendarLink title={record.name} />
             <DriveLink url={record.drive_url} />
             <PrefillFormButton data={prefillData} />

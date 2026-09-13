@@ -40,6 +40,8 @@ export interface EntityFormPageProps {
   timeline?: { related?: EntityRef[]; relatedEmail?: string | null };
   /** Jen pro Activity — read-only box "Vztahuje se k" (polymorfní entity_type/entity_id). */
   regarding?: { typeLabel: string; recordLabel: string; href: string | null };
+  /** Extra tlačítka v hlavičce vedle badge (např. rychlá zkratka "Nový e-mail") — vynech, pokud entita žádná nepotřebuje. */
+  actions?: React.ReactNode;
 }
 
 export async function EntityFormPage({
@@ -53,6 +55,7 @@ export async function EntityFormPage({
   submitLabel = "Uložit",
   timeline,
   regarding,
+  actions,
 }: EntityFormPageProps) {
   const supabase = await createClient();
 
@@ -118,6 +121,7 @@ export async function EntityFormPage({
             ? { label: status === "active" ? "Aktivní" : "Neaktivní", variant: status === "active" ? "default" : "secondary" }
             : undefined
         }
+        actions={actions}
       />
       <div
         className={cn(

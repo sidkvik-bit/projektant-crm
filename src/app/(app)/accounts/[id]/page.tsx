@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getRecordById, listRecords } from "@/engine/Database";
 import { EntityFormPage } from "@/engine/EntityFormPage";
+import { EmailLink } from "@/components/SmartLinks";
 import type { EntityDefinition, FormDefinition } from "@/engine/types";
 import type { EntityFormValues } from "@/engine/zodSchema";
 
@@ -50,6 +51,7 @@ export default async function AccountDetailPage({
       onSubmit={handleUpdate}
       submitLabel="Uložit změny"
       timeline={{ related: relatedActivities, relatedEmail: record.email }}
+      actions={<EmailLink email={record.email} label="Nový e-mail" />}
     />
   );
 }
