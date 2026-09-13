@@ -3,7 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 
 // Next.js 16 přejmenoval Middleware na Proxy — funkce je stejná, jen jiný soubor/export.
 // /api má vlastní autorizaci (session, nebo CRON_SECRET u cronu) — negatuje ji tu.
-const PUBLIC_PATHS = ["/login", "/auth/callback", "/api"];
+const PUBLIC_PATHS = ["/login", "/auth/callback", "/api", "/Privacy", "/Toc"];
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
