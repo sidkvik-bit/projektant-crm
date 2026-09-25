@@ -56,9 +56,27 @@ export default async function McpSettingsPage() {
             <p>
               <strong className="text-foreground">Claude Desktop:</strong> Nastavení → Developer → Edit config.
             </p>
+          </div>
+        </div>
+
+        <div className="space-y-3 rounded-lg border border-amber-500/40 bg-amber-500/5 p-4">
+          <h2 className="text-sm font-medium text-foreground">Claude na webu (claude.ai) zatím nefunguje</h2>
+          <div className="space-y-2 text-sm text-muted-foreground">
             <p>
-              <strong className="text-foreground">Claude na webu:</strong> Nastavení → Connectors → Add custom
-              connector — tady se adresa a token vyplňují do dvou políček zvlášť, obě najdeš pod blokem.
+              Použij <strong className="text-foreground">Claude Desktop</strong> nebo{" "}
+              <strong className="text-foreground">Cursor</strong> podle návodu výš. Přes claude.ai se připojit
+              nedá a stojí za tím tohle:
+            </p>
+            <p>
+              Tenhle server se přihlašuje <strong className="text-foreground">tokenem v hlavičce</strong>, ne
+              přes OAuth. V dialogu <em>Add custom connector</em> je proto správná volba „No sign-in“ — jenže
+              token je pak potřeba zadat do sekce <em>Request headers</em>, a tu Anthropic uvolňuje postupně,
+              takže ji většina účtů ještě nemá. Bez ní Claude neposílá žádný token a spojení skončí na 401.
+            </p>
+            <p>
+              Předvybraná volba „Sign in now“ s odznakem <em>Detected</em> je slepá ulička: Claude ji nabízí
+              proto, že server podle MCP specifikace hlásí „potřebuji přihlášení“, ale žádný OAuth server tu
+              neběží, takže se přihlášení nemá kam obrátit.
             </p>
           </div>
         </div>
