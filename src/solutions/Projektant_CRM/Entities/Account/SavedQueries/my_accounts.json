@@ -1,7 +1,7 @@
 {
   "entity": "Account",
   "name": "my_accounts",
-  "label": "Moje obchodní vztahy",
+  "label": "Moje firmy",
   "columns": [
     { "field": "name" },
     { "field": "ico", "label": "IČO" },

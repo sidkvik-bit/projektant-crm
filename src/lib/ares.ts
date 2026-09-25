@@ -1,6 +1,6 @@
 // ARES (Administrativní registr ekonomických subjektů) — veřejné REST API českého
 // Ministerstva financí, bez klíče/autentizace. Používá se k předvyplnění údajů o firmě
-// na Obchodním vztahu podle IČO nebo části názvu. Zdroj pravdy pro tvar odpovědi:
+// na firmě podle IČO nebo části názvu. Zdroj pravdy pro tvar odpovědi:
 // https://ares.gov.cz/swagger-ui/ (POST /ekonomicke-subjekty/vyhledat, GET /ekonomicke-subjekty/{ico}).
 const ARES_BASE = "https://ares.gov.cz/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty";
 

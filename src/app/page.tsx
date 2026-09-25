@@ -21,9 +21,9 @@ import { AnimatedLogo } from "@/components/shell/AnimatedLogo";
 const FEATURES = [
   {
     icon: Target,
-    title: "Zájemci a obchodní vztahy",
+    title: "Zájemci a firmy",
     description:
-      "Eviduj poptávky od prvního kontaktu, kvalifikuj je jedním kliknutím na obchodní vztah s kontaktní osobou, nebo rovnou na projekt.",
+      "Eviduj poptávky od prvního kontaktu, kvalifikuj je jedním kliknutím na firmu s kontaktní osobou, nebo rovnou na projekt.",
   },
   {
     icon: FolderKanban,

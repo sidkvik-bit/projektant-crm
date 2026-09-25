@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   // ověřování appky porovnává název na domovské stránce s tím, co je v konzoli.
   title: "ProjektantCRM — CRM pro projektanty a projekční kanceláře",
   description:
-    "ProjektantCRM je CRM pro projektanty a projekční kanceláře: zájemci, obchodní vztahy, kontakty, projekty s milníky a termíny, nabídky a faktury s QR platbou, napojení na Google Drive a Gmail.",
+    "ProjektantCRM je CRM pro projektanty a projekční kanceláře: zájemci, firmy, kontakty, projekty s milníky a termíny, nabídky a faktury s QR platbou, napojení na Google Drive a Gmail.",
   ...(googleSiteVerification ? { verification: { google: googleSiteVerification } } : {}),
 };
 

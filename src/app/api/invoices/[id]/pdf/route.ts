@@ -119,7 +119,6 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       iban,
       amount: Number(inv.total),
       variableSymbol: inv.variabilni_symbol,
-      dueDate: inv.datum_splatnosti,
       message: inv.name,
     });
     qrDataUrl = await generateQrPaymentDataUrl(spayd);

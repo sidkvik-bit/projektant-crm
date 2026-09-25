@@ -1,7 +1,15 @@
 # Analýza: kontakt jako klient projektu + tým na projektu
 
-**Stav: rozhodnuto, neimplementováno.**
+**Stav: ✅ IMPLEMENTOVÁNO 2026-09-25.** Nasazeno na dev i produkci.
 Datum: 2026-09-25 · Verze 5 (po třech kritických čteních)
+
+> **Co se při realizaci ukázalo navíc** (a je zapsané v migracích a testech):
+>
+> - Přes MCP šla adresa kontaktu nastavit, ale ne přečíst zpět — doplnil se i do čtecích nástrojů.
+> - Kanban ukazuje jen projekty s fází, přehled jen projekty bez pohybu. Testy to musí nasimulovat;
+>   u „bez pohybu" starou aktivitou, protože `created_at` vynucuje trigger.
+> - Ruční kontrola z kroku 8 je nahrazená trvalým testem `e2e/tests/client-column.spec.ts`, který
+>   stahuje všechny tři exporty a ověřuje, že sloupec s klientem má hodnotu.
 
 > **Historie rozsahu.** Verze 1–3 počítaly s tím, že se tabulka firem **zruší** a její pole
 > přejdou na kontakt. To bylo špatné pochopení: *„firmu, kterou můžu přidat buď existující, nebo

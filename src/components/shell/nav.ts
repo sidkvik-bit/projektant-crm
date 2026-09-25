@@ -52,7 +52,7 @@ export const navGroups: NavGroup[] = [
     label: "Tabulky",
     items: [
       { label: "Zájemci", href: "/leads", icon: Target },
-      { label: "Obchodní vztahy", href: "/accounts", icon: Building2 },
+      { label: "Firmy", href: "/accounts", icon: Building2 },
       { label: "Kontakty", href: "/contacts", icon: Users },
       { label: "Projekty", href: "/projects", icon: FolderKanban },
       { label: "Nabídky", href: "/quotes", icon: Receipt },

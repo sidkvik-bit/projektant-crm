@@ -10,7 +10,7 @@ export default async function NewAccountPage() {
     <EntityFormPage
       entity={entity as EntityDefinition}
       form={formDef as FormDefinition}
-      title="Nový obchodní vztah"
+      title="Nová firma"
       onSubmit={createAccount}
       submitLabel="Vytvořit"
     />

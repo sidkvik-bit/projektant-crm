@@ -4,7 +4,7 @@ import { entityRegistry } from "@/solutions/Projektant_CRM/registry";
 /** Lidský popisek pro Activity.entity_type (logický název entity, viz registry.ts). */
 export const ENTITY_TYPE_LABELS: Record<string, string> = {
   Lead: "Zájemce",
-  Account: "Obchodní vztah",
+  Account: "Firma",
   Contact: "Kontakt",
   Project: "Projekt",
 };

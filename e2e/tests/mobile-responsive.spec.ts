@@ -11,7 +11,7 @@ test.use({ viewport: { width: 375, height: 812 } });
 
 test("mobile viewport: sidebar hidden, hamburger drawer works, no horizontal overflow on list/form", async ({ page }) => {
   await page.goto("/accounts");
-  await expect(page.getByRole("heading", { name: "Obchodní vztahy" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Firmy" })).toBeVisible();
 
   const desktopNavLink = page.getByRole("link", { name: "Můj den" });
   await expect(desktopNavLink).toBeHidden();
@@ -41,7 +41,7 @@ test("mobile viewport: RecordNavigator flyout stays on-screen without the hidden
   await firstRowLink.click();
 
   await page.getByRole("button", { name: "Seznam záznamů" }).click();
-  const flyoutTitle = page.getByRole("paragraph").filter({ hasText: "Obchodní vztahy" });
+  const flyoutTitle = page.getByRole("paragraph").filter({ hasText: "Firmy" });
   await expect(flyoutTitle).toBeVisible();
 
   // Regression: the flyout panel used to be hardcoded to start at left: 16rem (desktop sidebar

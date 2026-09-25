@@ -15,7 +15,7 @@ export function registerReadTools(server: McpServer) {
     {
       title: "Hledat v CRM",
       description:
-        "Fulltextové vyhledávání napříč zájemci, obchodními vztahy, kontakty, projekty, nabídkami, fakturami a aktivitami. Použij, když uživatel hledá konkrétní záznam podle názvu nebo jména.",
+        "Fulltextové vyhledávání napříč zájemci, firmami, kontakty, projekty, nabídkami, fakturami a aktivitami. Použij, když uživatel hledá konkrétní záznam podle názvu nebo jména.",
       inputSchema: z.object({
         query: z.string().min(2).describe("Hledaný výraz, např. 'Novák' nebo 'rekonstrukce'"),
       }),
@@ -180,7 +180,9 @@ export function registerReadTools(server: McpServer) {
       if (!session) return fail("Chybí autorizace.");
       let query = session.supabase
         .from("contacts")
-        .select("id, first_name, last_name, email, phone, mobile_phone, status, accounts(name)")
+        .select(
+          "id, first_name, last_name, email, phone, mobile_phone, status, address_street, address_house_number, address_city, address_zip, address_country, accounts(name)",
+        )
         .order("created_at", { ascending: false })
         .limit(limit);
       if (account_id) query = query.eq("account_id", account_id);
@@ -194,7 +196,7 @@ export function registerReadTools(server: McpServer) {
   server.registerTool(
     "list_accounts",
     {
-      title: "Seznam obchodních vztahů",
+      title: "Seznam firem",
       description: "Vypíše firmy/klienty organizace, nejnovější první.",
       inputSchema: z.object({
         only_active: z.boolean().default(true),
@@ -211,7 +213,7 @@ export function registerReadTools(server: McpServer) {
         .limit(limit);
       if (only_active) query = query.eq("status", "active");
       const { data, error } = await query;
-      if (error) return fail(`Načtení obchodních vztahů selhalo: ${error.message}`);
+      if (error) return fail(`Načtení firem selhalo: ${error.message}`);
       return ok(data);
     },
   );
@@ -276,7 +278,7 @@ export function registerReadTools(server: McpServer) {
     {
       title: "Najít kontakt nebo firmu",
       description:
-        "Vyhledá kontaktní osoby a obchodní vztahy podle jména, firmy nebo e-mailu — včetně kontaktních údajů.",
+        "Vyhledá kontaktní osoby a firmy podle jména, firmy nebo e-mailu — včetně kontaktních údajů.",
       inputSchema: z.object({ query: z.string().min(2) }),
     },
     async ({ query }, ctx) => {
@@ -286,7 +288,9 @@ export function registerReadTools(server: McpServer) {
       const [contacts, accounts] = await Promise.all([
         session.supabase
           .from("contacts")
-          .select("id, first_name, last_name, email, phone, mobile_phone, accounts(name)")
+          .select(
+            "id, first_name, last_name, email, phone, mobile_phone, address_city, accounts(name)",
+          )
           .or(`first_name.ilike.${pattern},last_name.ilike.${pattern},email.ilike.${pattern}`)
           .limit(20),
         session.supabase

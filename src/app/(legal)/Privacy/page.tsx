@@ -33,12 +33,12 @@ export default function PrivacyPolicyPage() {
       <ul>
         <li>
           <strong>Uživatelé Aplikace</strong> — lidé, kteří se do Aplikace přihlašují (přes Google
-          účet) a používají ji ke správě obchodních vztahů své organizace.
+          účet) a používají ji ke správě firem své organizace.
         </li>
         <li>
           <strong>Kontaktní osoby v databázi organizace</strong> — klienti, zájemci, kontaktní
           osoby a jiné třetí strany, jejichž údaje si uživatelé Aplikace sami zadávají do CRM
-          (Obchodní vztahy, Kontakty, Zájemci, Projekty apod.). Správcem těchto údajů je vždy
+          (Firmy, Kontakty, Zájemci, Projekty apod.). Správcem těchto údajů je vždy
           konkrétní organizace, která je do Aplikace zadala — provozovatel Aplikace je v tomto
           vztahu <strong>zpracovatelem</strong> (viz čl. 8).
         </li>
@@ -60,7 +60,7 @@ export default function PrivacyPolicyPage() {
 
       <h3>3.2 Údaje zadané do CRM organizacemi</h3>
       <p>
-        Jméno, kontaktní údaje (e-mail, telefon), adresa, IČO/DIČ, poznámky k obchodnímu vztahu a
+        Jméno, kontaktní údaje (e-mail, telefon), adresa, IČO/DIČ, poznámky k firmě a
         další údaje, které uživatel Aplikace o svých klientech/kontaktech dobrovolně zadá.
       </p>
 

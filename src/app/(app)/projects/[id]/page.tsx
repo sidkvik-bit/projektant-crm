@@ -128,7 +128,7 @@ export default async function ProjectDetailPage({
       ),
       getOptionSetValues(supabase, "activity_type"),
       getOptionSetValues(supabase, "profese"),
-      // Historie a aktivity na Projektu zahrnuje i aktivity jeho Obchodního vztahu a hlavního
+      // Historie a aktivity na Projektu zahrnuje i aktivity jeho firmy a hlavního
       // kontaktu (rollup, stejný D365 vzor jako Account -> Contacts/Projects) — typicky sem
       // spadá e-mailová korespondence zalogovaná přes email tracking, co jinak nikde na
       // Projektu není vidět, i když se týká přesně jeho.

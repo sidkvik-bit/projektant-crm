@@ -61,7 +61,7 @@ export function registerWriteTools(server: McpServer) {
   server.registerTool(
     "create_account",
     {
-      title: "Založit obchodní vztah",
+      title: "Založit firmu",
       description: "Založí firmu/klienta. Než zakládáš, ověř přes find_contact, jestli už neexistuje.",
       inputSchema: z.object({
         name: z.string().min(1).describe("Název firmy"),
@@ -353,7 +353,7 @@ export function registerWriteTools(server: McpServer) {
   server.registerTool(
     "update_account",
     {
-      title: "Upravit obchodní vztah",
+      title: "Upravit firmu",
       description: "Opraví údaje firmy/klienta (kontakt, adresa, obor). Id vrací find_contact nebo search_crm.",
       inputSchema: z.object({
         account_id: z.string().uuid(),
@@ -379,7 +379,7 @@ export function registerWriteTools(server: McpServer) {
         patch: fields,
         columns:
           "id, name, ico, email, phone, website, industry, address_street, address_house_number, address_city, address_zip, description",
-        notFound: "Obchodní vztah nenalezen (nebo k němu nemáš přístup).",
+        notFound: "Firma nenalezen (nebo k němu nemáš přístup).",
       });
     },
   );

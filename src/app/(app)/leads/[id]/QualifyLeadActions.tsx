@@ -31,7 +31,7 @@ export function QualifyLeadActions({ leadId }: { leadId: string }) {
     <>
       <Button variant="outline" size="sm" disabled={pending} onClick={() => handleQualify(false)}>
         <UserCheck className="size-4" />
-        Kvalifikovat: OV + Kontakt
+        Kvalifikovat: Firma + Kontakt
       </Button>
       <Button size="sm" disabled={pending} onClick={() => handleQualify(true)}>
         <FolderPlus className="size-4" />

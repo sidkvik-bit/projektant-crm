@@ -18,7 +18,7 @@ export default async function AccountsPage({
       views={[...buildStatusViews(entity as EntityDefinition, viewTemplate as ViewTemplate), myView as ViewDefinition]}
       select="id, name, ico, phone, status, created_at, status_reason:option_set_values!accounts_status_reason_id_fkey(label), owner:users!accounts_owner_id_fkey(first_name, last_name, email)"
       basePath="/accounts"
-      newLabel="Nový obchodní vztah"
+      newLabel="Nová firma"
       searchParams={searchParams}
       mapRow={(row) => ({
         ...row,

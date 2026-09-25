@@ -8,10 +8,9 @@ describe("buildSpayd", () => {
         iban: "CZ6508000000192000145399",
         amount: 480.5,
         variableSymbol: "20260001",
-        dueDate: "2026-09-21",
         message: "Faktura 20260001",
       }),
-    ).toBe("SPD*1.0*ACC:CZ6508000000192000145399*AM:480.50*CC:CZK*X-VS:20260001*DT:20260921*MSG:FAKTURA 20260001");
+    ).toBe("SPD*1.0*ACC:CZ6508000000192000145399*AM:480.50*CC:CZK*X-VS:20260001*MSG:FAKTURA 20260001");
   });
 
   it("omits optional fields entirely when not provided, rather than emitting empty keys", () => {
@@ -35,9 +34,11 @@ describe("buildSpayd", () => {
     expect(s).toContain("MSG:DEKUJEME ZA SPOLUPRACI");
   });
 
-  it("formats the due date as YYYYMMDD, not ISO", () => {
-    const s = buildSpayd({ iban: "CZ6508000000192000145399", amount: 1, dueDate: "2026-01-05" });
-    expect(s).toContain("DT:20260105");
+  // Regrese: DT dřív v QR bylo a bankovní aplikace podle něj platbu naplánovaly na den splatnosti
+  // místo okamžitého odeslání. Odběratel chce po naskenování zaplatit hned.
+  it("carries no due date — scanning must offer payment now, not schedule it", () => {
+    const s = buildSpayd({ iban: "CZ6508000000192000145399", amount: 1, variableSymbol: "20260001" });
+    expect(s).not.toContain("DT:");
   });
 });
 
