@@ -164,6 +164,114 @@ export function registerReadTools(server: McpServer) {
   );
 
   server.registerTool(
+    "list_contacts",
+    {
+      title: "Seznam kontaktů",
+      description:
+        "Vypíše kontaktní osoby organizace, nejnovější první. Použij na otázky typu 'vypiš mi všechny kontakty'; na hledání konkrétního člověka je rychlejší find_contact.",
+      inputSchema: z.object({
+        account_id: z.string().uuid().optional().describe("Jen kontakty této firmy"),
+        only_active: z.boolean().default(true),
+        limit: z.number().int().min(1).max(MAX_ROWS).default(MAX_ROWS),
+      }),
+    },
+    async ({ account_id, only_active, limit }, ctx) => {
+      const session = sessionFrom(ctx);
+      if (!session) return fail("Chybí autorizace.");
+      let query = session.supabase
+        .from("contacts")
+        .select("id, first_name, last_name, email, phone, mobile_phone, status, accounts(name)")
+        .order("created_at", { ascending: false })
+        .limit(limit);
+      if (account_id) query = query.eq("account_id", account_id);
+      if (only_active) query = query.eq("status", "active");
+      const { data, error } = await query;
+      if (error) return fail(`Načtení kontaktů selhalo: ${error.message}`);
+      return ok(data);
+    },
+  );
+
+  server.registerTool(
+    "list_accounts",
+    {
+      title: "Seznam obchodních vztahů",
+      description: "Vypíše firmy/klienty organizace, nejnovější první.",
+      inputSchema: z.object({
+        only_active: z.boolean().default(true),
+        limit: z.number().int().min(1).max(MAX_ROWS).default(MAX_ROWS),
+      }),
+    },
+    async ({ only_active, limit }, ctx) => {
+      const session = sessionFrom(ctx);
+      if (!session) return fail("Chybí autorizace.");
+      let query = session.supabase
+        .from("accounts")
+        .select("id, name, ico, email, phone, address_city, status")
+        .order("created_at", { ascending: false })
+        .limit(limit);
+      if (only_active) query = query.eq("status", "active");
+      const { data, error } = await query;
+      if (error) return fail(`Načtení obchodních vztahů selhalo: ${error.message}`);
+      return ok(data);
+    },
+  );
+
+  server.registerTool(
+    "list_quotes",
+    {
+      title: "Seznam nabídek",
+      description: "Vypíše nabídky včetně částek a projektu, ke kterému patří.",
+      inputSchema: z.object({
+        project_id: z.string().uuid().optional(),
+        limit: z.number().int().min(1).max(MAX_ROWS).default(MAX_ROWS),
+      }),
+    },
+    async ({ project_id, limit }, ctx) => {
+      const session = sessionFrom(ctx);
+      if (!session) return fail("Chybí autorizace.");
+      let query = session.supabase
+        .from("quotes")
+        .select("id, number, name, total, valid_until, status, projects(name), accounts(name)")
+        .order("created_at", { ascending: false })
+        .limit(limit);
+      if (project_id) query = query.eq("project_id", project_id);
+      const { data, error } = await query;
+      if (error) return fail(`Načtení nabídek selhalo: ${error.message}`);
+      return ok(data);
+    },
+  );
+
+  server.registerTool(
+    "list_invoices",
+    {
+      title: "Seznam faktur",
+      description:
+        "Vypíše faktury včetně částek, splatnosti a toho, jestli jsou uhrazené. Použij na otázky typu 'co mám nezaplaceného' — s unpaid_only=true.",
+      inputSchema: z.object({
+        unpaid_only: z.boolean().default(false).describe("Jen neuhrazené"),
+        project_id: z.string().uuid().optional(),
+        limit: z.number().int().min(1).max(MAX_ROWS).default(MAX_ROWS),
+      }),
+    },
+    async ({ unpaid_only, project_id, limit }, ctx) => {
+      const session = sessionFrom(ctx);
+      if (!session) return fail("Chybí autorizace.");
+      let query = session.supabase
+        .from("invoices")
+        .select(
+          "id, number, name, total, datum_vystaveni, datum_splatnosti, uhrazeno, projects(name), accounts(name)",
+        )
+        .order("datum_vystaveni", { ascending: false })
+        .limit(limit);
+      if (unpaid_only) query = query.eq("uhrazeno", false);
+      if (project_id) query = query.eq("project_id", project_id);
+      const { data, error } = await query;
+      if (error) return fail(`Načtení faktur selhalo: ${error.message}`);
+      return ok(data);
+    },
+  );
+
+  server.registerTool(
     "find_contact",
     {
       title: "Najít kontakt nebo firmu",

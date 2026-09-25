@@ -76,7 +76,28 @@ export default async function McpSettingsPage() {
             <p>
               <strong className="text-foreground">Claude Desktop:</strong> Nastavení → Developer → Edit config.
             </p>
+            <p>
+              <strong className="text-foreground">Gemini CLI a Gemini Code Assist:</strong> vlož druhý blok
+              (ten s <code className="rounded bg-muted px-1 py-0.5">httpUrl</code>) do{" "}
+              <code className="rounded bg-muted px-1 py-0.5">~/.gemini/settings.json</code>. Gemini pozná
+              vzdálený server právě podle <code className="rounded bg-muted px-1 py-0.5">httpUrl</code>; pod
+              klíčem <code className="rounded bg-muted px-1 py-0.5">url</code> by čekal starší přenos a
+              nepřipojil by se. V CLI jde totéž udělat příkazem{" "}
+              <code className="rounded bg-muted px-1 py-0.5">gemini mcp add</code>.
+            </p>
           </div>
+        </div>
+
+        <div className="space-y-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-4 text-sm text-muted-foreground">
+          <h2 className="text-sm font-medium text-foreground">Gemini v prohlížeči zatím ne</h2>
+          <p>
+            Na <strong className="text-foreground">gemini.google.com</strong> se vlastní MCP server přidat dá
+            (Nastavení → Connected Apps), ale Google to zatím pouští jen účtům{" "}
+            <strong className="text-foreground">v USA, v angličtině a jen osobním</strong> (ne pracovním). Z
+            Česka na tu volbu nenarazíš. Není to omezení našeho serveru — je to brána na straně Googlu, takže
+            se to může časem změnit.
+          </p>
+          <p>Do té doby platí: Gemini ano přes CLI nebo Code Assist, ne přes web.</p>
         </div>
 
         <div className="space-y-3 border-t pt-6">
