@@ -33,7 +33,7 @@ test("Account/Contact/Project each show a 'Nový e-mail' shortcut to the right a
     .single();
   const { data: project } = await admin
     .from("projects")
-    .insert({ organization_id: org.id, account_id: account!.id, primary_contact_id: contact!.id, name: `E2E Email Shortcut Project ${suffix}` })
+    .insert({ organization_id: org.id, primary_contact_id: contact!.id, name: `E2E Email Shortcut Project ${suffix}` })
     .select("id")
     .single();
 

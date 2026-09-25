@@ -32,17 +32,17 @@ async function createThrowawayProject(namePrefix: string) {
   const { data: org, error: orgErr } = await admin.from("organizations").select("id").eq("name", "E2E Test Org").single();
   if (orgErr) throw orgErr;
 
-  const { data: account, error: accErr } = await admin
-    .from("accounts")
+  const { data: contact, error: contactErr } = await admin
+    .from("contacts")
     .select("id")
     .eq("organization_id", org.id)
     .limit(1)
     .single();
-  if (accErr) throw accErr;
+  if (contactErr) throw contactErr;
 
   const { data: project, error: projErr } = await admin
     .from("projects")
-    .insert({ organization_id: org.id, account_id: account.id, name: `${namePrefix} ${Date.now()}` })
+    .insert({ organization_id: org.id, primary_contact_id: contact.id, name: `${namePrefix} ${Date.now()}` })
     .select("id")
     .single();
   if (projErr) throw projErr;

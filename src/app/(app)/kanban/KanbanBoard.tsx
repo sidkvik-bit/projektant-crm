@@ -22,7 +22,7 @@ export interface KanbanColumn {
 export interface KanbanCard {
   id: string;
   name: string;
-  accountName: string | null;
+  clientName: string | null;
   nextMilestone: string | null;
   statusReasonId: string | null;
 }
@@ -54,7 +54,7 @@ function Card({ card }: { card: KanbanCard }) {
       >
         {card.name}
       </Link>
-      {card.accountName && <p className="text-xs text-muted-foreground">{card.accountName}</p>}
+      {card.clientName && <p className="text-xs text-muted-foreground">{card.clientName}</p>}
       {card.nextMilestone && (
         <p className="text-xs text-muted-foreground">Nejbližší: {card.nextMilestone}</p>
       )}

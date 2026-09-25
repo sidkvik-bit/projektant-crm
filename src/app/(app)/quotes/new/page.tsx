@@ -17,7 +17,7 @@ export default async function NewQuotePage({
       entity={entity as EntityDefinition}
       form={formDef as FormDefinition}
       title="Nová nabídka"
-      defaultValues={{ vat_rate: 21, project_id: params.project_id, account_id: params.account_id }}
+      defaultValues={{ vat_rate: 21, project_id: params.project_id, contact_id: params.contact_id }}
       onSubmit={createQuote}
       submitLabel="Vytvořit nabídku"
     />

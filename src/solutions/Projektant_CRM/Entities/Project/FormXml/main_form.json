@@ -7,7 +7,7 @@
       "sections": [
         {
           "label": "Základní údaje",
-          "fields": ["name", "account_id", "primary_contact_id", "project_template_id"]
+          "fields": ["name", "primary_contact_id", "project_template_id"]
         },
         {
           "label": "Termíny a rozpočet",

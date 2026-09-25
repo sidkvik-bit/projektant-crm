@@ -34,7 +34,6 @@ test("Project timeline shows activities logged on its Account and primary Contac
     .from("projects")
     .insert({
       organization_id: org.id,
-      account_id: account!.id,
       primary_contact_id: contact!.id,
       name: `E2E Rollup Project ${suffix}`,
     })

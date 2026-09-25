@@ -108,6 +108,25 @@ export async function applyUpdate(supabase: SupabaseClient, spec: UpdateSpec) {
 }
 
 /**
+ * Založení jednoho záznamu. `organization_id` se doplňuje ze session, nikdy ze vstupu od modelu —
+ * jinak by šlo nástrojem psát do cizí organizace (RLS by to sice zarazila, ale nemá smysl na ni
+ * spoléhat jako na jedinou pojistku).
+ */
+export async function applyInsert(
+  supabase: SupabaseClient,
+  spec: { table: string; values: Record<string, unknown>; columns: string; organizationId: string },
+) {
+  const values = Object.fromEntries(Object.entries(spec.values).filter(([, v]) => v !== undefined));
+  const { data, error } = await supabase
+    .from(spec.table)
+    .insert({ ...values, organization_id: spec.organizationId })
+    .select(spec.columns)
+    .single();
+  if (error) return fail(`Založení selhalo: ${error.message}`);
+  return ok({ vytvoreno: data });
+}
+
+/**
  * Mapa id → label pro číselník, na dopřeklad `status_reason_id` v odpovědích. UUID samo o sobě
  * modelu nic neřekne; fáze projektu ("Realizace") ano.
  */

@@ -12,7 +12,11 @@
     { "name": "email", "label": "E-mail", "type": "email" },
     { "name": "phone", "label": "Telefon", "type": "phone" },
     { "name": "mobile_phone", "label": "Mobil", "type": "phone" },
-    { "name": "profese_id", "label": "Profese", "type": "optionset", "optionSetKey": "profese" },
+    { "name": "address_street", "label": "Ulice", "type": "text" },
+    { "name": "address_house_number", "label": "Číslo popisné/orientační", "type": "text" },
+    { "name": "address_city", "label": "Obec", "type": "text" },
+    { "name": "address_zip", "label": "PSČ", "type": "text" },
+    { "name": "address_country", "label": "Stát", "type": "text" },
     { "name": "description", "label": "Poznámka", "type": "textarea" }
   ]
 }

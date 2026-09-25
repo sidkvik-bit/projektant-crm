@@ -33,15 +33,15 @@ test("uploading an organization logo in Nastavení → Fakturace persists and do
   await expect(page.getByRole("button", { name: "Odebrat obrázek" })).toBeVisible();
 
   // a quote generated with an org logo configured still renders a valid PDF
-  const { data: account } = await admin.from("accounts").select("id").eq("organization_id", org!.id).limit(1).single();
+  const { data: contact } = await admin.from("contacts").select("id").eq("organization_id", org!.id).limit(1).single();
   const { data: project } = await admin
     .from("projects")
-    .insert({ organization_id: org!.id, account_id: account!.id, name: `E2E Branding Project ${Date.now()}` })
+    .insert({ organization_id: org!.id, primary_contact_id: contact!.id, name: `E2E Branding Project ${Date.now()}` })
     .select("id")
     .single();
   const { data: quote } = await admin
     .from("quotes")
-    .insert({ organization_id: org!.id, project_id: project!.id, account_id: account!.id, name: "E2E Branding Quote" })
+    .insert({ organization_id: org!.id, project_id: project!.id, contact_id: contact!.id, name: "E2E Branding Quote" })
     .select("id")
     .single();
 

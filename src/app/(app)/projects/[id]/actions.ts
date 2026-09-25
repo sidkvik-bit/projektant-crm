@@ -97,3 +97,25 @@ export async function deleteMilestoneNotification(projectId: string, notificatio
   if (error) throw error;
   revalidatePath(basePath(projectId));
 }
+
+// --- Tým projektu (project_contacts) ---
+//
+// Tým je vazba projekt ↔ kontakt s rolí, ne kontakty klientovy firmy. Díky tomu jde k projektu
+// přiřadit statika nebo geodeta, kteří pracují úplně jinde. organization_id doplní systémový
+// trigger, stejně jako u ostatních tabulek.
+
+export async function addProjectContact(projectId: string, contactId: string, roleId: string | null) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("project_contacts")
+    .insert({ project_id: projectId, contact_id: contactId, role_id: roleId || null });
+  if (error) throw error;
+  revalidatePath(basePath(projectId));
+}
+
+export async function removeProjectContact(projectId: string, memberId: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("project_contacts").delete().eq("id", memberId);
+  if (error) throw error;
+  revalidatePath(basePath(projectId));
+}

@@ -6,7 +6,7 @@
       "sections": [
         {
           "label": "Nabídka",
-          "fields": ["name", "project_id", "account_id", "contact_id"]
+          "fields": ["name", "project_id", "contact_id"]
         },
         {
           "label": "Podmínky",

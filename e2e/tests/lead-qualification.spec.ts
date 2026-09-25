@@ -103,12 +103,12 @@ test("qualifying a lead as a Project creates Account + Contact underneath it", a
 
   const { data: project } = await admin
     .from("projects")
-    .select("budget, description, account_id, primary_contact_id")
+    .select("budget, description, primary_contact_id")
     .eq("id", projectId)
     .single();
   expect(Number(project!.budget)).toBe(250000);
   expect(project!.description).toBe("Návrh rodinného domu");
-  expect(project!.account_id).toBe(lead!.converted_account_id);
+  // Klientem projektu je nově kontakt, ne firma — firma na kontaktu visí dál.
   expect(project!.primary_contact_id).toBe(lead!.converted_contact_id);
 
   await expect(page.getByText(/E2E Project Qualify Co/)).toBeVisible();

@@ -318,7 +318,7 @@ test("locked-once-set field: project template becomes read-only after a project 
 
   const clientCombo = page.getByLabel(/^Klient/i);
   await clientCombo.click();
-  await clientCombo.fill("Novák");
+  await clientCombo.fill("Nováková");
   await page.locator('[data-slot="combobox-item"]').first().click();
 
   const templateCombo = page.getByLabel(/Šablona/i);
@@ -374,7 +374,7 @@ test("picking a template on an existing project (that had none) generates its mi
 
   const clientCombo = page.getByLabel(/^Klient/i);
   await clientCombo.click();
-  await clientCombo.fill("Novák");
+  await clientCombo.fill("Nováková");
   await page.locator('[data-slot="combobox-item"]').first().click();
 
   // no template picked at creation time on purpose — Obecné (with milestones below it) opens by default
@@ -461,11 +461,11 @@ test("a set lookup renders a link to open the related record", async ({ page }) 
   await page.locator("table tbody tr a").first().click();
   await page.getByRole("tab", { name: /Obecné/i }).click();
 
-  const accountRow = page.locator("div.space-y-1\\.5", { hasText: "Klient" });
-  const openLink = accountRow.getByTitle("Otevřít záznam");
+  const clientRow = page.locator("div.space-y-1\\.5", { hasText: "Klient" });
+  const openLink = clientRow.getByTitle("Otevřít záznam");
   await expect(openLink).toBeVisible();
   await openLink.click();
-  await page.waitForURL(/\/accounts\/[0-9a-f-]{36}$/);
+  await page.waitForURL(/\/contacts\/[0-9a-f-]{36}$/);
 });
 
 test("bug report: create with name, description and a screenshot image", async ({ page }) => {

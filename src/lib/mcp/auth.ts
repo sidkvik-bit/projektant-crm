@@ -37,11 +37,14 @@ export async function resolveMcpSession(token: string): Promise<McpSession | nul
   const admin = createAdminClient();
   const { data: row } = await admin
     .from("mcp_tokens")
-    .select("id, user_id, refresh_token, revoked_at")
+    .select("id, user_id, refresh_token, revoked_at, expires_at")
     .eq("token_hash", hashMcpToken(token))
     .maybeSingle();
 
   if (!row || row.revoked_at) return null;
+  // Ručně vygenerované tokeny expiraci nemají (null) a platí do odvolání; tokeny vydané přes
+  // OAuth ano — po vypršení musí klient použít refresh token, ne tenhle.
+  if (row.expires_at && new Date(row.expires_at as string).getTime() < Date.now()) return null;
 
   const anon = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

@@ -104,6 +104,80 @@ test("a valid token can list tools and read its own organization's data", async 
   }
 });
 
+test("every core entity can be listed and created, and nothing can be deleted", async ({ request }) => {
+  const { admin, token, userId, orgId, suffix } = await createUserWithMcpToken("surface");
+
+  try {
+    const body = await (await mcpCall(request, token, "tools/list")).text();
+    // Čtecí i zápisová plocha má být souměrná — dřív šlo vypsat jen zájemce a projekty, takže
+    // "vypiš mi kontakty" nešlo, a zakládat šel jen zájemce.
+    for (const tool of [
+      "list_leads",
+      "list_projects",
+      "list_contacts",
+      "list_accounts",
+      "list_quotes",
+      "list_invoices",
+      "create_lead",
+      "create_account",
+      "create_contact",
+      "create_project",
+      "create_milestone",
+    ]) {
+      expect(body, `chybí nástroj ${tool}`).toContain(tool);
+    }
+    expect(body).not.toContain("delete");
+
+    // Řetěz, jak ho projde model: firma → kontakt pod ní → projekt pro ni → milník.
+    const call = async (name: string, args: Record<string, unknown>) => {
+      const res = await mcpCall(request, token, "tools/call", { name, arguments: args });
+      const text = await res.text();
+      // Odpověď chodí jako SSE a vnitřní JSON je v ní escapovaný, takže uvozovky můžou být
+      // předcházené zpětným lomítkem.
+      const id = text.match(/\\?"id\\?":\s*\\?"([0-9a-f-]{36})/)?.[1];
+      expect(id, `${name} nevrátil id: ${text}`).toBeTruthy();
+      return id!;
+    };
+
+    const accountId = await call("create_account", { name: `E2E MCP Firma ${suffix}`, ico: "12345678" });
+    await call("create_contact", {
+      first_name: "Jan",
+      last_name: `Testovic ${suffix}`,
+      account_id: accountId,
+      email: `jan${suffix}@example.com`,
+    });
+    const contactId = await call("create_contact", {
+      first_name: "Klient",
+      last_name: `Zakazky ${suffix}`,
+      account_id: accountId,
+    });
+    const projectId = await call("create_project", {
+      name: `E2E MCP Zakazka ${suffix}`,
+      primary_contact_id: contactId,
+      stage: "Poptávka",
+    });
+    await call("create_milestone", { project_id: projectId, name: "Studie", due_date: "2027-03-01" });
+
+    const contacts = await mcpCall(request, token, "tools/call", {
+      name: "list_contacts",
+      arguments: { only_active: true },
+    });
+    expect(await contacts.text()).toContain(`Testovic ${suffix}`);
+
+    const accounts = await mcpCall(request, token, "tools/call", {
+      name: "list_accounts",
+      arguments: { only_active: true },
+    });
+    expect(await accounts.text()).toContain(`E2E MCP Firma ${suffix}`);
+  } finally {
+    await admin.from("projects").delete().eq("organization_id", orgId);
+    await admin.from("contacts").delete().eq("organization_id", orgId);
+    await admin.from("accounts").delete().eq("organization_id", orgId);
+    await admin.auth.admin.deleteUser(userId);
+    await admin.from("organizations").delete().eq("id", orgId);
+  }
+});
+
 test("a token cannot reach another organization's data — RLS holds through MCP", async ({ request }) => {
   const alice = await createUserWithMcpToken("alice");
   const bob = await createUserWithMcpToken("bob");
@@ -167,6 +241,14 @@ test("writes land in the caller's own organization, and there is no delete tool 
   }
 });
 
+test("the settings page shows the server URL without generating a token", async ({ page }) => {
+  await page.goto("/settings/mcp");
+  // Připojení přes OAuth žádný token negeneruje, takže adresa nesmí být schovaná v dialogu,
+  // který se ukáže až po vygenerování — jinak ji uživatel nemá kde vzít.
+  const url = page.locator("pre").filter({ hasText: /\/api\/mcp$/ });
+  await expect(url.first()).toBeVisible();
+});
+
 test("generating a token through the settings UI produces a working token", async ({ page, request }) => {
   await page.goto("/settings/mcp");
   await expect(page.getByRole("heading", { name: "MCP - AI" })).toBeVisible();
@@ -192,14 +274,14 @@ test("generating a token through the settings UI produces a working token", asyn
 
 /** Založí klienta, projekt a jeden nesplněný milník — materiál pro update nástroje. */
 async function seedProject(admin: ReturnType<typeof adminClient>, orgId: string, suffix: number | string) {
-  const { data: account } = await admin
-    .from("accounts")
-    .insert({ organization_id: orgId, name: `E2E MCP Klient ${suffix}` })
+  const { data: contact } = await admin
+    .from("contacts")
+    .insert({ organization_id: orgId, first_name: "Klient", last_name: `MCP ${suffix}` })
     .select("id")
     .single();
   const { data: project } = await admin
     .from("projects")
-    .insert({ organization_id: orgId, account_id: account!.id, name: `E2E MCP Projekt ${suffix}` })
+    .insert({ organization_id: orgId, primary_contact_id: contact!.id, name: `E2E MCP Projekt ${suffix}` })
     .select("id")
     .single();
   const { data: milestone } = await admin

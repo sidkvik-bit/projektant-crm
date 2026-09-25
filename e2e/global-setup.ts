@@ -68,11 +68,11 @@ async function seedBusinessData(
   organizationId: string,
   userId: string,
 ) {
-  const { count: accountCount } = await admin
-    .from("accounts")
+  const { count: contactCount } = await admin
+    .from("contacts")
     .select("id", { count: "exact", head: true })
     .eq("organization_id", organizationId);
-  if ((accountCount ?? 0) > 0) return; // už naseedováno z předchozího běhu
+  if ((contactCount ?? 0) > 0) return; // už naseedováno z předchozího běhu
 
   const common = { organization_id: organizationId, owner_id: userId, created_by: userId };
 
@@ -86,13 +86,39 @@ async function seedBusinessData(
   if (accErr) throw accErr;
   const [accountA, accountB] = accounts;
 
-  const { error: contactErr } = await admin.from("contacts").insert([
-    { ...common, account_id: accountA.id, first_name: "Jana", last_name: "Nováková", email: "jana@novak-architekti.cz" },
-    { ...common, account_id: accountB.id, first_name: "Petr", last_name: "Svoboda", email: "petr@stavebnihut.cz" },
-    // schválně BEZ account_id — ověřuje se, že kontakt může existovat bez firmy
-    { ...common, first_name: "Eva", last_name: "Volná", email: "eva.volna@example.com" },
-  ]);
+  const { data: contacts, error: contactErr } = await admin
+    .from("contacts")
+    .insert([
+      {
+        ...common,
+        account_id: accountA.id,
+        first_name: "Jana",
+        last_name: "Nováková",
+        email: "jana@novak-architekti.cz",
+        address_street: "Dlouhá",
+        address_house_number: "12",
+        address_city: "Praha",
+        address_zip: "11000",
+        address_country: "Česko",
+      },
+      { ...common, account_id: accountB.id, first_name: "Petr", last_name: "Svoboda", email: "petr@stavebnihut.cz" },
+      // schválně BEZ account_id — ověřuje se, že kontakt může existovat bez firmy, a zároveň že
+      // se u takového klienta na fakturu vytiskne jeho vlastní adresa místo firemní
+      {
+        ...common,
+        first_name: "Eva",
+        last_name: "Volná",
+        email: "eva.volna@example.com",
+        address_street: "Krátká",
+        address_house_number: "3",
+        address_city: "Brno",
+        address_zip: "60200",
+        address_country: "Česko",
+      },
+    ])
+    .select("id, first_name");
   if (contactErr) throw contactErr;
+  const [contactJana] = contacts;
 
   const { error: leadErr } = await admin.from("leads").insert([
     { ...common, name: "Poptávka RD Průhonice", company_name: "Rodinný dům s.r.o.", expected_value: 450000 },
@@ -116,7 +142,7 @@ async function seedBusinessData(
     .from("projects")
     .insert({
       ...common,
-      account_id: accountA.id,
+      primary_contact_id: contactJana.id,
       project_template_id: template.id,
       name: "Rodinný dům Nováková",
       deadline: "2026-12-31",

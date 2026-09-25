@@ -3,7 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 
 // Next.js 16 přejmenoval Middleware na Proxy — funkce je stejná, jen jiný soubor/export.
 // /api má vlastní autorizaci (session, nebo CRON_SECRET u cronu) — negatuje ji tu.
-const PUBLIC_PATHS = ["/login", "/auth/callback", "/api", "/Privacy", "/Toc"];
+const PUBLIC_PATHS = ["/login", "/auth/callback", "/api", "/Privacy", "/Toc", "/.well-known"];
 // Veřejná úvodní stránka (Google to u ověřování OAuth appky vyžaduje). Musí se porovnávat
 // PŘESNĚ — přes startsWith by "/" pustilo úplně celou appku bez přihlášení.
 const PUBLIC_EXACT_PATHS = ["/"];
@@ -40,7 +40,13 @@ export async function proxy(request: NextRequest) {
 
   if (!user && !isPublicPath) {
     const url = request.nextUrl.clone();
+    // Kam se vrátit po přihlášení. Podstatné to je hlavně u /oauth/authorize, kam uživatele
+    // posílá jeho AI klient i s parametry — bez toho by po loginu skončil na seznamu zájemců
+    // a autorizace by se ztratila. /auth/callback si `next` sám ověřuje jako relativní cestu.
+    const next = `${request.nextUrl.pathname}${request.nextUrl.search}`;
+    url.search = "";
     url.pathname = "/login";
+    url.searchParams.set("next", next);
     return NextResponse.redirect(url);
   }
 

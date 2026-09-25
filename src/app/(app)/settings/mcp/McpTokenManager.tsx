@@ -34,6 +34,23 @@ function buildConfigSnippet(serverUrl: string, token: string) {
   );
 }
 
+/** Gemini má stejný tvar, ale vzdálený server pozná podle `httpUrl` — pod klíčem `url` by čekal
+ * starší SSE přenos a nepřipojil by se. Proto zvlášť, ne jedna univerzální konfigurace. */
+function buildGeminiConfigSnippet(serverUrl: string, token: string) {
+  return JSON.stringify(
+    {
+      mcpServers: {
+        "projektant-crm": {
+          httpUrl: serverUrl,
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      },
+    },
+    null,
+    2,
+  );
+}
+
 export function McpTokenManager({
   tokens,
   serverUrl,
@@ -132,7 +149,15 @@ export function McpTokenManager({
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            {newToken && <CopyBlock text={buildConfigSnippet(serverUrl, newToken)} label="Konfigurace MCP serveru" />}
+            {newToken && (
+              <CopyBlock
+                text={buildConfigSnippet(serverUrl, newToken)}
+                label="Claude Desktop, Cursor, Windsurf"
+              />
+            )}
+            {newToken && (
+              <CopyBlock text={buildGeminiConfigSnippet(serverUrl, newToken)} label="Gemini CLI / Code Assist" />
+            )}
             <div className="space-y-2 border-t pt-3">
               <p className="text-xs text-muted-foreground">
                 Klienti, které se ptají na adresu a token zvlášť (např. Claude → Connectors), chtějí tyhle dvě

@@ -6,7 +6,7 @@
       "sections": [
         {
           "label": "Faktura",
-          "fields": ["number", "name", "project_id", "account_id", "contact_id"]
+          "fields": ["number", "name", "project_id", "contact_id"]
         },
         {
           "label": "Termíny a platba",

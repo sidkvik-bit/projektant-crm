@@ -2,7 +2,7 @@
   "entity": "Project",
   "columns": [
     { "field": "name" },
-    { "field": "account", "label": "Klient" },
+    { "field": "primary_contact", "label": "Klient" },
     { "field": "status_reason", "label": "Fáze" },
     { "field": "deadline", "label": "Deadline" },
     { "field": "owner", "label": "Vlastník" }

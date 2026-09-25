@@ -11,7 +11,7 @@ const entity: EntityDefinition = {
   statusReasonOptionSetKey: "project_status_reason",
   fields: [
     { name: "name", label: "Název", type: "text", required: true },
-    { name: "account_id", label: "Klient", type: "lookup", targetEntity: "Account", required: true },
+    { name: "primary_contact_id", label: "Klient", type: "lookup", targetEntity: "Contact", required: true },
     { name: "deadline", label: "Deadline", type: "date" },
   ],
 };
@@ -22,9 +22,9 @@ describe("resolveFilterField", () => {
     expect(resolved).toEqual({ dbColumn: "name", field: entity.fields[0] });
   });
 
-  it("resolves a computed alias column back to its underlying <field>_id lookup (account -> account_id)", () => {
-    const resolved = resolveFilterField(entity, "account");
-    expect(resolved?.dbColumn).toBe("account_id");
+  it("resolves a computed alias column back to its underlying <field>_id lookup (primary_contact -> primary_contact_id)", () => {
+    const resolved = resolveFilterField(entity, "primary_contact");
+    expect(resolved?.dbColumn).toBe("primary_contact_id");
     expect(resolved?.field.type).toBe("lookup");
   });
 

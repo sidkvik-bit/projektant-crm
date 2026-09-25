@@ -28,13 +28,21 @@ export default async function AccountDetailPage({
   if (!record) notFound();
 
   // Historie a aktivity na Firmě zahrnuje i aktivity jejích Kontaktů a Projektů (rollup, D365 vzor).
-  const [contacts, projects] = await Promise.all([
-    listRecords<{ id: string }>(supabase, "contacts", { select: "id", filter: { account_id: id } }),
-    listRecords<{ id: string }>(supabase, "projects", { select: "id", filter: { account_id: id } }),
-  ]);
+  //
+  // Projekt už na firmu neodkazuje — klientem je kontakt, takže se k projektům jde přes ně. To je
+  // dotaz typu "in", který listRecords neumí (Database.ts skládá jen rovnosti), proto se sahá na
+  // Supabase napřímo. A protože projekty závisí na id kontaktů, nejdou ty dva dotazy paralelně.
+  const contacts = await listRecords<{ id: string }>(supabase, "contacts", {
+    select: "id",
+    filter: { account_id: id },
+  });
+  const contactIds = contacts.map((c) => c.id);
+  const projects = contactIds.length
+    ? ((await supabase.from("projects").select("id").in("primary_contact_id", contactIds)).data ?? [])
+    : [];
   const relatedActivities = [
     ...contacts.map((c) => ({ entityType: "Contact", entityId: c.id })),
-    ...projects.map((p) => ({ entityType: "Project", entityId: p.id })),
+    ...projects.map((p) => ({ entityType: "Project", entityId: p.id as string })),
   ];
 
   async function handleUpdate(values: EntityFormValues) {

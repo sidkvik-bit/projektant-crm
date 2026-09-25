@@ -1,4 +1,5 @@
 import { createElement } from "react";
+import { formatContactName } from "@/engine/contacts";
 import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
@@ -15,8 +16,12 @@ interface QuoteRow {
   total: number;
   note: string | null;
   project: { name: string } | null;
-  account: { name: string } | null;
-  contact: { first_name: string; last_name: string | null; email: string | null } | null;
+  contact: {
+    first_name: string;
+    last_name: string | null;
+    email: string | null;
+    account: { name: string } | null;
+  } | null;
 }
 
 interface QuoteItemRow {
@@ -43,8 +48,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       .from("quotes")
       .select(
         "number, name, created_at, valid_until, vat_rate, subtotal, vat_amount, total, note, " +
-          "project:projects!quotes_project_id_fkey(name), account:accounts!quotes_account_id_fkey(name), " +
-          "contact:contacts!quotes_contact_id_fkey(first_name, last_name, email)",
+          "project:projects!quotes_project_id_fkey(name), " +
+          "contact:contacts!quotes_contact_id_fkey(first_name, last_name, email, " +
+          "account:accounts!contacts_account_id_fkey(name))",
       )
       .eq("id", id)
       .single(),
@@ -57,6 +63,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const q = quote as unknown as QuoteRow;
   const org = profile?.organizations as unknown as { name: string; logo_url: string | null } | null;
 
+  const contactName = q.contact ? formatContactName(q.contact) : null;
+
   const data: QuotePdfData = {
     organizationName: org?.name ?? "ProjektantCRM",
     organizationLogoUrl: org?.logo_url ?? null,
@@ -65,8 +73,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     createdAt: q.created_at,
     validUntil: q.valid_until,
     projectName: q.project?.name ?? "—",
-    accountName: q.account?.name ?? null,
-    contactName: q.contact ? [q.contact.first_name, q.contact.last_name].filter(Boolean).join(" ") : null,
+    // Objednatelem je firma kontaktu; u soukromé osoby ona sama. Jméno se pak netiskne dvakrát.
+    accountName: q.contact?.account?.name ?? contactName,
+    contactName: q.contact?.account ? contactName : null,
     contactEmail: q.contact?.email ?? null,
     vatRate: Number(q.vat_rate),
     subtotal: Number(q.subtotal),

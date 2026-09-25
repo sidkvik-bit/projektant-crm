@@ -16,7 +16,7 @@ export async function generateInvoiceFromQuote(quoteId: string) {
 
   const { data: quote, error: quoteErr } = await supabase
     .from("quotes")
-    .select("name, project_id, account_id, contact_id, vat_rate, note")
+    .select("name, project_id, contact_id, vat_rate, note")
     .eq("id", quoteId)
     .single();
   if (quoteErr) throw quoteErr;
@@ -34,7 +34,6 @@ export async function generateInvoiceFromQuote(quoteId: string) {
       name: quote.name,
       quote_id: quoteId,
       project_id: quote.project_id,
-      account_id: quote.account_id,
       contact_id: quote.contact_id,
       vat_rate: quote.vat_rate,
       note: quote.note,
