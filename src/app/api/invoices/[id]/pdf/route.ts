@@ -1,4 +1,5 @@
 import { createElement } from "react";
+import { formatContactName } from "@/engine/contacts";
 import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
@@ -19,15 +20,24 @@ interface InvoiceRow {
   vat_amount: number;
   total: number;
   note: string | null;
-  account: {
-    name: string;
+  contact: {
+    first_name: string;
+    last_name: string | null;
+    email: string | null;
     address_street: string | null;
     address_house_number: string | null;
     address_city: string | null;
     address_zip: string | null;
     address_country: string | null;
+    account: {
+      name: string;
+      address_street: string | null;
+      address_house_number: string | null;
+      address_city: string | null;
+      address_zip: string | null;
+      address_country: string | null;
+    } | null;
   } | null;
-  contact: { first_name: string; last_name: string | null; email: string | null } | null;
   forma_uhrady: { label: string } | null;
 }
 
@@ -69,8 +79,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       .select(
         "number, name, variabilni_symbol, datum_vystaveni, datum_splatnosti, datum_zdanitelneho_plneni, " +
           "vat_rate, subtotal, vat_amount, total, note, " +
-          "account:accounts!invoices_account_id_fkey(name, address_street, address_house_number, address_city, address_zip, address_country), " +
-          "contact:contacts!invoices_contact_id_fkey(first_name, last_name, email), " +
+          "contact:contacts!invoices_contact_id_fkey(first_name, last_name, email, " +
+          "address_street, address_house_number, address_city, address_zip, address_country, " +
+          "account:accounts!contacts_account_id_fkey(name, address_street, address_house_number, address_city, address_zip, address_country)), " +
           "forma_uhrady:option_set_values!invoices_forma_uhrady_id_fkey(label)",
       )
       .eq("id", id)
@@ -114,6 +125,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     qrDataUrl = await generateQrPaymentDataUrl(spayd);
   }
 
+  const customerName = inv.contact ? formatContactName(inv.contact) : "—";
+
   const data: InvoicePdfData = {
     number: inv.number,
     name: inv.name,
@@ -123,10 +136,17 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     datumZdanitelnehoPlneni: inv.datum_zdanitelneho_plneni,
     formaUhrady: inv.forma_uhrady?.label ?? null,
     supplier: { name: org.name, ico: org.ico, dic: org.dic, address: buildAddressQuery(org), logoUrl: org.logo_url },
+    // Odběratelem je firma kontaktu — právnicky správně. U soukromé osoby (pro projektanta
+    // nejběžnější klient) je odběratelem ona sama, proto má kontakt vlastní adresu; bez ní by
+    // daňový doklad vyšel bez adresy odběratele. Jméno se pak netiskne dvakrát.
     customer: {
-      name: inv.account?.name ?? "—",
-      address: inv.account ? buildAddressQuery(inv.account) : null,
-      contactName: inv.contact ? [inv.contact.first_name, inv.contact.last_name].filter(Boolean).join(" ") : null,
+      name: inv.contact?.account?.name ?? customerName,
+      address: inv.contact?.account
+        ? buildAddressQuery(inv.contact.account)
+        : inv.contact
+          ? buildAddressQuery(inv.contact)
+          : null,
+      contactName: inv.contact?.account ? customerName : null,
       contactEmail: inv.contact?.email ?? null,
     },
     vatRate: Number(inv.vat_rate),

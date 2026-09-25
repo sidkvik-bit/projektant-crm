@@ -17,13 +17,13 @@ test("shows an overdue milestone, an upcoming milestone, and a stalled project, 
   const admin = adminClient();
   const { data: org } = await admin.from("organizations").select("id").eq("name", "E2E Test Org").single();
   if (!org) throw new Error("E2E Test Org not found");
-  const { data: account } = await admin.from("accounts").select("id").eq("organization_id", org.id).limit(1).single();
+  const { data: contact } = await admin.from("contacts").select("id").eq("organization_id", org.id).limit(1).single();
 
   const suffix = Date.now();
 
   const { data: project } = await admin
     .from("projects")
-    .insert({ organization_id: org.id, account_id: account!.id, name: `E2E Overview Project ${suffix}` })
+    .insert({ organization_id: org.id, primary_contact_id: contact!.id, name: `E2E Overview Project ${suffix}` })
     .select("id")
     .single();
 

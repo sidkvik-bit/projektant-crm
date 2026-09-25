@@ -4,7 +4,7 @@
     { "field": "number", "label": "Číslo" },
     { "field": "name" },
     { "field": "project", "label": "Projekt" },
-    { "field": "account", "label": "Objednatel" },
+    { "field": "contact", "label": "Objednatel" },
     { "field": "status_reason", "label": "Stav" },
     { "field": "valid_until", "label": "Platnost do" },
     { "field": "total", "label": "Celkem s DPH" }

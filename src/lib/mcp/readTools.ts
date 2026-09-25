@@ -48,7 +48,7 @@ export function registerReadTools(server: McpServer) {
       if (!session) return fail("Chybí autorizace.");
       let query = session.supabase
         .from("projects")
-        .select("id, name, status, status_reason_id, deadline, budget, accounts(name)")
+        .select("id, name, status, status_reason_id, deadline, budget, klient:contacts!projects_primary_contact_id_fkey(first_name, last_name)")
         .order("created_at", { ascending: false })
         .limit(limit);
       if (only_active) query = query.eq("status", "active");
@@ -77,7 +77,7 @@ export function registerReadTools(server: McpServer) {
         session.supabase
           .from("projects")
           .select(
-            "id, name, status, status_reason_id, datum_zahajeni, deadline, budget, description, address_city, accounts(name)",
+            "id, name, status, status_reason_id, datum_zahajeni, deadline, budget, description, address_city, klient:contacts!projects_primary_contact_id_fkey(first_name, last_name)",
           )
           .eq("id", project_id)
           .maybeSingle(),
@@ -231,7 +231,7 @@ export function registerReadTools(server: McpServer) {
       if (!session) return fail("Chybí autorizace.");
       let query = session.supabase
         .from("quotes")
-        .select("id, number, name, total, valid_until, status, projects(name), accounts(name)")
+        .select("id, number, name, total, valid_until, status, projects(name), klient:contacts!quotes_contact_id_fkey(first_name, last_name)")
         .order("created_at", { ascending: false })
         .limit(limit);
       if (project_id) query = query.eq("project_id", project_id);
@@ -259,7 +259,7 @@ export function registerReadTools(server: McpServer) {
       let query = session.supabase
         .from("invoices")
         .select(
-          "id, number, name, total, datum_vystaveni, datum_splatnosti, uhrazeno, projects(name), accounts(name)",
+          "id, number, name, total, datum_vystaveni, datum_splatnosti, uhrazeno, projects(name), klient:contacts!invoices_contact_id_fkey(first_name, last_name)",
         )
         .order("datum_vystaveni", { ascending: false })
         .limit(limit);

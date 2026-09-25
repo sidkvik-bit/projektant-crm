@@ -1,5 +1,6 @@
 import { EntityListPage } from "@/engine/EntityListPage";
 import { formatUserName } from "@/engine/users";
+import { formatContactName } from "@/engine/contacts";
 import { buildStatusViews } from "@/engine/statusViews";
 import type { EntityDefinition, ViewDefinition, ViewTemplate } from "@/engine/types";
 
@@ -16,13 +17,13 @@ export default async function ProjectsPage({
     <EntityListPage
       entity={entity as EntityDefinition}
       views={[...buildStatusViews(entity as EntityDefinition, viewTemplate as ViewTemplate), myView as ViewDefinition]}
-      select="id, name, deadline, status, created_at, account:accounts(name), status_reason:option_set_values!projects_status_reason_id_fkey(label), owner:users!projects_owner_id_fkey(first_name, last_name, email)"
+      select="id, name, deadline, status, created_at, primary_contact:contacts!projects_primary_contact_id_fkey(first_name, last_name), status_reason:option_set_values!projects_status_reason_id_fkey(label), owner:users!projects_owner_id_fkey(first_name, last_name, email)"
       basePath="/projects"
       newLabel="Nový projekt"
       searchParams={searchParams}
       mapRow={(row) => ({
         ...row,
-        account: (row.account as unknown as { name: string } | null)?.name ?? null,
+        primary_contact: formatContactName(row.primary_contact as never),
         status_reason: (row.status_reason as unknown as { label: string } | null)?.label ?? null,
         owner: formatUserName(row.owner as never),
       })}

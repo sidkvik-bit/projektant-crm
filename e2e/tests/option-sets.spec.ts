@@ -22,6 +22,9 @@ test("option set admin: add a value, toggle it inactive, delete it", async ({ pa
   await expect(row.getByRole("checkbox")).toBeChecked();
 
   await row.getByRole("checkbox").click();
+  // Než se stránka načte znovu, musí se přepnutí projevit — jinak by reload mohl přijít dřív,
+  // než serverová akce doběhne, a přečetl by původní stav.
+  await expect(row.getByRole("checkbox")).not.toBeChecked();
   await page.reload();
   const rowAfterReload = page.locator("div.flex.items-center.justify-between", { hasText: valueLabel });
   await expect(rowAfterReload.getByRole("checkbox")).not.toBeChecked();

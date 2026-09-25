@@ -102,6 +102,11 @@ export function registerWriteTools(server: McpServer) {
         email: z.string().email().optional(),
         phone: z.string().optional(),
         mobile_phone: z.string().optional(),
+        address_street: z.string().optional(),
+        address_house_number: z.string().optional(),
+        address_city: z.string().optional(),
+        address_zip: z.string().optional(),
+        address_country: z.string().optional(),
         description: z.string().optional(),
       }),
     },
@@ -111,7 +116,7 @@ export function registerWriteTools(server: McpServer) {
       return applyInsert(session.supabase, {
         table: "contacts",
         values,
-        columns: "id, first_name, last_name, email, phone, account_id",
+        columns: "id, first_name, last_name, email, phone, account_id, address_city",
         organizationId: session.organizationId,
       });
     },
@@ -122,11 +127,10 @@ export function registerWriteTools(server: McpServer) {
     {
       title: "Založit projekt",
       description:
-        "Založí zakázku. Klient je povinný — id firmy zjisti přes find_contact; když firma ještě neexistuje, založ ji nejdřív přes create_account. Fázi lze rovnou nastavit jménem, stejně jako v update_project.",
+        "Založí zakázku. Klientem je KONTAKT (ne firma) — id zjisti přes find_contact, a když ten člověk ještě neexistuje, založ ho přes create_contact. Fázi lze rovnou nastavit jménem, stejně jako v update_project.",
       inputSchema: z.object({
         name: z.string().min(1),
-        account_id: z.string().uuid().describe("Id klienta (firmy) z find_contact"),
-        primary_contact_id: z.string().uuid().optional(),
+        primary_contact_id: z.string().uuid().describe("Id klienta (kontaktu) z find_contact"),
         stage: z.string().optional().describe("Fáze, např. 'Poptávka' nebo 'Smlouva podepsána'"),
         datum_zahajeni: z.string().regex(DATE_PATTERN).optional(),
         deadline: z.string().regex(DATE_PATTERN).optional(),
@@ -153,7 +157,7 @@ export function registerWriteTools(server: McpServer) {
       return applyInsert(session.supabase, {
         table: "projects",
         values: payload,
-        columns: "id, name, account_id, deadline, budget",
+        columns: "id, name, primary_contact_id, deadline, budget",
         organizationId: session.organizationId,
       });
     },
@@ -324,6 +328,11 @@ export function registerWriteTools(server: McpServer) {
         email: z.string().email().optional(),
         phone: z.string().optional(),
         mobile_phone: z.string().optional(),
+        address_street: z.string().optional(),
+        address_house_number: z.string().optional(),
+        address_city: z.string().optional(),
+        address_zip: z.string().optional(),
+        address_country: z.string().optional(),
         description: z.string().optional(),
       }),
     },
@@ -334,7 +343,8 @@ export function registerWriteTools(server: McpServer) {
         table: "contacts",
         id: contact_id,
         patch: fields,
-        columns: "id, first_name, last_name, email, phone, mobile_phone, description",
+        columns:
+          "id, first_name, last_name, email, phone, mobile_phone, address_street, address_house_number, address_city, address_zip, address_country, description",
         notFound: "Kontakt nenalezen (nebo k němu nemáš přístup).",
       });
     },

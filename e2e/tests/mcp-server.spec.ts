@@ -146,9 +146,14 @@ test("every core entity can be listed and created, and nothing can be deleted", 
       account_id: accountId,
       email: `jan${suffix}@example.com`,
     });
+    const contactId = await call("create_contact", {
+      first_name: "Klient",
+      last_name: `Zakazky ${suffix}`,
+      account_id: accountId,
+    });
     const projectId = await call("create_project", {
       name: `E2E MCP Zakazka ${suffix}`,
-      account_id: accountId,
+      primary_contact_id: contactId,
       stage: "Poptávka",
     });
     await call("create_milestone", { project_id: projectId, name: "Studie", due_date: "2027-03-01" });
@@ -269,14 +274,14 @@ test("generating a token through the settings UI produces a working token", asyn
 
 /** Založí klienta, projekt a jeden nesplněný milník — materiál pro update nástroje. */
 async function seedProject(admin: ReturnType<typeof adminClient>, orgId: string, suffix: number | string) {
-  const { data: account } = await admin
-    .from("accounts")
-    .insert({ organization_id: orgId, name: `E2E MCP Klient ${suffix}` })
+  const { data: contact } = await admin
+    .from("contacts")
+    .insert({ organization_id: orgId, first_name: "Klient", last_name: `MCP ${suffix}` })
     .select("id")
     .single();
   const { data: project } = await admin
     .from("projects")
-    .insert({ organization_id: orgId, account_id: account!.id, name: `E2E MCP Projekt ${suffix}` })
+    .insert({ organization_id: orgId, primary_contact_id: contact!.id, name: `E2E MCP Projekt ${suffix}` })
     .select("id")
     .single();
   const { data: milestone } = await admin

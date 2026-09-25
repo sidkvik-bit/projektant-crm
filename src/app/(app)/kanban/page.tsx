@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { formatContactName } from "@/engine/contacts";
 import { getOptionSetValues } from "@/engine/optionSets";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { KanbanBoard, type KanbanCard, type KanbanColumn } from "./KanbanBoard";
@@ -11,7 +12,7 @@ export default async function KanbanPage() {
     getOptionSetValues(supabase, "project_status_reason"),
     supabase
       .from("projects")
-      .select("id, name, status_reason_id, accounts(name)")
+      .select("id, name, status_reason_id, contacts:contacts!projects_primary_contact_id_fkey(first_name, last_name)")
       .eq("status", "active"),
     supabase
       .from("project_milestones")
@@ -33,7 +34,7 @@ export default async function KanbanPage() {
   const cards: KanbanCard[] = (projectsRes.data ?? []).map((p) => ({
     id: p.id,
     name: p.name,
-    accountName: (p.accounts as unknown as { name: string } | null)?.name ?? null,
+    clientName: formatContactName(p.contacts as never),
     nextMilestone: nextMilestoneByProject.get(p.id) ?? null,
     statusReasonId: p.status_reason_id,
   }));

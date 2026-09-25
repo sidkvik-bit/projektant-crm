@@ -43,20 +43,20 @@ describe("fieldToZod — required fields", () => {
 
 describe("fieldToZod — optional fields", () => {
   it("treats an empty string the same as no value (regression: clearing a lookup combobox emits '', not null)", () => {
-    const field: FieldDefinition = { name: "account_id", label: "Klient", type: "lookup", targetEntity: "Account" };
+    const field: FieldDefinition = { name: "primary_contact_id", label: "Klient", type: "lookup", targetEntity: "Contact" };
     const result = fieldToZod(field).safeParse("");
     expect(result.success).toBe(true);
     expect(result.data).toBeUndefined();
   });
 
   it("still validates a real value against the underlying type (a non-UUID lookup value is rejected)", () => {
-    const field: FieldDefinition = { name: "account_id", label: "Klient", type: "lookup", targetEntity: "Account" };
+    const field: FieldDefinition = { name: "primary_contact_id", label: "Klient", type: "lookup", targetEntity: "Contact" };
     const result = fieldToZod(field).safeParse("not-a-uuid");
     expect(result.success).toBe(false);
   });
 
   it("accepts a real UUID value", () => {
-    const field: FieldDefinition = { name: "account_id", label: "Klient", type: "lookup", targetEntity: "Account" };
+    const field: FieldDefinition = { name: "primary_contact_id", label: "Klient", type: "lookup", targetEntity: "Contact" };
     const uuid = "123e4567-e89b-12d3-a456-426614174000";
     expect(fieldToZod(field).parse(uuid)).toBe(uuid);
   });

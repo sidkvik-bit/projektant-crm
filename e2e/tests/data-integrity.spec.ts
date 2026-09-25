@@ -57,17 +57,17 @@ test("deleting a project cascades to delete its milestones (no orphaned rows lef
   const admin = adminClient();
   const organizationId = await getTestOrgId(admin);
 
-  const { data: account, error: accErr } = await admin
-    .from("accounts")
+  const { data: contact, error: contactErr } = await admin
+    .from("contacts")
     .select("id")
     .eq("organization_id", organizationId)
     .limit(1)
     .single();
-  if (accErr) throw accErr;
+  if (contactErr) throw contactErr;
 
   const { data: project, error: projErr } = await admin
     .from("projects")
-    .insert({ organization_id: organizationId, account_id: account.id, name: `E2E Cascade Test ${Date.now()}` })
+    .insert({ organization_id: organizationId, primary_contact_id: contact.id, name: `E2E Cascade Test ${Date.now()}` })
     .select("id")
     .single();
   if (projErr) throw projErr;

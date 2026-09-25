@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { formatContactName } from "@/engine/contacts";
 import Link from "next/link";
 import { Receipt, Plus } from "lucide-react";
 
@@ -33,6 +34,8 @@ import {
   deleteMilestoneNotification,
   setProjectGps,
   setProjectAddressFromPoint,
+  addProjectContact,
+  removeProjectContact,
 } from "./actions";
 import { updateProject } from "../actions";
 import { MilestonesPanel, type MilestoneNotification } from "./MilestonesPanel";
@@ -52,8 +55,7 @@ export default async function ProjectDetailPage({
   const record = await getRecordById<
     EntityFormValues & {
       name: string;
-      account_id: string;
-      primary_contact_id: string | null;
+      primary_contact_id: string;
       drive_url: string | null;
       status: string;
       gps_lat: number | null;
@@ -74,13 +76,37 @@ export default async function ProjectDetailPage({
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Klient projektu je kontakt; jeho firma (pokud ji má) je zdrojem údajů žadatele a patří i do
+  // časové osy. Načítá se zvlášť před hlavním Promise.all, protože na jeho account_id závisí
+  // hned tři dotazy níž.
+  const { data: clientRow } = await supabase
+    .from("contacts")
+    .select(
+      "first_name, last_name, phone, mobile_phone, email, account_id, address_street, address_house_number, address_city, address_zip, address_country",
+    )
+    .eq("id", record.primary_contact_id)
+    .maybeSingle();
+  const client = clientRow as unknown as {
+    first_name: string;
+    last_name: string | null;
+    phone: string | null;
+    mobile_phone: string | null;
+    email: string | null;
+    account_id: string | null;
+    address_street: string | null;
+    address_house_number: string | null;
+    address_city: string | null;
+    address_zip: string | null;
+    address_country: string | null;
+  } | null;
+
   const [
     common,
-    accounts,
     contacts,
     templates,
     milestones,
     activityTypes,
+    roleOptions,
     activities,
     teamContacts,
     userOptions,
@@ -89,10 +115,8 @@ export default async function ProjectDetailPage({
     driveFiles,
     quotes,
     applicantAccount,
-    primaryContact,
   ] = await Promise.all([
       getCommonFormContext(supabase, entity as EntityDefinition),
-      listRecords<{ id: string; name: string }>(supabase, "accounts", { select: "id, name" }),
       listRecords<{ id: string; first_name: string; last_name: string | null }>(supabase, "contacts", {
         select: "id, first_name, last_name",
       }),
@@ -103,18 +127,21 @@ export default async function ProjectDetailPage({
         { select: "id, name, termin_splneni, splneno", filter: { project_id: id } },
       ),
       getOptionSetValues(supabase, "activity_type"),
+      getOptionSetValues(supabase, "profese"),
       // Historie a aktivity na Projektu zahrnuje i aktivity jeho Obchodního vztahu a hlavního
       // kontaktu (rollup, stejný D365 vzor jako Account -> Contacts/Projects) — typicky sem
       // spadá e-mailová korespondence zalogovaná přes email tracking, co jinak nikde na
       // Projektu není vidět, i když se týká přesně jeho.
       getTimelineActivities(supabase, { entityType: "Project", entityId: id }, [
-        { entityType: "Account", entityId: record.account_id },
-        ...(record.primary_contact_id ? [{ entityType: "Contact", entityId: record.primary_contact_id }] : []),
+        { entityType: "Contact", entityId: record.primary_contact_id },
+        ...(client?.account_id ? [{ entityType: "Account", entityId: client.account_id }] : []),
       ]),
       supabase
-        .from("contacts")
-        .select("id, first_name, last_name, email, profese:option_set_values!contacts_profese_id_fkey(label)")
-        .eq("account_id", record.account_id)
+        .from("project_contacts")
+        .select(
+          "id, contact:contacts!project_contacts_contact_id_fkey(id, first_name, last_name, email), role:option_set_values!project_contacts_role_id_fkey(label)",
+        )
+        .eq("project_id", id)
         .then((r) => r.data ?? []),
       getOrgUserOptions(supabase),
       listRecords<{ id: string; name: string }>(supabase, "projects", {
@@ -139,17 +166,9 @@ export default async function ProjectDetailPage({
         .select(
           "name, email, ico, address_street, address_house_number, address_city, address_zip, address_country, pravni_forma:option_set_values!accounts_pravni_forma_id_fkey(label)",
         )
-        .eq("id", record.account_id)
+        .eq("id", client?.account_id ?? "00000000-0000-0000-0000-000000000000")
         .maybeSingle()
         .then((r) => r.data),
-      record.primary_contact_id
-        ? supabase
-            .from("contacts")
-            .select("first_name, last_name, phone, mobile_phone, email")
-            .eq("id", record.primary_contact_id)
-            .maybeSingle()
-            .then((r) => r.data)
-        : Promise.resolve(null),
     ]);
 
   const notificationsByMilestone = (
@@ -186,22 +205,16 @@ export default async function ProjectDetailPage({
     address_country: string | null;
     pravni_forma: { label: string } | null;
   } | null;
-  const contact = primaryContact as unknown as {
-    first_name: string;
-    last_name: string | null;
-    phone: string | null;
-    mobile_phone: string | null;
-    email: string | null;
-  } | null;
 
   const prefillData: PrefillData = {
-    applicantName: account?.name ?? record.name,
+    // Žadatelem je firma klienta; u soukromé osoby klient sám (proto má kontakt vlastní adresu).
+    applicantName: account?.name ?? formatContactName(client),
     applicantIco: account?.ico ?? null,
     applicantLegalForm: account?.pravni_forma?.label ?? null,
-    applicantAddress: account ? buildAddressQuery(account) : null,
-    contactName: contact ? [contact.first_name, contact.last_name].filter(Boolean).join(" ") : null,
-    contactPhone: contact?.phone ?? contact?.mobile_phone ?? null,
-    contactEmail: contact?.email ?? null,
+    applicantAddress: account ? buildAddressQuery(account) : client ? buildAddressQuery(client) : null,
+    contactName: client ? formatContactName(client) : null,
+    contactPhone: client?.phone ?? client?.mobile_phone ?? null,
+    contactEmail: client?.email ?? null,
     locationAddress: buildAddressQuery(record),
     gps: record.gps_lat != null && record.gps_lng != null ? { lat: record.gps_lat, lng: record.gps_lng } : null,
     katastralniUzemi: record.katastralni_uzemi,
@@ -218,7 +231,7 @@ export default async function ProjectDetailPage({
         }}
         actions={
           <>
-            <EmailLink email={contact?.email ?? account?.email ?? null} label="Nový e-mail" />
+            <EmailLink email={client?.email ?? account?.email ?? null} label="Nový e-mail" />
             <CalendarLink title={record.name} />
             <DriveLink url={record.drive_url} />
             <PrefillFormButton data={prefillData} />
@@ -242,7 +255,6 @@ export default async function ProjectDetailPage({
               optionSetValues={common.optionSetValues}
               lookupOptions={{
                 ...common.lookupOptions,
-                Account: accounts.map((a) => ({ id: a.id, label: a.name })),
                 Contact: contacts.map((c) => ({
                   id: c.id,
                   label: [c.first_name, c.last_name].filter(Boolean).join(" "),
@@ -295,7 +307,7 @@ export default async function ProjectDetailPage({
                   variant="outline"
                   size="sm"
                   render={
-                    <Link href={`/quotes/new?project_id=${id}&account_id=${record.account_id}`}>
+                    <Link href={`/quotes/new?project_id=${id}&contact_id=${record.primary_contact_id}`}>
                       <Plus className="size-4" />
                       Nová nabídka
                     </Link>
@@ -353,14 +365,25 @@ export default async function ProjectDetailPage({
 
           <TabsContent value="team" className="pt-4">
             <TeamPanel
-              contacts={(teamContacts as unknown as Array<{
+              projectId={id}
+              members={(teamContacts as unknown as Array<{
                 id: string;
-                first_name: string;
-                last_name: string | null;
-                email: string | null;
-                profese: { label: string } | null;
-              }>).map((c) => ({ ...c, profese: c.profese?.label ?? null }))}
-              projectName={record.name}
+                contact: { id: string; first_name: string; last_name: string | null; email: string | null };
+                role: { label: string } | null;
+              }>).map((r) => ({
+                id: r.id,
+                contactId: r.contact.id,
+                name: formatContactName(r.contact),
+                email: r.contact.email,
+                role: r.role?.label ?? null,
+              }))}
+              contactOptions={contacts.map((c) => ({
+                id: c.id,
+                label: formatContactName(c),
+              }))}
+              roleOptions={roleOptions.map((r) => ({ id: r.id, label: r.label }))}
+              onAdd={addProjectContact}
+              onRemove={removeProjectContact}
             />
           </TabsContent>
         </Tabs>

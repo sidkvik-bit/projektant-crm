@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatContactName } from "@/engine/contacts";
 import { Flame, CalendarClock, MoonStar } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/shell/PageHeader";
@@ -82,7 +83,7 @@ export default async function ProjectsOverviewPage() {
     getOptionSetValues(supabase, "project_status_reason"),
     supabase
       .from("projects")
-      .select("id, name, status_reason_id, created_at, accounts(name)")
+      .select("id, name, status_reason_id, created_at, contacts:contacts!projects_primary_contact_id_fkey(first_name, last_name)")
       .eq("status", "active"),
     supabase
       .from("project_milestones")
@@ -102,7 +103,7 @@ export default async function ProjectsOverviewPage() {
     name: string;
     status_reason_id: string | null;
     created_at: string;
-    accounts: { name: string } | null;
+    contacts: { first_name: string | null; last_name: string | null } | null;
   }[];
 
   // Fáze projektu (D365 kanban vzor) — kolik aktivních projektů je právě kde v procesu.
@@ -181,7 +182,7 @@ export default async function ProjectsOverviewPage() {
                   className="block rounded-lg border bg-card p-3 transition-colors hover:border-primary/40 hover:bg-accent/40"
                 >
                   <p className="text-sm font-medium">{p.name}</p>
-                  <p className="text-xs text-muted-foreground">{p.accounts?.name ?? "—"}</p>
+                  <p className="text-xs text-muted-foreground">{formatContactName(p.contacts)}</p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {last ? `Naposledy aktivní ${daysAgo(last)} dní zpět` : "Zatím žádná aktivita"}
                   </p>
