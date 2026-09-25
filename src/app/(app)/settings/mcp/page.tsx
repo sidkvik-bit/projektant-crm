@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import { PageHeader } from "@/components/shell/PageHeader";
+import { CopyBlock } from "@/components/CopyBlock";
 import { McpTokenManager } from "./McpTokenManager";
 import { listMcpTokens, createMcpToken, revokeMcpToken } from "./actions";
 
@@ -39,12 +40,31 @@ export default async function McpSettingsPage() {
           </p>
         </div>
 
-        <McpTokenManager
-          tokens={tokens}
-          serverUrl={serverUrl}
-          onCreate={createMcpToken}
-          onRevoke={revokeMcpToken}
-        />
+        {/* Adresu potřebuje každý klient bez ohledu na způsob přihlášení, takže stojí natrvalo tady —
+            ne jen v dialogu po vygenerování tokenu, kam by se uživatel připojující se přes OAuth
+            vůbec nedostal. */}
+        <div className="space-y-2">
+          <h2 className="text-sm font-medium text-muted-foreground">Adresa serveru</h2>
+          <CopyBlock text={serverUrl} />
+          <p className="text-xs text-muted-foreground">
+            Tohle vlož do svého AI klienta. Pro claude.ai to je jediné, co potřebuješ.
+          </p>
+        </div>
+
+        <div className="space-y-3 border-t pt-6">
+          <div>
+            <h2 className="text-sm font-medium text-muted-foreground">Token — jen pro Claude Desktop a Cursor</h2>
+            <p className="text-xs text-muted-foreground">
+              Pro claude.ai token nepotřebuješ, přeskoč to rovnou dolů.
+            </p>
+          </div>
+          <McpTokenManager
+            tokens={tokens}
+            serverUrl={serverUrl}
+            onCreate={createMcpToken}
+            onRevoke={revokeMcpToken}
+          />
+        </div>
 
         <div className="space-y-3 border-t pt-6">
           <h2 className="text-sm font-medium text-muted-foreground">Kam ten blok vložit</h2>

@@ -167,6 +167,14 @@ test("writes land in the caller's own organization, and there is no delete tool 
   }
 });
 
+test("the settings page shows the server URL without generating a token", async ({ page }) => {
+  await page.goto("/settings/mcp");
+  // Připojení přes OAuth žádný token negeneruje, takže adresa nesmí být schovaná v dialogu,
+  // který se ukáže až po vygenerování — jinak ji uživatel nemá kde vzít.
+  const url = page.locator("pre").filter({ hasText: /\/api\/mcp$/ });
+  await expect(url.first()).toBeVisible();
+});
+
 test("generating a token through the settings UI produces a working token", async ({ page, request }) => {
   await page.goto("/settings/mcp");
   await expect(page.getByRole("heading", { name: "MCP - AI" })).toBeVisible();
