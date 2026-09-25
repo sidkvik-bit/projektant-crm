@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import { PageHeader } from "@/components/shell/PageHeader";
-import { CopyBlock } from "./CopyBlock";
+import { CopyBlock } from "@/components/CopyBlock";
 import { EmailSyncStatusCard } from "./EmailSyncStatusCard";
 import { getEmailSyncStatus } from "./actions";
 

@@ -22,6 +22,7 @@ import {
   ShieldCheck,
   ScrollText,
   UserCog,
+  Plug,
 } from "lucide-react";
 
 export interface NavItem {
@@ -74,6 +75,7 @@ export const navGroups: NavGroup[] = [
       { label: "Přepnout firmu", href: "/settings/organization", icon: Building },
       { label: "Google Drive", href: "/settings/google-drive", icon: HardDrive },
       { label: "Sledování e-mailů", href: "/settings/email", icon: Mail },
+      { label: "MCP - AI", href: "/settings/mcp", icon: Plug },
       { label: "Fakturace", href: "/settings/invoicing", icon: Landmark },
       { label: "Import z Excelu", href: "/import", icon: FileSpreadsheet },
     ],

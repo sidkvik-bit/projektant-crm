@@ -1,7 +1,28 @@
 import { test, expect, type Page } from "@playwright/test";
+import { createClient } from "@supabase/supabase-js";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+
+/**
+ * Tenhle spec zakládá záznamy přes UI (o to v těch testech jde), takže je po sobě musí uklidit
+ * odsud — jinak se v testovací organizaci hromadí. Dřív se neuklízely vůbec: nasbíralo se 73×
+ * "Testovací Kontakt E2E" a 53× "E2E Combobox Test Kontakt", až locatory začaly padat na
+ * strict mode violation (našly víc prvků) a shodily 9 testů napříč sadou.
+ */
+test.afterAll(async () => {
+  const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+    auth: { persistSession: false },
+  });
+  await admin.from("contacts").delete().ilike("last_name", "Kontakt E2E%");
+  await admin.from("contacts").delete().ilike("first_name", "E2E Combobox Test%");
+  await admin.from("projects").delete().ilike("name", "E2E Locked Template%");
+  await admin.from("projects").delete().ilike("name", "E2E Update Template%");
+  await admin.from("leads").delete().ilike("name", "E2E Rozepsaný lead%");
+  // Milníky se zakládají na SEEDOVANÉM projektu, takže nezmizí s ním — musí se mazat zvlášť
+  // (notifications_config na ně visí přes on delete cascade, ten se postará sám).
+  await admin.from("project_milestones").delete().ilike("name", "E2E %");
+});
 
 function trackErrors(page: Page) {
   const errors: string[] = [];
@@ -85,7 +106,9 @@ test("can create a new contact with no account selected", async ({ page }) => {
   const errors = trackErrors(page);
   await page.goto("/contacts/new");
   await page.getByLabel(/Jméno/i).fill("Testovací");
-  await page.getByLabel(/Příjmení/i).fill("Kontakt E2E");
+  // Unikátní jméno — kdyby úklid (afterAll) někdy neproběhl, zbytek po minulém běhu jinak
+  // shodí locatory v jiných testech na strict mode violation.
+  await page.getByLabel(/Příjmení/i).fill(`Kontakt E2E ${Date.now()}`);
   await page.getByRole("button", { name: "Vytvořit", exact: true }).click();
   await page.waitForURL(/\/contacts(\/[0-9a-f-]{36})?$/, { timeout: 10_000 });
   expect(errors, `errors creating contact:\n${errors.join("\n")}`).toEqual([]);
@@ -145,6 +168,9 @@ for (const { path: listPath, hasTabs } of RECORD_LIST_PATHS) {
     expect(href, `row link on ${listPath} should point at a real record id`).toMatch(GUID_RE);
 
     await firstRowLink.click();
+    // Na navigaci se čeká výslovně: bez toho běží jediný 5s timeout následujícího expectu i na
+    // kompilaci routy dev serverem, a test spadne se snapshotem pořád stojícím na seznamu.
+    await page.waitForURL(`**${href}`);
 
     // Project's detail page opens on its Milníky tab by default — the edit form
     // (and its top command bar) only mounts once the Obecné tab is active.
@@ -269,7 +295,7 @@ test("grid column header filter: contains operator on a real column", async ({ p
 
 test("lookup combobox: search and pick a value, saved correctly", async ({ page }) => {
   await page.goto("/contacts/new");
-  await page.getByLabel(/Jméno/i).fill("E2E Combobox Test");
+  await page.getByLabel(/Jméno/i).fill(`E2E Combobox Test ${Date.now()}`);
   await page.getByLabel(/Příjmení/i).fill("Kontakt");
 
   const accountCombo = page.getByLabel(/Obchodní vztah/i);
