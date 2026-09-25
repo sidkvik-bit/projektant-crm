@@ -18,9 +18,9 @@ export default async function McpSettingsPage() {
       <div className="mx-auto max-w-3xl space-y-8 p-6">
         <div className="space-y-2 rounded-lg border bg-muted/20 p-4 text-sm text-muted-foreground">
           <p>
-            <strong className="text-foreground">Nastavení má jeden krok:</strong> vygeneruj token a zkopíruj
-            blok, který se objeví — vlož ho do konfigurace svého AI klienta a hotovo. Adresa i token jsou v něm
-            už vyplněné.
+            <strong className="text-foreground">Dvě cesty, podle klienta.</strong> Claude na webu token
+            nepotřebuje — přihlásí se sám (viz úplně dole). Pro Claude Desktop a Cursor si vygeneruj token a
+            zkopíruj blok, který se objeví; adresa i token jsou v něm už vyplněné.
           </p>
           <p>
             <strong className="text-foreground">Co pak AI umí:</strong> číst zakázky, termíny, zájemce a
@@ -59,24 +59,21 @@ export default async function McpSettingsPage() {
           </div>
         </div>
 
-        <div className="space-y-3 rounded-lg border border-amber-500/40 bg-amber-500/5 p-4">
-          <h2 className="text-sm font-medium text-foreground">Claude na webu (claude.ai) zatím nefunguje</h2>
+        <div className="space-y-3 border-t pt-6">
+          <h2 className="text-sm font-medium text-muted-foreground">Claude na webu (claude.ai) — bez tokenu</h2>
           <div className="space-y-2 text-sm text-muted-foreground">
             <p>
-              Použij <strong className="text-foreground">Claude Desktop</strong> nebo{" "}
-              <strong className="text-foreground">Cursor</strong> podle návodu výš. Přes claude.ai se připojit
-              nedá a stojí za tím tohle:
+              Tady token vůbec negeneruj. claude.ai se umí přihlásit samo, takže stačí v Nastavení →
+              Connectors → Add custom connector vložit <strong className="text-foreground">adresu serveru</strong>{" "}
+              a nechat předvybrané <strong className="text-foreground">„Sign in now“</strong>.
             </p>
             <p>
-              Tenhle server se přihlašuje <strong className="text-foreground">tokenem v hlavičce</strong>, ne
-              přes OAuth. V dialogu <em>Add custom connector</em> je proto správná volba „No sign-in“ — jenže
-              token je pak potřeba zadat do sekce <em>Request headers</em>, a tu Anthropic uvolňuje postupně,
-              takže ji většina účtů ještě nemá. Bez ní Claude neposílá žádný token a spojení skončí na 401.
+              Po kliknutí na Connect tě to přehodí sem do CRM, přihlásíš se Googlem jako obvykle a odklikneš
+              „Povolit“. Žádné tajemství se nikam nekopíruje a přístup se dá kdykoliv zrušit tady v seznamu.
             </p>
             <p>
-              Předvybraná volba „Sign in now“ s odznakem <em>Detected</em> je slepá ulička: Claude ji nabízí
-              proto, že server podle MCP specifikace hlásí „potřebuji přihlášení“, ale žádný OAuth server tu
-              neběží, takže se přihlášení nemá kam obrátit.
+              Stejně to funguje i pro kolegy — každý se přihlásí svým účtem a uvidí přesně to, co má vidět ve
+              webu.
             </p>
           </div>
         </div>
