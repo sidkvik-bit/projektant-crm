@@ -168,6 +168,9 @@ for (const { path: listPath, hasTabs } of RECORD_LIST_PATHS) {
     expect(href, `row link on ${listPath} should point at a real record id`).toMatch(GUID_RE);
 
     await firstRowLink.click();
+    // Na navigaci se čeká výslovně: bez toho běží jediný 5s timeout následujícího expectu i na
+    // kompilaci routy dev serverem, a test spadne se snapshotem pořád stojícím na seznamu.
+    await page.waitForURL(`**${href}`);
 
     // Project's detail page opens on its Milníky tab by default — the edit form
     // (and its top command bar) only mounts once the Obecné tab is active.
