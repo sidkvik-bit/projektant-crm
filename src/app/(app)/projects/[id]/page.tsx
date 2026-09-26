@@ -34,12 +34,16 @@ import {
   deleteMilestoneNotification,
   setProjectGps,
   setProjectAddressFromPoint,
+  setProjectMilestoneDate,
   addProjectContact,
   removeProjectContact,
+  addProjectParcel,
+  deleteProjectParcel,
 } from "./actions";
 import { updateProject } from "../actions";
 import { MilestonesPanel, type MilestoneNotification } from "./MilestonesPanel";
 import { DriveFilesPanel } from "./DriveFilesPanel";
+import { ParcelsPanel, type Parcel } from "./ParcelsPanel";
 import { TeamPanel } from "./TeamPanel";
 import { LocationMapToggle } from "./LocationMapToggle";
 import { PrefillFormButton } from "./PrefillFormButton";
@@ -107,6 +111,7 @@ export default async function ProjectDetailPage({
     milestones,
     activityTypes,
     roleOptions,
+    parcels,
     activities,
     teamContacts,
     userOptions,
@@ -128,6 +133,12 @@ export default async function ProjectDetailPage({
       ),
       getOptionSetValues(supabase, "activity_type"),
       getOptionSetValues(supabase, "profese"),
+      supabase
+        .from("project_parcels")
+        .select("id, parcelni_cislo, druh, katastralni_uzemi, vymera_m2")
+        .eq("project_id", id)
+        .order("created_at")
+        .then((r) => r.data ?? []),
       // Historie a aktivity na Projektu zahrnuje i aktivity jeho firmy a hlavního
       // kontaktu (rollup, stejný D365 vzor jako Account -> Contacts/Projects) — typicky sem
       // spadá e-mailová korespondence zalogovaná přes email tracking, co jinak nikde na
@@ -245,6 +256,7 @@ export default async function ProjectDetailPage({
             <TabsTrigger value="general">Obecné</TabsTrigger>
             <TabsTrigger value="activities">Historie a aktivity</TabsTrigger>
             <TabsTrigger value="team">Tým / Subdodavatelé</TabsTrigger>
+            <TabsTrigger value="parcels">Parcely</TabsTrigger>
           </TabsList>
 
           <TabsContent value="general" className="max-w-5xl space-y-8 pt-4">
@@ -294,6 +306,7 @@ export default async function ProjectDetailPage({
                 onAdd={addProjectMilestone}
                 onToggle={toggleProjectMilestone}
                 onDelete={deleteProjectMilestone}
+              onSetDate={setProjectMilestoneDate}
                 onBulkDelete={bulkDeleteProjectMilestones}
                 onCreateNotification={createMilestoneNotification}
                 onDeleteNotification={deleteMilestoneNotification}
@@ -360,6 +373,16 @@ export default async function ProjectDetailPage({
               activities={activities}
               activityTypes={activityTypes}
               onAdd={createTimelineActivity}
+            />
+          </TabsContent>
+
+          <TabsContent value="parcels" className="pt-4">
+            <ParcelsPanel
+              projectId={id}
+              parcels={parcels as unknown as Parcel[]}
+              defaultKatastralniUzemi={record.katastralni_uzemi}
+              onAdd={addProjectParcel}
+              onRemove={deleteProjectParcel}
             />
           </TabsContent>
 

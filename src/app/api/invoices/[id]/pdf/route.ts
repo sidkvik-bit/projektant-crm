@@ -24,6 +24,7 @@ interface InvoiceRow {
     first_name: string;
     last_name: string | null;
     email: string | null;
+    ico: string | null;
     address_street: string | null;
     address_house_number: string | null;
     address_city: string | null;
@@ -31,6 +32,7 @@ interface InvoiceRow {
     address_country: string | null;
     account: {
       name: string;
+      ico: string | null;
       address_street: string | null;
       address_house_number: string | null;
       address_city: string | null;
@@ -51,6 +53,7 @@ interface InvoiceItemRow {
 
 interface OrganizationRow {
   name: string;
+  supplier_name: string | null;
   logo_url: string | null;
   ico: string | null;
   dic: string | null;
@@ -80,8 +83,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
         "number, name, variabilni_symbol, datum_vystaveni, datum_splatnosti, datum_zdanitelneho_plneni, " +
           "vat_rate, subtotal, vat_amount, total, note, " +
           "contact:contacts!invoices_contact_id_fkey(first_name, last_name, email, " +
-          "address_street, address_house_number, address_city, address_zip, address_country, " +
-          "account:accounts!contacts_account_id_fkey(name, address_street, address_house_number, address_city, address_zip, address_country)), " +
+          "ico, address_street, address_house_number, address_city, address_zip, address_country, " +
+          "account:accounts!contacts_account_id_fkey(name, ico, address_street, address_house_number, address_city, address_zip, address_country)), " +
           "forma_uhrady:option_set_values!invoices_forma_uhrady_id_fkey(label)",
       )
       .eq("id", id)
@@ -90,7 +93,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     supabase
       .from("users")
       .select(
-        "organizations(name, logo_url, ico, dic, address_street, address_house_number, address_city, address_zip, address_country, bank_account)",
+        "organizations(name, supplier_name, logo_url, ico, dic, address_street, address_house_number, address_city, address_zip, address_country, bank_account)",
       )
       .eq("user_id", user.id)
       .maybeSingle(),
@@ -101,6 +104,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const inv = invoice as unknown as InvoiceRow;
   const org = (profile?.organizations as unknown as OrganizationRow | null) ?? {
     name: "ProjektantCRM",
+    supplier_name: null,
     logo_url: null,
     ico: null,
     dic: null,
@@ -134,12 +138,19 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     datumSplatnosti: inv.datum_splatnosti,
     datumZdanitelnehoPlneni: inv.datum_zdanitelneho_plneni,
     formaUhrady: inv.forma_uhrady?.label ?? null,
-    supplier: { name: org.name, ico: org.ico, dic: org.dic, address: buildAddressQuery(org), logoUrl: org.logo_url },
+    supplier: {
+      name: org.supplier_name || org.name,
+      ico: org.ico,
+      dic: org.dic,
+      address: buildAddressQuery(org),
+      logoUrl: org.logo_url,
+    },
     // Odběratelem je firma kontaktu — právnicky správně. U soukromé osoby (pro projektanta
     // nejběžnější klient) je odběratelem ona sama, proto má kontakt vlastní adresu; bez ní by
     // daňový doklad vyšel bez adresy odběratele. Jméno se pak netiskne dvakrát.
     customer: {
       name: inv.contact?.account?.name ?? customerName,
+      ico: inv.contact?.account?.ico ?? inv.contact?.ico ?? null,
       address: inv.contact?.account
         ? buildAddressQuery(inv.contact.account)
         : inv.contact

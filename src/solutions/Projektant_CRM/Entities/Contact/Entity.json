@@ -12,6 +12,7 @@
     { "name": "email", "label": "E-mail", "type": "email" },
     { "name": "phone", "label": "Telefon", "type": "phone" },
     { "name": "mobile_phone", "label": "Mobil", "type": "phone" },
+    { "name": "ico", "label": "IČO", "type": "text" },
     { "name": "address_street", "label": "Ulice", "type": "text" },
     { "name": "address_house_number", "label": "Číslo popisné/orientační", "type": "text" },
     { "name": "address_city", "label": "Obec", "type": "text" },

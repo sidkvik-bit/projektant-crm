@@ -14,8 +14,9 @@ export interface InvoicingSettingsInput {
   address_zip: string;
   address_country: string;
   bank_account: string;
-  invoice_number_prefix: string;
+  supplier_name: string;
   default_due_days: number;
+  default_quote_validity_days: number;
 }
 
 /**
@@ -50,8 +51,9 @@ export async function updateInvoicingSettings(input: InvoicingSettingsInput) {
       address_zip: input.address_zip || null,
       address_country: input.address_country || null,
       bank_account: input.bank_account || null,
-      invoice_number_prefix: input.invoice_number_prefix || "FAK",
+      supplier_name: input.supplier_name || null,
       default_due_days: input.default_due_days || 14,
+      default_quote_validity_days: input.default_quote_validity_days || 30,
     })
     .eq("id", profile.organization_id);
   if (error) throw error;

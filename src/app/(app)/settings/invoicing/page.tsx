@@ -11,7 +11,7 @@ export default async function InvoicingSettingsPage() {
   const { data: profile } = await supabase
     .from("users")
     .select(
-      "organizations(logo_url, ico, dic, address_street, address_house_number, address_city, address_zip, address_country, bank_account, invoice_number_prefix, default_due_days)",
+      "organizations(logo_url, ico, dic, address_street, address_house_number, address_city, address_zip, address_country, bank_account, supplier_name, default_due_days, default_quote_validity_days)",
     )
     .eq("user_id", user?.id ?? "")
     .maybeSingle();
@@ -26,8 +26,9 @@ export default async function InvoicingSettingsPage() {
     address_zip: string | null;
     address_country: string | null;
     bank_account: string | null;
-    invoice_number_prefix: string;
+    supplier_name: string | null;
     default_due_days: number;
+    default_quote_validity_days: number;
   } | null;
 
   return (

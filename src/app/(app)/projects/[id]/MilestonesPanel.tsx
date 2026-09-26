@@ -63,6 +63,7 @@ export function MilestonesPanel({
   onAdd,
   onToggle,
   onDelete,
+  onSetDate,
   onBulkDelete,
   onCreateNotification,
   onDeleteNotification,
@@ -74,6 +75,7 @@ export function MilestonesPanel({
   onAdd: (projectId: string, name: string, terminSplneni: string) => Promise<void>;
   onToggle: (projectId: string, milestoneId: string, splneno: boolean) => Promise<void>;
   onDelete: (projectId: string, milestoneId: string) => Promise<void>;
+  onSetDate: (projectId: string, milestoneId: string, terminSplneni: string | null) => Promise<void>;
   onBulkDelete: (projectId: string, milestoneIds: string[]) => Promise<void>;
   onCreateNotification: (
     projectId: string,
@@ -231,7 +233,21 @@ export function MilestonesPanel({
                       <TableCell className={m.splneno ? "text-muted-foreground line-through" : "font-medium"}>
                         {m.name}
                       </TableCell>
-                      <TableCell className="text-muted-foreground">{m.termin_splneni ?? "bez termínu"}</TableCell>
+                      <TableCell>
+                        <Input
+                          type="date"
+                          aria-label={`Termín milníku ${m.name}`}
+                          defaultValue={m.termin_splneni ?? ""}
+                          className="h-8 w-40"
+                          // Ukládá se až při opuštění pole, ne při psaní: datumový input hlásí
+                          // změnu zvlášť pro rok, měsíc i den, takže by se při ručním psaní
+                          // poslaly tři zápisy s rozepsaným datem.
+                          onBlur={(e) => {
+                            const next = e.target.value || null;
+                            if (next !== (m.termin_splneni ?? null)) onSetDate(projectId, m.id, next);
+                          }}
+                        />
+                      </TableCell>
                       <TableCell>
                         <MilestoneStatusBadge splneno={m.splneno} terminSplneni={m.termin_splneni} />
                       </TableCell>

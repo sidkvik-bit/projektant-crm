@@ -41,6 +41,7 @@ import { CommandBar, CommandBarButton, CommandBarSeparator } from "@/components/
 import { RecordNavigator, type NavigatorRecord } from "./RecordNavigator";
 import { ImageUpload } from "./ImageUpload";
 import { AresCompanyLookup } from "@/components/AresCompanyLookup";
+import { RuianAddressLookup } from "@/components/RuianAddressLookup";
 import { cn } from "@/lib/utils";
 
 import type { EntityDefinition, FormDefinition, FieldDefinition } from "./types";
@@ -327,6 +328,12 @@ export function FormEngine({
           {tab.sections.map((section) => (
             <div key={section.label} className="space-y-4 rounded-lg border p-4">
               <h3 className="text-sm font-medium text-muted-foreground">{section.label}</h3>
+              {section.ruianLookup && (
+                <RuianAddressLookup
+                  setValue={setValue}
+                  hasGps={entity.fields.some((f) => f.name === "gps_lat")}
+                />
+              )}
               <div className={cn("grid gap-4", COLUMN_CLASSES[form.columns ?? 2])}>
                 {section.fields.map((fieldName) => {
                   const rawField = resolveField(entity, fieldName);

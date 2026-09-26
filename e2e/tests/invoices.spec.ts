@@ -54,9 +54,9 @@ test("generating an invoice from a quote copies items/totals, and the number can
   await expect(page.getByText("Projekční práce")).toBeVisible();
   await expect(page.getByText("3 630,00 Kč").first()).toBeVisible();
 
-  // number follows FAK-<year>-#### and is manually overridable
+  // number follows <year><month><order> (např. 20260901) and is manually overridable
   const numberInput = page.getByLabel(/Číslo faktury/i);
-  await expect(numberInput).toHaveValue(/^FAK-\d{4}-\d{4}$/);
+  await expect(numberInput).toHaveValue(/^\d{8,}$/);
 
   const customNumber = `RUCNI-${Date.now()}`;
   await numberInput.fill(customNumber);

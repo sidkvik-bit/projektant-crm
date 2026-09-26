@@ -32,6 +32,27 @@ async function geocodeFromValues(values: EntityFormValues) {
   return { gps_lat: point.lat, gps_lng: point.lng };
 }
 
+interface GpsFields {
+  gps_lat: number | null;
+  gps_lng: number | null;
+}
+
+function toCoordinate(value: unknown): number | null {
+  const n = typeof value === "string" ? Number(value) : value;
+  return typeof n === "number" && Number.isFinite(n) ? n : null;
+}
+
+/**
+ * Souřadnice, které formulář posílá s sebou. Vybráním adresy v RÚIAN (viz RuianAddressLookup)
+ * přijde přesný bod přímo z registru — ten nemá smysl přegeokódovávat Mapboxem, který by pro
+ * tutéž adresu vrátil vlastní, o kus jiný odhad.
+ */
+function submittedGps(values: EntityFormValues): GpsFields | null {
+  const gps_lat = toCoordinate(values.gps_lat);
+  const gps_lng = toCoordinate(values.gps_lng);
+  return gps_lat !== null && gps_lng !== null ? { gps_lat, gps_lng } : null;
+}
+
 /** Zkopíruje Template_Milestones do Project_Milestones s dopočtem data (start + offset_dni). */
 async function generateMilestonesFromTemplate(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -58,7 +79,7 @@ async function generateMilestonesFromTemplate(
 
 export async function createProject(values: EntityFormValues) {
   const supabase = await createClient();
-  const gps = await geocodeFromValues(values);
+  const gps = submittedGps(values) ?? (await geocodeFromValues(values));
   const record = await createRecord<{ id: string }>(supabase, entity.table, { ...values, ...gps });
 
   const templateId = values.project_template_id as string | null | undefined;
@@ -96,14 +117,23 @@ export async function updateProject(id: string, values: EntityFormValues) {
 
   // GPS se přepočítá jen když se adresa opravdu změnila — jinak by každé uložení (i kvůli
   // nesouvisejícímu poli) přepsalo ruční korekci polohy udělanou přes mapu (viz
-  // ProjectLocationMap.tsx "Přepsat GPS").
-  const currentAddress = await getRecordById<AddressFields>(
+  // ProjectLocationMap.tsx "Přepsat GPS"). A když formulář přinese jiné souřadnice, než jaké
+  // jsou uložené, nastavil je klient (výběr adresy v RÚIAN) a mají přednost před geokódováním.
+  const current = await getRecordById<AddressFields & GpsFields>(
     supabase,
     entity.table,
     id,
-    ADDRESS_FIELD_KEYS.join(", "),
+    [...ADDRESS_FIELD_KEYS, "gps_lat", "gps_lng"].join(", "),
   );
-  const gps = addressFieldsChanged(currentAddress, values) ? await geocodeFromValues(values) : null;
+  const submitted = submittedGps(values);
+  const clientSetPoint =
+    submitted !== null && (submitted.gps_lat !== current.gps_lat || submitted.gps_lng !== current.gps_lng);
+
+  const gps = clientSetPoint
+    ? submitted
+    : addressFieldsChanged(current, values)
+      ? await geocodeFromValues(values)
+      : null;
 
   await updateEntityRecord(entity.table, BASE_PATH, id, { ...values, ...gps });
 

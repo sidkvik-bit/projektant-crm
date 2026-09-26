@@ -55,7 +55,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       .eq("id", id)
       .single(),
     supabase.from("quote_items").select("name, quantity, unit, unit_price, line_total").eq("quote_id", id).order("sort_order"),
-    supabase.from("users").select("organizations(name, logo_url)").eq("user_id", user.id).maybeSingle(),
+    supabase.from("users").select("organizations(name, supplier_name, logo_url)").eq("user_id", user.id).maybeSingle(),
   ]);
 
   if (quoteError || !quote) return NextResponse.json({ error: "Nabídka nenalezena." }, { status: 404 });

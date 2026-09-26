@@ -19,7 +19,8 @@ type InitialSettings = {
   address_zip: string | null;
   address_country: string | null;
   bank_account: string | null;
-  invoice_number_prefix: string;
+  supplier_name: string | null;
+  default_quote_validity_days: number;
   default_due_days: number;
 } | null;
 
@@ -33,7 +34,8 @@ const EMPTY: InvoicingSettingsInput = {
   address_zip: "",
   address_country: "",
   bank_account: "",
-  invoice_number_prefix: "FAK",
+  supplier_name: "",
+  default_quote_validity_days: 30,
   default_due_days: 14,
 };
 
@@ -50,7 +52,8 @@ export function InvoicingSettingsForm({ initial }: { initial: InitialSettings })
           address_zip: initial.address_zip ?? "",
           address_country: initial.address_country ?? "",
           bank_account: initial.bank_account ?? "",
-          invoice_number_prefix: initial.invoice_number_prefix ?? "FAK",
+          supplier_name: initial.supplier_name ?? "",
+          default_quote_validity_days: initial.default_quote_validity_days ?? 30,
           default_due_days: initial.default_due_days ?? 14,
         }
       : EMPTY,
@@ -148,28 +151,42 @@ export function InvoicingSettingsForm({ initial }: { initial: InitialSettings })
       </div>
 
       <div className="space-y-4 rounded-lg border p-4">
-        <h3 className="text-sm font-medium text-muted-foreground">Číslování faktur</h3>
+        <h3 className="text-sm font-medium text-muted-foreground">Doklady</h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="space-y-1.5">
-            <Label htmlFor="inv-prefix">Předčíslí</Label>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="inv-supplier-name">Název dodavatele</Label>
             <Input
-              id="inv-prefix"
-              value={values.invoice_number_prefix}
-              onChange={(e) => set("invoice_number_prefix", e.target.value)}
+              id="inv-supplier-name"
+              value={values.supplier_name}
+              onChange={(e) => set("supplier_name", e.target.value)}
+              placeholder="Nechte prázdné pro název firmy"
             />
             <p className="text-xs text-muted-foreground">
-              Číslo faktury bude ve tvaru {values.invoice_number_prefix || "FAK"}-2026-0001, řada se každý rok
-              vynuluje zpět na 1.
+              Co se tiskne na dokladech jako dodavatel. Typicky jméno OSVČ, když se liší od názvu firmy
+              v CRM. Prázdné = použije se název firmy.
             </p>
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="inv-due-days">Splatnost (dní)</Label>
+            <Label htmlFor="inv-due-days">Splatnost faktury (dní)</Label>
             <Input
               id="inv-due-days"
               type="number"
               min={0}
               value={values.default_due_days}
               onChange={(e) => set("default_due_days", Number(e.target.value) || 0)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Číslo faktury má tvar 20260901 — rok, měsíc a pořadí v měsíci. Jde ho přepsat ručně.
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="inv-quote-validity">Platnost nabídky (dní)</Label>
+            <Input
+              id="inv-quote-validity"
+              type="number"
+              min={0}
+              value={values.default_quote_validity_days}
+              onChange={(e) => set("default_quote_validity_days", Number(e.target.value) || 0)}
             />
           </div>
         </div>

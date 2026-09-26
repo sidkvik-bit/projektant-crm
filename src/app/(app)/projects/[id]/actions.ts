@@ -119,3 +119,54 @@ export async function removeProjectContact(projectId: string, memberId: string) 
   if (error) throw error;
   revalidatePath(basePath(projectId));
 }
+
+/**
+ * Posun termínu milníku. Tester si vybral šablonu, ta nasypala milníky podle přednastavených
+ * odstupů — a pak s nimi nešlo hnout, jedinou cestou bylo smazat je a naklikat znovu.
+ */
+export async function setProjectMilestoneDate(
+  projectId: string,
+  milestoneId: string,
+  terminSplneni: string | null,
+) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("project_milestones")
+    .update({ termin_splneni: terminSplneni || null })
+    .eq("id", milestoneId);
+  if (error) throw error;
+  revalidatePath(basePath(projectId));
+}
+
+// --- Parcely projektu ---
+//
+// Projektant běžně staví na několika parcelách a katastr rozlišuje stavební a pozemkové.
+// Dřív na to bylo jedno textové pole, do kterého se to psalo dohromady.
+
+export interface NewProjectParcel {
+  parcelniCislo: string;
+  druh: "stavebni" | "pozemkova";
+  katastralniUzemi: string | null;
+  /** Výměra v m² z katastru; u ručně zapsané parcely bývá prázdná. */
+  vymeraM2: number | null;
+}
+
+export async function addProjectParcel(projectId: string, parcel: NewProjectParcel) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("project_parcels").insert({
+    project_id: projectId,
+    parcelni_cislo: parcel.parcelniCislo,
+    druh: parcel.druh,
+    katastralni_uzemi: parcel.katastralniUzemi || null,
+    vymera_m2: parcel.vymeraM2,
+  });
+  if (error) throw error;
+  revalidatePath(basePath(projectId));
+}
+
+export async function deleteProjectParcel(projectId: string, parcelId: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("project_parcels").delete().eq("id", parcelId);
+  if (error) throw error;
+  revalidatePath(basePath(projectId));
+}

@@ -22,6 +22,7 @@ import {
   ShieldCheck,
   ScrollText,
   UserCog,
+  UserRound,
   Plug,
 } from "lucide-react";
 
@@ -71,6 +72,7 @@ export const navGroups: NavGroup[] = [
   {
     label: "Nastavení",
     items: [
+      { label: "Můj profil", href: "/settings/profile", icon: UserRound },
       { label: "Tým", href: "/settings/team", icon: UsersRound },
       { label: "Přepnout firmu", href: "/settings/organization", icon: Building },
       { label: "Google Drive", href: "/settings/google-drive", icon: HardDrive },

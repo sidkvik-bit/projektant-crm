@@ -64,7 +64,13 @@ export interface InvoicePdfData {
   datumZdanitelnehoPlneni: string | null;
   formaUhrady: string | null;
   supplier: { name: string; ico: string | null; dic: string | null; address: string | null; logoUrl: string | null };
-  customer: { name: string; address: string | null; contactName: string | null; contactEmail: string | null };
+  customer: {
+    name: string;
+    ico: string | null;
+    address: string | null;
+    contactName: string | null;
+    contactEmail: string | null;
+  };
   vatRate: number;
   subtotal: number;
   vatAmount: number;
@@ -102,6 +108,7 @@ export function InvoicePdfDocument({ data }: { data: InvoicePdfData }) {
             <Text style={styles.partyLabel}>Odběratel</Text>
             <Text style={styles.partyName}>{data.customer.name}</Text>
             {data.customer.address ? <Text>{data.customer.address}</Text> : null}
+            {data.customer.ico ? <Text>IČO: {data.customer.ico}</Text> : null}
             {data.customer.contactName ? <Text>{data.customer.contactName}</Text> : null}
             {data.customer.contactEmail ? <Text style={styles.muted}>{data.customer.contactEmail}</Text> : null}
           </View>
