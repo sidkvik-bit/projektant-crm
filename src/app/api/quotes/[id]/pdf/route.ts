@@ -11,6 +11,8 @@ interface QuoteRow {
   created_at: string;
   valid_until: string | null;
   vat_rate: number;
+  odberatel_je_firma: boolean;
+  je_platce_dph: boolean;
   subtotal: number;
   vat_amount: number;
   total: number;
@@ -43,11 +45,15 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Nepřihlášený uživatel." }, { status: 401 });
 
-  const [{ data: quote, error: quoteError }, { data: items }, { data: profile }] = await Promise.all([
+  const [
+    { data: quote, error: quoteError },
+    { data: items, error: itemsError },
+    { data: profile, error: profileError },
+  ] = await Promise.all([
     supabase
       .from("quotes")
       .select(
-        "number, name, created_at, valid_until, vat_rate, subtotal, vat_amount, total, note, " +
+        "number, name, created_at, valid_until, vat_rate, subtotal, vat_amount, total, note, odberatel_je_firma, je_platce_dph, " +
           "project:projects!quotes_project_id_fkey(name), " +
           "contact:contacts!quotes_contact_id_fkey(first_name, last_name, email, " +
           "account:accounts!contacts_account_id_fkey(name))",
@@ -55,15 +61,30 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       .eq("id", id)
       .single(),
     supabase.from("quote_items").select("name, quantity, unit, unit_price, line_total").eq("quote_id", id).order("sort_order"),
-    supabase.from("users").select("organizations(name, logo_url)").eq("user_id", user.id).maybeSingle(),
+    supabase
+      .from("users")
+      .select("organizations(name, supplier_name, logo_url)")
+      .eq("user_id", user.id)
+      .maybeSingle(),
   ]);
 
-  if (quoteError || !quote) return NextResponse.json({ error: "Nabídka nenalezena." }, { status: 404 });
+  if (quoteError?.code === "PGRST116") return NextResponse.json({ error: "Nabídka nenalezena." }, { status: 404 });
+
+  // Nabídka bez položek by vyšla s nulovým součtem, který vypadá jako platná cena.
+  if (quoteError || !quote || itemsError || profileError) {
+    console.error("quote pdf: load failed", { id, quoteError, itemsError, profileError });
+    return NextResponse.json({ error: "PDF nabídky se nepodařilo připravit." }, { status: 500 });
+  }
 
   const q = quote as unknown as QuoteRow;
-  const org = profile?.organizations as unknown as { name: string; logo_url: string | null } | null;
+  const org = profile?.organizations as unknown as {
+    name: string;
+    logo_url: string | null;
+  } | null;
 
   const contactName = q.contact ? formatContactName(q.contact) : null;
+  // Na koho se nabídka vystavuje, rozhoduje pole na dokladu — viz stejná úvaha u faktury.
+  const billToAccount = q.odberatel_je_firma ? (q.contact?.account ?? null) : null;
 
   const data: QuotePdfData = {
     organizationName: org?.name ?? "ProjektantCRM",
@@ -73,10 +94,11 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     createdAt: q.created_at,
     validUntil: q.valid_until,
     projectName: q.project?.name ?? "—",
-    // Objednatelem je firma kontaktu; u soukromé osoby ona sama. Jméno se pak netiskne dvakrát.
-    accountName: q.contact?.account?.name ?? contactName,
-    contactName: q.contact?.account ? contactName : null,
+    accountName: billToAccount?.name ?? contactName,
+    contactName: billToAccount ? contactName : null,
     contactEmail: q.contact?.email ?? null,
+    // Z dokladu, ne z nastavení firmy — viz stejná úvaha u faktury.
+    vatRegistered: q.je_platce_dph,
     vatRate: Number(q.vat_rate),
     subtotal: Number(q.subtotal),
     vatAmount: Number(q.vat_amount),

@@ -13,7 +13,7 @@ export interface QualifyLeadState {
   error: string;
 }
 
-/** Kvalifikuje Zájemce na Obchodní vztah + Kontakt (a volitelně i Projekt) — celá logika žije
+/** Kvalifikuje Zájemce na firmu + Kontakt (a volitelně i Projekt) — celá logika žije
  * v jedné DB funkci (qualify_lead), ať se to nerozpadne na poloviční stav při dílčí chybě.
  *
  * Bez e-mailu i telefonu by vzniklý Kontakt byl nekontaktovatelný — to se blokuje tady, ne v

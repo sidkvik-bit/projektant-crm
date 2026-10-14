@@ -56,6 +56,9 @@ export interface FormSection {
   label: string;
   /** Názvy polí — z EntityDefinition.fields, nebo "status" / "status_reason". */
   fields: string[];
+  /** Přidá nad sekci vyhledávání adresy v RÚIAN (viz RuianAddressLookup). Sekce musí mít
+   * pole address_street/_house_number/_city/_zip/_country — ta se z výběru předvyplní. */
+  ruianLookup?: boolean;
 }
 
 export interface FormTab {

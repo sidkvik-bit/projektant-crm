@@ -33,7 +33,7 @@ interface SearchResult {
 
 const ENTITY_META: Record<string, { label: string; icon: LucideIcon; basePath: string }> = {
   Lead: { label: "Zájemce", icon: Target, basePath: "/leads" },
-  Account: { label: "Obchodní vztah", icon: Building2, basePath: "/accounts" },
+  Account: { label: "Firma", icon: Building2, basePath: "/accounts" },
   Contact: { label: "Kontakt", icon: Users, basePath: "/contacts" },
   Project: { label: "Projekt", icon: FolderKanban, basePath: "/projects" },
   Quote: { label: "Nabídka", icon: Receipt, basePath: "/quotes" },

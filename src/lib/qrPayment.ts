@@ -10,7 +10,6 @@ export interface SpaydFields {
   /** Variabilní symbol — nečíselné znaky se odfiltrují, ořízne na 10 znaků (limit specifikace). */
   variableSymbol?: string | null;
   /** ISO datum (YYYY-MM-DD) — do SPAYD jde jako YYYYMMDD. */
-  dueDate?: string | null;
   /** Zpráva pro příjemce, max 60 znaků — diakritika se odstraní kvůli kompatibilitě se staršími bankovními appkami. */
   message?: string | null;
 }
@@ -28,14 +27,16 @@ function sanitizeMessage(message: string): string {
     .trim();
 }
 
-/** Sestaví SPAYD řetězec — pořadí polí odpovídá běžným příkladům z oficiální specifikace. */
+/** Sestaví SPAYD řetězec — pořadí polí odpovídá běžným příkladům z oficiální specifikace.
+ *
+ * Datum splatnosti se do QR SCHVÁLNĚ nedává. Pole DT bankovní aplikace berou jako datum splatnosti
+ * příkazu a platbu na ten den naplánují místo okamžitého odeslání — odběratel po naskenování čeká,
+ * i když chce zaplatit hned. Splatnost je vytištěná na faktuře, kam patří. */
 export function buildSpayd(fields: SpaydFields): string {
   const parts = ["SPD*1.0", `ACC:${fields.iban}`, `AM:${fields.amount.toFixed(2)}`, "CC:CZK"];
 
   const vs = fields.variableSymbol?.replace(/\D/g, "").slice(0, 10);
   if (vs) parts.push(`X-VS:${vs}`);
-
-  if (fields.dueDate) parts.push(`DT:${fields.dueDate.replace(/-/g, "")}`);
 
   const msg = fields.message ? sanitizeMessage(fields.message) : "";
   if (msg) parts.push(`MSG:${msg}`);

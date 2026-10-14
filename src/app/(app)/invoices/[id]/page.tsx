@@ -1,3 +1,4 @@
+import { lockVatRateUnlessPayer } from "@/lib/organizationBilling";
 import { notFound } from "next/navigation";
 import { Download, FolderKanban, CheckCircle2, XCircle } from "lucide-react";
 
@@ -36,6 +37,7 @@ export default async function InvoiceDetailPage({
       number: string;
       project_id: string;
       vat_rate: number;
+      je_platce_dph: boolean;
       status: string;
       uhrazeno: boolean;
     }
@@ -113,7 +115,7 @@ export default async function InvoiceDetailPage({
 
           <TabsContent value="general" className="max-w-5xl space-y-8 pt-4">
             <FormEngine
-              entity={entity as EntityDefinition}
+              entity={lockVatRateUnlessPayer(entity as EntityDefinition, record.je_platce_dph)}
               form={formDef as FormDefinition}
               defaultValues={record}
               optionSetValues={common.optionSetValues}

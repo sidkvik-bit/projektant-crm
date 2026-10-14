@@ -45,7 +45,9 @@ async function openOverflowView(page: Page, label: string) {
 
 const LIST_PAGES = [
   { path: "/dashboard", heading: /Můj den|Dashboard/i },
-  { path: "/accounts", heading: /Obchodní vztah/i },
+  // Pozor na množné číslo: nadpis je "Firmy", takže /Firma/ by se netrefilo. U dřívějšího názvu
+  // "Obchodní vztah" to vycházelo náhodou, protože množné číslo ten tvar obsahovalo.
+  { path: "/accounts", heading: /Firmy/i },
   { path: "/contacts", heading: /Kontakty/i },
   { path: "/leads", heading: /Zájemci/i },
   { path: "/projects", heading: /Projekty/i },
@@ -67,10 +69,10 @@ for (const { path, heading } of LIST_PAGES) {
   });
 }
 
-test("accounts list no longer says 'Firma' anywhere", async ({ page }) => {
+test("the company list is called Firmy, not Obchodní vztahy", async ({ page }) => {
   await page.goto("/accounts");
-  await expect(page.getByText(/^Firma$|^Firmy$/)).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: /Obchodní vztahy/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Firmy/i })).toBeVisible();
+  await expect(page.getByText(/[Oo]bchodní vztah/)).toHaveCount(0);
 });
 
 test("can open an individual contact record from the grid", async ({ page }) => {
@@ -95,8 +97,8 @@ test("contact without an account (Eva Volná) opens fine and account field is op
   await page.goto("/contacts");
   await page.getByRole("link", { name: "Eva" }).click();
   await expect(page.getByRole("button", { name: "Zavřít" })).toBeVisible();
-  // required fields render an asterisk/marker next to the label in FormEngine — Obchodní vztah must not have one
-  const accountLabel = page.getByText("Obchodní vztah", { exact: false }).first();
+  // required fields render an asterisk/marker next to the label in FormEngine — Firma must not have one
+  const accountLabel = page.getByText("Firma", { exact: false }).first();
   await expect(accountLabel).toBeVisible();
   await expect(accountLabel).not.toContainText("*");
   expect(errors, `errors:\n${errors.join("\n")}`).toEqual([]);
@@ -262,7 +264,7 @@ test("view switcher: switching to 'Moje' scopes the grid to records owned by the
 }) => {
   await page.goto("/accounts");
   const activePill = page.getByRole("button", { name: "Aktivní", exact: true });
-  const myPill = page.getByRole("button", { name: "Moje obchodní vztahy" });
+  const myPill = page.getByRole("button", { name: "Moje firmy" });
   await expect(activePill).toBeVisible();
   const rowsBefore = await page.locator("table tbody tr").count();
   expect(rowsBefore).toBeGreaterThan(0);
@@ -280,7 +282,7 @@ test("export to Excel downloads a file with all entity columns", async ({ page }
     page.waitForEvent("download"),
     page.getByRole("button", { name: "Exportovat do Excelu" }).click(),
   ]);
-  expect(download.suggestedFilename()).toMatch(/Obchodní vztahy_export\.xlsx/);
+  expect(download.suggestedFilename()).toMatch(/Firmy_export\.xlsx/);
 });
 
 test("grid column header filter: contains operator on a real column", async ({ page }) => {
@@ -298,7 +300,7 @@ test("lookup combobox: search and pick a value, saved correctly", async ({ page 
   await page.getByLabel(/Jméno/i).fill(`E2E Combobox Test ${Date.now()}`);
   await page.getByLabel(/Příjmení/i).fill("Kontakt");
 
-  const accountCombo = page.getByLabel(/Obchodní vztah/i);
+  const accountCombo = page.getByLabel(/Firma/i);
   await accountCombo.click();
   await accountCombo.fill("Stavební");
   await expect(page.locator('[data-slot="combobox-item"]')).toHaveText(/Stavební huť Praha/);
@@ -307,7 +309,7 @@ test("lookup combobox: search and pick a value, saved correctly", async ({ page 
 
   await page.getByRole("button", { name: "Vytvořit", exact: true }).click();
   await page.waitForURL(/\/contacts\/[0-9a-f-]{36}$/);
-  await expect(page.getByLabel(/Obchodní vztah/i)).toHaveValue(/Stavební huť Praha/);
+  await expect(page.getByLabel(/Firma/i)).toHaveValue(/Stavební huť Praha/);
 });
 
 test("locked-once-set field: project template becomes read-only after a project is created from it", async ({

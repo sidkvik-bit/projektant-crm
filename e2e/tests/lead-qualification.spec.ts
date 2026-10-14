@@ -32,7 +32,7 @@ test("qualifying a lead as Account + Contact splits the name and links back", as
   });
 
   await page.goto(`/leads/${leadId}`);
-  await page.getByRole("button", { name: "Kvalifikovat: OV + Kontakt" }).click();
+  await page.getByRole("button", { name: "Kvalifikovat: Firma + Kontakt" }).click();
   await page.waitForURL(/\/accounts\/[0-9a-f-]{36}$/);
   const accountId = page.url().split("/").pop()!;
 
@@ -66,7 +66,7 @@ test("qualifying a lead as Account + Contact splits the name and links back", as
 
   // re-visiting the lead now shows the "already qualified" link, not the qualify buttons
   await page.goto(`/leads/${leadId}`);
-  await expect(page.getByRole("button", { name: "Kvalifikovat: OV + Kontakt" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Kvalifikovat: Firma + Kontakt" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Kvalifikovat: Projekt" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Zobrazit výsledek kvalifikace" })).toHaveAttribute(
     "href",
@@ -128,7 +128,7 @@ test("a single-word lead name qualifies without a crash and leaves last_name nul
   });
 
   await page.goto(`/leads/${leadId}`);
-  await page.getByRole("button", { name: "Kvalifikovat: OV + Kontakt" }).click();
+  await page.getByRole("button", { name: "Kvalifikovat: Firma + Kontakt" }).click();
   await page.waitForURL(/\/accounts\/[0-9a-f-]{36}$/);
   const accountId = page.url().split("/").pop()!;
 
@@ -154,7 +154,7 @@ test("qualifying a lead with no e-mail and no phone is blocked with an explanato
   });
 
   await page.goto(`/leads/${leadId}`);
-  await page.getByRole("button", { name: "Kvalifikovat: OV + Kontakt" }).click();
+  await page.getByRole("button", { name: "Kvalifikovat: Firma + Kontakt" }).click();
 
   await expect(page.getByRole("dialog", { name: "Kvalifikaci nejde dokončit" })).toBeVisible();
   await expect(page.getByText(/nemá vyplněný e-mail ani telefon/)).toBeVisible();

@@ -3,7 +3,7 @@
   "columns": [
     { "field": "first_name", "label": "Jméno" },
     { "field": "last_name", "label": "Příjmení" },
-    { "field": "account", "label": "Obchodní vztah" },
+    { "field": "account", "label": "Firma" },
     { "field": "email" },
     { "field": "phone", "label": "Telefon" },
     { "field": "status_reason", "label": "Stav" }

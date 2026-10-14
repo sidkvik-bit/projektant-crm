@@ -145,6 +145,7 @@ test("every core entity can be listed and created, and nothing can be deleted", 
       last_name: `Testovic ${suffix}`,
       account_id: accountId,
       email: `jan${suffix}@example.com`,
+      address_city: `Liberec ${suffix}`,
     });
     const contactId = await call("create_contact", {
       first_name: "Klient",
@@ -162,7 +163,10 @@ test("every core entity can be listed and created, and nothing can be deleted", 
       name: "list_contacts",
       arguments: { only_active: true },
     });
-    expect(await contacts.text()).toContain(`Testovic ${suffix}`);
+    const contactsBody = await contacts.text();
+    expect(contactsBody).toContain(`Testovic ${suffix}`);
+    // Adresa je fakturační údaj odběratele — přes AI musí jít nejen nastavit, ale i přečíst zpět.
+    expect(contactsBody, "list_contacts nevrací adresu").toContain(`Liberec ${suffix}`);
 
     const accounts = await mcpCall(request, token, "tools/call", {
       name: "list_accounts",

@@ -76,7 +76,7 @@ export function AdminOrganizationList({
                   {org.status !== "active" && <Badge variant="destructive">Neaktivní</Badge>}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {org.userCount} {org.userCount === 1 ? "uživatel" : "uživatelů"} · {org.accountCount} obchodních vztahů ·{" "}
+                  {org.userCount} {org.userCount === 1 ? "uživatel" : "uživatelů"} · {org.accountCount} firem ·{" "}
                   {org.projectCount} projektů · založeno {new Date(org.createdAt).toLocaleDateString("cs-CZ")}
                 </p>
               </div>

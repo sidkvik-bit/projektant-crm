@@ -19,6 +19,7 @@
         },
         {
           "label": "Místo realizace",
+          "ruianLookup": true,
           "fields": [
             "address_street",
             "address_house_number",

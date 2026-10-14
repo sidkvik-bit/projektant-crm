@@ -1,5 +1,6 @@
+import { lockVatRateUnlessPayer } from "@/lib/organizationBilling";
 import { notFound } from "next/navigation";
-import { Download, FolderKanban, Receipt } from "lucide-react";
+import { Download, FolderKanban } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 import { getRecordById, listRecords } from "@/engine/Database";
@@ -20,6 +21,7 @@ import formDef from "@/solutions/Projektant_CRM/Entities/Quote/FormXml/main_form
 import { addQuoteItem, updateQuoteItem, deleteQuoteItem, generateInvoiceFromQuote } from "./actions";
 import { updateQuote } from "../actions";
 import { QuoteItemsPanel, type QuoteItem } from "./QuoteItemsPanel";
+import { GenerateInvoiceDialog } from "./GenerateInvoiceDialog";
 
 export default async function QuoteDetailPage({
   params,
@@ -35,6 +37,7 @@ export default async function QuoteDetailPage({
       number: string;
       project_id: string;
       vat_rate: number;
+      je_platce_dph: boolean;
       status: string;
     }
   >(supabase, entity.table, id).catch(() => null);
@@ -91,12 +94,12 @@ export default async function QuoteDetailPage({
                 </a>
               }
             />
-            <form action={generateInvoiceFromQuote.bind(null, id)}>
-              <Button type="submit" variant="outline" size="sm">
-                <Receipt className="size-4" />
-                Vygenerovat fakturu
-              </Button>
-            </form>
+            <GenerateInvoiceDialog
+              quoteId={id}
+              items={items}
+              vatRate={Number(record.vat_rate) || 0}
+              onGenerate={generateInvoiceFromQuote}
+            />
           </>
         }
       />
@@ -110,7 +113,7 @@ export default async function QuoteDetailPage({
 
           <TabsContent value="general" className="max-w-5xl space-y-8 pt-4">
             <FormEngine
-              entity={entity as EntityDefinition}
+              entity={lockVatRateUnlessPayer(entity as EntityDefinition, record.je_platce_dph)}
               form={formDef as FormDefinition}
               defaultValues={record}
               optionSetValues={common.optionSetValues}
@@ -130,7 +133,6 @@ export default async function QuoteDetailPage({
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold">Položky nabídky</h2>
-                <span className="text-sm text-muted-foreground">Číslo nabídky: {record.number}</span>
               </div>
               <QuoteItemsPanel
                 quoteId={id}

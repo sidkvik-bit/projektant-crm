@@ -64,7 +64,15 @@ export interface InvoicePdfData {
   datumZdanitelnehoPlneni: string | null;
   formaUhrady: string | null;
   supplier: { name: string; ico: string | null; dic: string | null; address: string | null; logoUrl: string | null };
-  customer: { name: string; address: string | null; contactName: string | null; contactEmail: string | null };
+  customer: {
+    name: string;
+    ico: string | null;
+    address: string | null;
+    contactName: string | null;
+    contactEmail: string | null;
+  };
+  /** Plátcovství DPH firmy (nastavení > Fakturace). Neplátci se DPH netiskne vůbec. */
+  vatRegistered: boolean;
   vatRate: number;
   subtotal: number;
   vatAmount: number;
@@ -84,7 +92,7 @@ export function InvoicePdfDocument({ data }: { data: InvoicePdfData }) {
         <View style={styles.headerRow}>
           {data.supplier.logoUrl ? <Image src={data.supplier.logoUrl} style={styles.logo} /> : <View />}
           <View style={styles.titleBlock}>
-            <Text style={styles.title}>FAKTURA – DAŇOVÝ DOKLAD</Text>
+            <Text style={styles.title}>{data.vatRegistered ? "FAKTURA – DAŇOVÝ DOKLAD" : "FAKTURA"}</Text>
             <Text style={styles.title}>{data.number}</Text>
           </View>
         </View>
@@ -102,6 +110,7 @@ export function InvoicePdfDocument({ data }: { data: InvoicePdfData }) {
             <Text style={styles.partyLabel}>Odběratel</Text>
             <Text style={styles.partyName}>{data.customer.name}</Text>
             {data.customer.address ? <Text>{data.customer.address}</Text> : null}
+            {data.customer.ico ? <Text>IČO: {data.customer.ico}</Text> : null}
             {data.customer.contactName ? <Text>{data.customer.contactName}</Text> : null}
             {data.customer.contactEmail ? <Text style={styles.muted}>{data.customer.contactEmail}</Text> : null}
           </View>
@@ -112,10 +121,12 @@ export function InvoicePdfDocument({ data }: { data: InvoicePdfData }) {
             <Text style={styles.dateLabel}>Datum vystavení</Text>
             <Text style={styles.dateValue}>{formatDate(data.datumVystaveni)}</Text>
           </View>
-          <View style={styles.dateItem}>
-            <Text style={styles.dateLabel}>Datum zdanitelného plnění</Text>
-            <Text style={styles.dateValue}>{formatDate(data.datumZdanitelnehoPlneni)}</Text>
-          </View>
+          {data.vatRegistered ? (
+            <View style={styles.dateItem}>
+              <Text style={styles.dateLabel}>Datum zdanitelného plnění</Text>
+              <Text style={styles.dateValue}>{formatDate(data.datumZdanitelnehoPlneni)}</Text>
+            </View>
+          ) : null}
           <View style={styles.dateItem}>
             <Text style={styles.dateLabel}>Datum splatnosti</Text>
             <Text style={styles.dateValue}>{formatDate(data.datumSplatnosti)}</Text>
@@ -150,19 +161,24 @@ export function InvoicePdfDocument({ data }: { data: InvoicePdfData }) {
         </View>
 
         <View style={styles.totals}>
-          <View style={styles.totalsRow}>
-            <Text>Mezisoučet</Text>
-            <Text>{currencyFormat.format(data.subtotal)}</Text>
-          </View>
-          <View style={styles.totalsRow}>
-            <Text>DPH ({data.vatRate}%)</Text>
-            <Text>{currencyFormat.format(data.vatAmount)}</Text>
-          </View>
+          {data.vatRegistered ? (
+            <>
+              <View style={styles.totalsRow}>
+                <Text>Mezisoučet</Text>
+                <Text>{currencyFormat.format(data.subtotal)}</Text>
+              </View>
+              <View style={styles.totalsRow}>
+                <Text>DPH ({data.vatRate}%)</Text>
+                <Text>{currencyFormat.format(data.vatAmount)}</Text>
+              </View>
+            </>
+          ) : null}
           <View style={[styles.totalsRow, styles.totalsFinal]}>
             <Text>Celkem k úhradě</Text>
             <Text>{currencyFormat.format(data.total)}</Text>
           </View>
         </View>
+        {data.vatRegistered ? null : <Text style={styles.muted}>Nejsem plátce DPH.</Text>}
 
         <View style={styles.paymentRow}>
           <View style={styles.paymentDetails}>

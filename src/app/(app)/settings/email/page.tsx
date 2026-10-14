@@ -53,7 +53,7 @@ select cron.schedule(
     <div>
       <PageHeader
         title="Sledování e-mailů"
-        description="Automaticky loguje e-mailovou korespondenci k Obchodním vztahům, Kontaktům a Zájemcům podle e-mailové adresy."
+        description="Automaticky loguje e-mailovou korespondenci k firmám, Kontaktům a Zájemcům podle e-mailové adresy."
       />
       <div className="mx-auto max-w-3xl space-y-8 p-6">
         <EmailSyncStatusCard status={status} />
@@ -63,7 +63,7 @@ select cron.schedule(
             <strong className="text-foreground">Jak to funguje:</strong> Google Workspace umí na úrovni domény
             automaticky poslat skrytou kopii (BCC) každého odchozího i příchozího e-mailu na jednu dedikovanou
             adresu — nikdo si nemusí pamatovat cokoliv kopírovat ručně. Appka tuhle schránku pravidelně
-            přečte, a pokud odesílatel/příjemce e-mailu odpovídá e-mailu u Obchodního vztahu, Kontaktu nebo Zájemce
+            přečte, a pokud odesílatel/příjemce e-mailu odpovídá e-mailu u firmy, Kontaktu nebo Zájemce
             v CRM (podle pole &quot;E-mail&quot; na daném záznamu), založí se k němu Aktivita typu E-mail — předmět,
             Od/Komu/Kopie, případná priorita a text zprávy. E-mail bez shody se nikam neukládá, jen se přečte a
             přeskočí.

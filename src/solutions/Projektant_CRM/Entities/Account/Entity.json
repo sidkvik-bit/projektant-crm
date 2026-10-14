@@ -1,8 +1,8 @@
 {
   "name": "Account",
   "table": "accounts",
-  "displayName": "Obchodní vztah",
-  "displayNamePlural": "Obchodní vztahy",
+  "displayName": "Firma",
+  "displayNamePlural": "Firmy",
   "primaryField": "name",
   "statusReasonOptionSetKey": "account_status_reason",
   "fields": [

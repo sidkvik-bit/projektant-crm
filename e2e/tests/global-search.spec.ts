@@ -26,7 +26,7 @@ test("typing a query shows matching results across multiple entity types", async
   await page.getByPlaceholder(/Hledat v CRM/i).fill("Novák");
 
   await expect(page.getByRole("option", { name: /Novák Architekti/ })).toBeVisible({ timeout: 10_000 });
-  await expect(page.getByText("Obchodní vztah", { exact: true })).toBeVisible();
+  await expect(page.getByText("Firma", { exact: true })).toBeVisible();
 
   expect(errors, `errors while searching:\n${errors.join("\n")}`).toEqual([]);
 });

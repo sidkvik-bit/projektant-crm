@@ -41,22 +41,43 @@ async function createQuoteWithItem(admin: ReturnType<typeof adminClient>) {
   return { admin, orgId: org.id as string, projectId: project.id as string, quoteId: quote.id as string };
 }
 
+let restoreVatPayer: (() => PromiseLike<unknown>) | null = null;
+
+test.afterEach(async () => {
+  await restoreVatPayer?.();
+  restoreVatPayer = null;
+});
+
 test("generating an invoice from a quote copies items/totals, and the number can be manually overridden", async ({
   page,
 }) => {
-  const { admin, projectId, quoteId } = await createQuoteWithItem(adminClient());
+  // Plátcovství se zapisuje na doklad při vystavení — testovací firma musí být plátcem už
+  // před založením nabídky, jinak by obě dostaly sazbu 0.
+  const payerAdmin = adminClient();
+  const { data: orgBefore } = await payerAdmin
+    .from("organizations")
+    .select("id, je_platce_dph")
+    .eq("name", "E2E Test Org")
+    .single();
+  await payerAdmin.from("organizations").update({ je_platce_dph: true }).eq("id", orgBefore!.id);
+  restoreVatPayer = () =>
+    payerAdmin.from("organizations").update({ je_platce_dph: orgBefore!.je_platce_dph }).eq("id", orgBefore!.id);
+
+  const { admin, projectId, quoteId } = await createQuoteWithItem(payerAdmin);
 
   await page.goto(`/quotes/${quoteId}`);
+  // Fakturace jde přes výběr položek (viz tester-feedback-2.spec.ts) — tady se fakturuje vše.
   await page.getByRole("button", { name: "Vygenerovat fakturu" }).click();
+  await page.getByRole("button", { name: "Vystavit fakturu" }).click();
   await page.waitForURL(/\/invoices\/[0-9a-f-]{36}$/);
 
   // items and totals carried over from the quote (2 * 1500 = 3000, 21% VAT -> 3630 total)
   await expect(page.getByText("Projekční práce")).toBeVisible();
   await expect(page.getByText("3 630,00 Kč").first()).toBeVisible();
 
-  // number follows FAK-<year>-#### and is manually overridable
+  // number follows <year><month><order> (např. 20260901) and is manually overridable
   const numberInput = page.getByLabel(/Číslo faktury/i);
-  await expect(numberInput).toHaveValue(/^FAK-\d{4}-\d{4}$/);
+  await expect(numberInput).toHaveValue(/^\d{8,}$/);
 
   const customNumber = `RUCNI-${Date.now()}`;
   await numberInput.fill(customNumber);
