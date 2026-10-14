@@ -5,6 +5,7 @@ import { Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ImageUpload } from "@/engine/ImageUpload";
 import { accountToIban } from "@/lib/czechBank";
 import { updateInvoicingSettings, type InvoicingSettingsInput } from "./actions";
@@ -13,6 +14,8 @@ type InitialSettings = {
   logo_url: string | null;
   ico: string | null;
   dic: string | null;
+  je_platce_dph: boolean;
+  default_vat_rate: number;
   address_street: string | null;
   address_house_number: string | null;
   address_city: string | null;
@@ -28,6 +31,8 @@ const EMPTY: InvoicingSettingsInput = {
   logo_url: null,
   ico: "",
   dic: "",
+  je_platce_dph: false,
+  default_vat_rate: 21,
   address_street: "",
   address_house_number: "",
   address_city: "",
@@ -46,6 +51,8 @@ export function InvoicingSettingsForm({ initial }: { initial: InitialSettings })
           logo_url: initial.logo_url,
           ico: initial.ico ?? "",
           dic: initial.dic ?? "",
+          je_platce_dph: initial.je_platce_dph ?? false,
+          default_vat_rate: initial.default_vat_rate ?? 21,
           address_street: initial.address_street ?? "",
           address_house_number: initial.address_house_number ?? "",
           address_city: initial.address_city ?? "",
@@ -60,6 +67,7 @@ export function InvoicingSettingsForm({ initial }: { initial: InitialSettings })
   );
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   function set<K extends keyof InvoicingSettingsInput>(key: K, value: InvoicingSettingsInput[K]) {
     setValues((v) => ({ ...v, [key]: value }));
@@ -72,12 +80,13 @@ export function InvoicingSettingsForm({ initial }: { initial: InitialSettings })
   async function handleSave() {
     setSaving(true);
     setSaved(false);
-    try {
-      await updateInvoicingSettings(values);
-      setSaved(true);
-    } finally {
-      setSaving(false);
-    }
+    setSaveError(null);
+    const result = await updateInvoicingSettings(values).catch(() => ({
+      error: "Nastavení se nepodařilo uložit.",
+    }));
+    setSaving(false);
+    if (result.error) setSaveError(result.error);
+    else setSaved(true);
   }
 
   return (
@@ -98,10 +107,6 @@ export function InvoicingSettingsForm({ initial }: { initial: InitialSettings })
           <div className="space-y-1.5">
             <Label htmlFor="inv-ico">IČO</Label>
             <Input id="inv-ico" value={values.ico} onChange={(e) => set("ico", e.target.value)} />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="inv-dic">DIČ</Label>
-            <Input id="inv-dic" value={values.dic} onChange={(e) => set("dic", e.target.value)} />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="inv-street">Ulice</Label>
@@ -128,6 +133,48 @@ export function InvoicingSettingsForm({ initial }: { initial: InitialSettings })
             <Input id="inv-country" value={values.address_country} onChange={(e) => set("address_country", e.target.value)} />
           </div>
         </div>
+      </div>
+
+      <div className="space-y-4 rounded-lg border p-4">
+        <h3 className="text-sm font-medium text-muted-foreground">DPH</h3>
+        <div className="flex items-start gap-3">
+          <Checkbox
+            id="inv-vat-payer"
+            checked={values.je_platce_dph}
+            onCheckedChange={(checked) => set("je_platce_dph", checked === true)}
+          />
+          <div className="space-y-1">
+            <Label htmlFor="inv-vat-payer">Jsme plátce DPH</Label>
+            <p className="text-xs text-muted-foreground">
+              Neplátci se na dokladech netiskne DPH ani datum zdanitelného plnění, nadpis je jen
+              „Faktura“ a doplní se věta „Nejsem plátce DPH“.
+            </p>
+          </div>
+        </div>
+        {values.je_platce_dph && (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="inv-dic">DIČ</Label>
+              <Input id="inv-dic" value={values.dic} onChange={(e) => set("dic", e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="inv-vat-rate">Výchozí sazba DPH (%)</Label>
+              <Input
+                id="inv-vat-rate"
+                type="number"
+                min={0}
+                max={100}
+                step="any"
+                // Prázdné pole je NaN, ne 0 — vymazaná sazba se nesmí tiše uložit jako 0 %.
+                value={Number.isNaN(values.default_vat_rate) ? "" : values.default_vat_rate}
+                onChange={(e) => set("default_vat_rate", e.target.valueAsNumber)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Předvyplní se na nové nabídce i faktuře, na jednotlivém dokladu jde přepsat.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="space-y-4 rounded-lg border p-4">
@@ -198,6 +245,7 @@ export function InvoicingSettingsForm({ initial }: { initial: InitialSettings })
           {saving ? "Ukládám…" : "Uložit"}
         </Button>
         {saved && <p className="text-sm text-status-success">Uloženo.</p>}
+        {saveError && <p className="text-sm text-destructive">{saveError}</p>}
       </div>
     </div>
   );

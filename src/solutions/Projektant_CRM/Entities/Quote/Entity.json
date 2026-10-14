@@ -6,9 +6,12 @@
   "primaryField": "name",
   "statusReasonOptionSetKey": "quote_status_reason",
   "fields": [
+    { "name": "number", "label": "Číslo nabídky", "type": "text" },
     { "name": "name", "label": "Název nabídky", "type": "text", "required": true },
     { "name": "project_id", "label": "Projekt", "type": "lookup", "targetEntity": "Project", "required": true },
     { "name": "contact_id", "label": "Objednatel", "type": "lookup", "targetEntity": "Contact", "required": true },
+    { "name": "odberatel_je_firma", "label": "Vystavit na firmu objednatele", "type": "boolean" },
+    { "name": "je_platce_dph", "label": "Vystaveno jako plátce DPH", "type": "boolean", "readOnly": true },
     { "name": "valid_until", "label": "Platnost do", "type": "date" },
     { "name": "vat_rate", "label": "Sazba DPH (%)", "type": "number" },
     { "name": "note", "label": "Poznámka", "type": "textarea" }

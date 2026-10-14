@@ -1,5 +1,6 @@
 import { EntityFormPage } from "@/engine/EntityFormPage";
 import { createClient } from "@/lib/supabase/server";
+import { getDocumentDefaults, lockVatRateUnlessPayer } from "@/lib/organizationBilling";
 import type { EntityDefinition, FormDefinition } from "@/engine/types";
 
 import entity from "@/solutions/Projektant_CRM/Entities/Quote/Entity.json";
@@ -23,13 +24,7 @@ export default async function NewQuotePage({
 
   // Platnost se bere z nastavení firmy — projektant ji má pro všechny nabídky stejnou a nechce
   // ji vyplňovat pokaždé znovu. Přepsat ji na konkrétní nabídce samozřejmě jde.
-  const { data: profile } = await supabase
-    .from("users")
-    .select("organizations(default_quote_validity_days)")
-    .maybeSingle();
-  const validityDays =
-    (profile?.organizations as unknown as { default_quote_validity_days: number } | null)
-      ?.default_quote_validity_days ?? 30;
+  const { defaultVatRate, jePlatceDph, quoteValidityDays } = await getDocumentDefaults(supabase);
 
   // Název se skládá z projektu a jeho parcel — "Cenová nabídka – RD Mikulášek (parc. č. 1247/3,
   // k. ú. Turnov)". Zůstává obyčejným polem, takže ho jde přepsat.
@@ -55,15 +50,15 @@ export default async function NewQuotePage({
 
   return (
     <EntityFormPage
-      entity={entity as EntityDefinition}
+      entity={lockVatRateUnlessPayer(entity as EntityDefinition, jePlatceDph)}
       form={formDef as FormDefinition}
       title="Nová nabídka"
       defaultValues={{
-        vat_rate: 21,
+        vat_rate: defaultVatRate,
         project_id: params.project_id,
         contact_id: params.contact_id,
         name: defaultName,
-        valid_until: inDays(validityDays),
+        valid_until: inDays(quoteValidityDays),
       }}
       onSubmit={createQuote}
       submitLabel="Vytvořit nabídku"

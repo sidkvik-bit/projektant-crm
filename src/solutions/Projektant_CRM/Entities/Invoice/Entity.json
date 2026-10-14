@@ -6,10 +6,12 @@
   "primaryField": "name",
   "statusReasonOptionSetKey": "invoice_status_reason",
   "fields": [
-    { "name": "number", "label": "Číslo faktury", "type": "text", "required": true },
+    { "name": "number", "label": "Číslo faktury", "type": "text" },
     { "name": "name", "label": "Název", "type": "text", "required": true },
     { "name": "project_id", "label": "Projekt", "type": "lookup", "targetEntity": "Project", "required": true },
     { "name": "contact_id", "label": "Odběratel", "type": "lookup", "targetEntity": "Contact", "required": true },
+    { "name": "odberatel_je_firma", "label": "Vystavit na firmu odběratele", "type": "boolean" },
+    { "name": "je_platce_dph", "label": "Vystaveno jako plátce DPH", "type": "boolean", "readOnly": true },
     { "name": "variabilni_symbol", "label": "Variabilní symbol", "type": "text" },
     { "name": "datum_vystaveni", "label": "Datum vystavení", "type": "date" },
     { "name": "datum_zdanitelneho_plneni", "label": "Datum zdanitelného plnění", "type": "date" },

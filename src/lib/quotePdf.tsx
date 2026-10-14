@@ -58,6 +58,8 @@ export interface QuotePdfData {
   accountName: string | null;
   contactName: string | null;
   contactEmail: string | null;
+  /** Plátcovství DPH firmy (nastavení > Fakturace). Neplátci se DPH netiskne vůbec. */
+  vatRegistered: boolean;
   vatRate: number;
   subtotal: number;
   vatAmount: number;
@@ -117,19 +119,24 @@ export function QuotePdfDocument({ data }: { data: QuotePdfData }) {
         </View>
 
         <View style={styles.totals}>
-          <View style={styles.totalsRow}>
-            <Text>Mezisoučet</Text>
-            <Text>{currencyFormat.format(data.subtotal)}</Text>
-          </View>
-          <View style={styles.totalsRow}>
-            <Text>DPH ({data.vatRate}%)</Text>
-            <Text>{currencyFormat.format(data.vatAmount)}</Text>
-          </View>
+          {data.vatRegistered ? (
+            <>
+              <View style={styles.totalsRow}>
+                <Text>Mezisoučet</Text>
+                <Text>{currencyFormat.format(data.subtotal)}</Text>
+              </View>
+              <View style={styles.totalsRow}>
+                <Text>DPH ({data.vatRate}%)</Text>
+                <Text>{currencyFormat.format(data.vatAmount)}</Text>
+              </View>
+            </>
+          ) : null}
           <View style={[styles.totalsRow, styles.totalsFinal]}>
             <Text>Celkem k úhradě</Text>
             <Text>{currencyFormat.format(data.total)}</Text>
           </View>
         </View>
+        {data.vatRegistered ? null : <Text style={styles.muted}>Nejsem plátce DPH.</Text>}
 
         {data.note ? (
           <View style={styles.noteBox}>
