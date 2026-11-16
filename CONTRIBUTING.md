@@ -52,6 +52,19 @@ check svítí červeně, dokud Honza neschválí.
 - Nikdy neobcházej semafor (úprava pravidel, hooků, workflow, CODEOWNERS) — i to je červená.
 - Migrace piš podle skillu `supabase-migration`. Do už aplikované migrace nesahej, oprav ji novou.
 
+## Klíče (`.env.local`)
+
+`.env.local` obsahuje klíče k DEV databázi s **plným přístupem ke všem firmám** (service role).
+Repo je veřejné.
+
+- Nikdy ho necommituj (Git ho ignoruje — neobcházej to `git add -f`) a nikomu ho neposílej.
+- **Claude ho nečte ani neupravuje** (zakázáno v `.claude/settings.json`). Hodnoty klíčů nepatří
+  do chatu, kódu, commitů, PR, logů, MCP ani nikam jinam. Když něco potřebuje proměnnou
+  prostředí, čte ji kód přes `process.env`, ne Claude.
+- Potřebuješ nový klíč nebo změnu? Napiš Honzovi, nepřidávej ho sám.
+- **Když klíč unikne** (commit, screenshot, zpráva) — hned to řekni Honzovi, klíč se musí
+  v Supabase vyměnit. Smazat commit nestačí, veřejné repo už mohl někdo stáhnout.
+
 ## Ověření před PR
 
 Totéž, co pustí CI (check `ci`):

@@ -48,7 +48,8 @@ Otevři Claude Code a napiš:
 ### Co udělá Claude
 
 1. Ověří `git --version`, `node --version` (24.x), `pnpm --version`, `gh auth status`
-   a že existuje `.env.local` s `NEXT_PUBLIC_SUPABASE_URL`.
+   a že soubor `.env.local` existuje (jen `Test-Path .env.local` — obsah nečte, viz
+   CONTRIBUTING.md → Klíče).
 2. Nastaví `git config user.name havlinak96` a `user.email` podle GitHub účtu (`gh api user`).
 3. `pnpm install`, potom `pnpm exec tsc --noEmit` a `pnpm test` — mají projít.
 4. Spustí `pnpm dev` a řekne ti, ať si otevřeš http://localhost:3000 a přihlásíš se svým
