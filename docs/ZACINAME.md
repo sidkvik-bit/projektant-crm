@@ -75,23 +75,39 @@ Tohle Claude udělat nemůže, protože jde o tvoje účty a hesla.
 
 ## 3. Co za tebe udělá Claude
 
+### Krok A — instalace a stažení projektu
+
 Do Claude Code vlož celé tohle zadání:
 
 > Nastav mi vývojové prostředí pro ProjektantCRM na Windows:
-> 1. Přes `winget` nainstaluj Git, Node.js 24 LTS a GitHub CLI (co už je nainstalované,
->    přeskoč) a zapni pnpm přes `corepack enable`.
-> 2. Pak se zastav a řekni mi, ať v terminálu sám spustím `gh auth login`
+> 1. Přes `winget` nainstaluj Git, GitHub CLI a Node.js **verze 24** (ne novější, projekt
+>    běží na 24; co už je nainstalované ve správné verzi, přeskoč). Pak nainstaluj pnpm
+>    příkazem `npm install -g pnpm`.
+> 2. Zastav se a řekni mi, ať v novém terminálu sám spustím `gh auth login`
 >    (GitHub.com → HTTPS → přihlášení přes prohlížeč). Počkej, až ti napíšu, že je hotovo.
-> 3. Naklonuj https://github.com/sidkvik-bit/projektant-crm do aktuální složky, otevři
->    ji a dál postupuj podle `docs/ZACINAME.md`, sekce „Co Claude udělá po naklonování“.
+> 3. Naklonuj https://github.com/sidkvik-bit/projektant-crm do aktuální složky. Soubor
+>    `.env.local` nikdy nečti ani nevytvářej. Nakonec mi řekni, ať otevřu složku
+>    `projektant-crm` ve VS Code a začnu nový chat (krok B v docs/ZACINAME.md).
 
 Claude se tě bude ptát na povolení u instalací a příkazů. Odklikni je. Program pro instalaci
-(`winget`) se může zeptat ještě jednou, potvrď to.
+(`winget`) se může zeptat ještě jednou, potvrď to. Po instalaci může být potřeba zavřít
+a znovu otevřít VS Code, aby nové programy našel.
+
+### Krok B — otevřít projekt a dokončit nastavení
+
+1. Ve VS Code dej File → Open Folder a otevři `Dokumenty\projektant-crm`. Tohle je důležité:
+   pravidla projektu (semafor, ochrana klíčů) se v Claudovi zapnou jen tehdy, když běží
+   přímo ve složce projektu.
+2. Vytvoř soubor s klíči: v levém panelu klikni pravým tlačítkem na prázdné místo → New File,
+   pojmenuj ho přesně `.env.local` a vlož do něj obsah z odkazu od Honzy. Ulož (Ctrl+S).
+3. Otevři Claude Code, začni **nový chat** a napiš:
+
+> Dokonči nastavení projektu podle docs/ZACINAME.md, sekce „Co Claude udělá po naklonování“.
 
 ### Co Claude udělá po naklonování
 
-1. Řekne ti, ať do složky `projektant-crm` uložíš soubor `.env.local` od Honzy, a počká.
-   Pak ověří jen to, že soubor existuje (`Test-Path .env.local`). Obsah nečte.
+1. Ověří jen to, že soubor `.env.local` existuje (`Test-Path .env.local`). Obsah nečte, má to
+   v projektu zakázané. Když soubor chybí, řekne ti, ať ho vytvoříš podle kroku B.
 2. Nastaví git: `git config user.name havlinak96` a `user.email` podle tvého GitHub účtu
    (`gh api user`).
 3. Nainstaluje knihovny (`pnpm install`) a pustí kontroly `pnpm exec tsc --noEmit`
