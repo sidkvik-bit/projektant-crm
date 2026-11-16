@@ -1,6 +1,7 @@
 # Po merge do develop aplikuje nové migrace na DEV databázi (Supabase "ProjektantCRM - DEV").
-# Klíče jsou v prostředí "dev-db", které smí použít jen větev develop — workflow z jiné větve
-# se k nim nedostane.
+# Heslo je v prostředí "dev-db", které smí použít jen větev develop — workflow z jiné větve
+# se k němu nedostane. Připojení jde přes pooler: GitHub runnery nemají IPv6, přímá adresa
+# databáze je jen IPv6.
 name: db-migrate
 on:
   push:
@@ -17,14 +18,20 @@ jobs:
     runs-on: ubuntu-latest
     environment: dev-db
     env:
-      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-      SUPABASE_PROJECT_REF: kssmlolcgzougrxfuihe
+      POOLER_USER: postgres.kssmlolcgzougrxfuihe
+      POOLER_HOST: aws-0-eu-central-1.pooler.supabase.com:5432
     steps:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
         with:
           version: 3.2.0
+      - name: Připojení k databázi
+        run: |
+          if [ -z "$SUPABASE_DB_PASSWORD" ]; then echo "::error::Chybí secret SUPABASE_DB_PASSWORD v prostředí dev-db"; exit 1; fi
+          PW=$(node -e 'process.stdout.write(encodeURIComponent(process.env.SUPABASE_DB_PASSWORD))')
+          echo "::add-mask::$PW"
+          echo "DB_URL=postgresql://$POOLER_USER:$PW@$POOLER_HOST/postgres" >> "$GITHUB_ENV"
       - name: Náhled — co se aplikuje
-        run: supabase db push --remote="$SUPABASE_PROJECT_REF" -p "$SUPABASE_DB_PASSWORD" --dry-run
-      - run: supabase db push --remote="$SUPABASE_PROJECT_REF" -p "$SUPABASE_DB_PASSWORD"
+        run: supabase db push --db-url "$DB_URL" --dry-run
+      - run: supabase db push --db-url "$DB_URL"

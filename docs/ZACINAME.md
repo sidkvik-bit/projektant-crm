@@ -67,5 +67,15 @@ z šablony“*. Claude:
 Zelené a oranžové změny jsou za pár minut na https://projektantcrmdev.vercel.app.
 Červené počkají, až je Honza schválí.
 
-Spoustu věcí (vlastní pole, formuláře, pohledy, tlačítka, skripty) si firma nastaví i bez kódu
-přímo v aplikaci — viz [docs/upravy-firmy/](upravy-firmy/README.md).
+## Úpravy firmy bez zásahu do kódu
+
+Máš roli **System Customizer**, takže v aplikaci vidíš **Nastavení → Přizpůsobení**. Tam si pro
+svou firmu přidáš vlastní pole, celé vlastní tabulky, formuláře, pohledy, tlačítka, klientské
+skripty a serverové pluginy. Změny se nejdřív uloží jako rozpracované, v náhledu si je
+zkontroluješ a pak je publikuješ. Každou publikaci jde vrátit.
+
+Tohle je rychlejší cesta než změna kódu a nic se při ní neschvaluje. Návod:
+[docs/upravy-firmy/](upravy-firmy/README.md). Claude ti úpravy připraví i přes MCP.
+
+Do kódu (Pull Request) jdi, jen když úprava firmy nestačí, tedy když se má změnit aplikace
+pro všechny firmy.

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Receipt } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -80,6 +81,7 @@ export function GenerateInvoiceDialog({
       setBusy(false);
       return;
     }
+    if (result.warning) toast.warning(result.warning);
     router.push(`/invoices/${result.invoiceId}`);
   }
 

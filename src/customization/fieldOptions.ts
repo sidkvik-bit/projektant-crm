@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { listRecords } from "@/engine/Database";
 import { getOptionSetValues, type OptionSetValue } from "@/engine/optionSets";
+import { getOrgUserOptions } from "@/engine/users";
 import type { FieldDefinition } from "@/engine/types";
 import type { CustomizationSet } from "./merge";
 import { resolveEntityRef } from "./registry";
@@ -21,6 +22,8 @@ export async function loadLookupOptions(
   targetEntity: string,
   set: CustomizationSet,
 ): Promise<LookupOption[]> {
+  // Uživatelé mají klíč user_id, ne id — mají vlastní dotaz.
+  if (targetEntity === "User") return getOrgUserOptions(supabase);
   const ref = resolveEntityRef(targetEntity, set);
   if (!ref) return [];
   const rows = await listRecords<Record<string, unknown>>(supabase, ref.table, {

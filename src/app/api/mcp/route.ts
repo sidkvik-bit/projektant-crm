@@ -3,6 +3,7 @@ import { createMcpHandler, withMcpAuth } from "mcp-handler";
 import { resolveMcpSession } from "@/lib/mcp/auth";
 import { registerReadTools } from "@/lib/mcp/readTools";
 import { registerWriteTools } from "@/lib/mcp/writeTools";
+import { registerCustomizationTools } from "@/lib/mcp/customizationTools";
 
 /**
  * Vzdálený MCP server nad CRM — uživatel si ho připojí do svého AI klienta (Claude, Cursor…)
@@ -13,15 +14,17 @@ import { registerWriteTools } from "@/lib/mcp/writeTools";
  * správnost nástrojů — model si o cizí data může říct jakkoliv a nedostane je. V nástrojích
  * NIKDY nepoužívej createAdminClient(); tím by ta ochrana tiše zmizela.
  *
- * Nástroje jsou schválně ve dvou skupinách (readTools / writeTools) — čtecí se dají přidávat
- * bez sahání na zápisovou plochu, kde platí přísnější pravidla (viz komentář ve writeTools.ts).
+ * Nástroje jsou schválně ve skupinách (readTools / writeTools / customizationTools) — čtecí se
+ * dají přidávat bez sahání na zápisovou plochu, kde platí přísnější pravidla (viz komentář ve
+ * writeTools.ts). Úpravy firmy jde přes AI jen připravit jako draft, publikuje člověk.
  */
 const handler = createMcpHandler(
   (server) => {
     registerReadTools(server);
     registerWriteTools(server);
+    registerCustomizationTools(server);
   },
-  { serverInfo: { name: "projektantcrm", version: "1.1.0" } },
+  { serverInfo: { name: "projektantcrm", version: "1.2.0" } },
 );
 
 const verifyToken = async (_req: Request, bearerToken?: string): Promise<AuthInfo | undefined> => {

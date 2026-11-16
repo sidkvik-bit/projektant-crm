@@ -1,53 +1,11 @@
 import { test, expect } from "@playwright/test";
-import { createClient } from "@supabase/supabase-js";
-import { buildStorageState } from "../lib/testAuth";
+import { adminClient, createUserWithRole } from "../lib/roleUser";
 
 /**
  * /admin — přístupné jen roli Platform Superadmin (platformová role NAD všemi organizacemi,
  * viz supabase/migrations/20260913263000_rename_role_to_platform_superadmin.sql). Uvnitř
  * konkrétní organizace má superadmin zatím stejná práva jako Basic User.
- *
- * Role se v setupu nastavuje při INSERTu řádku do `users` — trigger, co chrání `role` před
- * změnou, je BEFORE UPDATE, takže insert s rolí projde, ale pozdější update by se tiše zahodil.
  */
-function adminClient() {
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
-    auth: { persistSession: false },
-  });
-}
-
-async function createUserWithRole(role: string, prefix: string) {
-  const admin = adminClient();
-  const suffix = Date.now();
-  const email = `e2e-${prefix}-${suffix}@projektant-crm.test`;
-  const password = "E2eAdminSection!Passw0rd";
-
-  const { data: org } = await admin
-    .from("organizations")
-    .insert({ name: `E2E Admin Org ${prefix} ${suffix}` })
-    .select("id")
-    .single();
-  const { data: created, error } = await admin.auth.admin.createUser({ email, password, email_confirm: true });
-  if (error) throw error;
-
-  await admin.from("users").insert({
-    user_id: created.user.id,
-    organization_id: org!.id,
-    email,
-    first_name: prefix,
-    role,
-  });
-
-  const storageState = await buildStorageState(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    email,
-    password,
-  );
-
-  return { admin, userId: created.user.id, orgId: org!.id as string, suffix, storageState };
-}
-
 test("a Basic User is redirected away from /admin and sees no Admin nav group", async ({ browser }) => {
   const { admin, userId, orgId, storageState } = await createUserWithRole("Basic User", "basic");
   const context = await browser.newContext({ storageState });

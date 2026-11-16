@@ -5,7 +5,6 @@ import {
   applyInsert,
   applyUpdate,
   fail,
-  ok,
   optionLabelMap,
   resolveOptionValue,
   sessionFrom,
@@ -48,13 +47,12 @@ export function registerWriteTools(server: McpServer) {
     async (input, ctx) => {
       const session = sessionFrom(ctx);
       if (!session) return fail("Chybí autorizace.");
-      const { data, error } = await session.supabase
-        .from("leads")
-        .insert({ ...input, organization_id: session.organizationId, owner_id: session.userId })
-        .select("id, name")
-        .single();
-      if (error) return fail(`Založení zájemce selhalo: ${error.message}`);
-      return ok({ vytvoreno: data });
+      return applyInsert(session.supabase, {
+        table: "leads",
+        values: { ...input, owner_id: session.userId },
+        columns: "id, name",
+        organizationId: session.organizationId,
+      });
     },
   );
 
@@ -203,13 +201,12 @@ export function registerWriteTools(server: McpServer) {
     async (input, ctx) => {
       const session = sessionFrom(ctx);
       if (!session) return fail("Chybí autorizace.");
-      const { data, error } = await session.supabase
-        .from("activities")
-        .insert({ ...input, organization_id: session.organizationId })
-        .select("id, subject")
-        .single();
-      if (error) return fail(`Zápis aktivity selhal: ${error.message}`);
-      return ok({ vytvoreno: data });
+      return applyInsert(session.supabase, {
+        table: "activities",
+        values: input,
+        columns: "id, subject",
+        organizationId: session.organizationId,
+      });
     },
   );
 

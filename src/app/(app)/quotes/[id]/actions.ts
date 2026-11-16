@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { PluginError, runPlugins } from "@/customization/plugins";
+import { loadCustomizations } from "@/customization/repository";
 
 function basePath(quoteId: string) {
   return `/quotes/${quoteId}`;
@@ -37,11 +39,26 @@ export async function generateInvoiceFromQuote(
     return { error: error.code === "P0002" ? error.message : "Fakturu se nepodařilo vystavit." };
   }
 
+  // Pluginy firmy (událost invoiceGenerated na entitě Invoice) — faktura už je vystavená, takže
+  // chyba pluginu ji nevrátí; uživatel ji uvidí jako upozornění.
+  let warning: string | undefined;
+  try {
+    await runPlugins(supabase, await loadCustomizations(supabase), {
+      entity: "Invoice",
+      event: "invoiceGenerated",
+      recordId: invoiceId as string,
+      input: { invoiceId, quoteId, itemIds: itemIds ?? null },
+    });
+  } catch (err) {
+    if (!(err instanceof PluginError)) throw err;
+    warning = `Faktura je vystavená, ale plugin ${err.plugin} skončil chybou: ${err.message}`;
+  }
+
   revalidatePath(basePath(quoteId));
-  return { invoiceId: invoiceId as string };
+  return { invoiceId: invoiceId as string, warning };
 }
 
-export type GenerateInvoiceResult = { invoiceId: string } | { error: string };
+export type GenerateInvoiceResult = { invoiceId: string; warning?: string } | { error: string };
 
 export async function addQuoteItem(
   quoteId: string,

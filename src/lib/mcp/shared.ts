@@ -1,6 +1,8 @@
 import type { AuthInfo } from "@modelcontextprotocol/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getOptionSetValues, type OptionSetValue } from "@/engine/optionSets";
+import { createRecord, updateRecord } from "@/engine/Database";
+import { returnPluginError } from "@/customization/plugins";
 import type { McpSession } from "./auth";
 
 /** Strop na počet vrácených řádků — AI klient platí za tokeny, nemá smysl mu posílat tisíce řádků. */
@@ -90,13 +92,12 @@ export async function applyUpdate(supabase: SupabaseClient, spec: UpdateSpec) {
   const { data: before } = await supabase.from(spec.table).select(spec.columns).eq("id", spec.id).maybeSingle();
   if (!before) return fail(spec.notFound);
 
-  const { data: after, error } = await supabase
-    .from(spec.table)
-    .update(patch)
-    .eq("id", spec.id)
-    .select(spec.columns)
-    .maybeSingle();
-  if (error) return fail(`Úprava selhala: ${error.message}`);
+  // Přes datovou vrstvu, ať proběhnou pluginy firmy (validace, dopočty) jako při uložení z webu.
+  const saved = await returnPluginError(() => updateRecord(supabase, spec.table, spec.id, patch)).catch(
+    (err: { message?: string }) => ({ error: `Úprava selhala: ${err.message ?? String(err)}` }),
+  );
+  if ("error" in saved) return fail(String(saved.error));
+  const { data: after } = await supabase.from(spec.table).select(spec.columns).eq("id", spec.id).maybeSingle();
   if (!after) return fail(spec.notFound);
 
   const decorate = spec.decorate ?? ((row: Record<string, unknown>) => row);
@@ -117,12 +118,12 @@ export async function applyInsert(
   spec: { table: string; values: Record<string, unknown>; columns: string; organizationId: string },
 ) {
   const values = Object.fromEntries(Object.entries(spec.values).filter(([, v]) => v !== undefined));
-  const { data, error } = await supabase
-    .from(spec.table)
-    .insert({ ...values, organization_id: spec.organizationId })
-    .select(spec.columns)
-    .single();
-  if (error) return fail(`Založení selhalo: ${error.message}`);
+  // Přes datovou vrstvu, ať proběhnou pluginy firmy jako při založení z webu.
+  const created = await returnPluginError(() =>
+    createRecord<{ id: string }>(supabase, spec.table, { ...values, organization_id: spec.organizationId }),
+  ).catch((err: { message?: string }) => ({ error: `Založení selhalo: ${err.message ?? String(err)}` }));
+  if ("error" in created) return fail(String(created.error));
+  const { data } = await supabase.from(spec.table).select(spec.columns).eq("id", created.id).single();
   return ok({ vytvoreno: data });
 }
 
