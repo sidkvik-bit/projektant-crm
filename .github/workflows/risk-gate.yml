@@ -1,12 +1,11 @@
 # Semafor změn (.github/risk/). Check "risk-gate" je povinný pro merge do develop:
 # zelená a oranžová projdou, červená čeká na schválení od @sidkvik-bit.
 # Po schválení se spustí znovu (pull_request_review) a PR se sám zmerguje, pokud má auto-merge.
-# pull_request_target = běží verze semaforu z develop, ne z PR, takže PR nemůže semafor sám sobě
-# povolit. Kód z PR se tu nikdy nespouští, jen se z gitu čte diff. Úpravu semaforu přes review
-# event pak hlídá CODEOWNERS (.github/ schvaluje jen vlastník).
+# Úpravu semaforu samotného (.github/) v PR hlídá CODEOWNERS — schválit ji smí jen vlastník.
+# (pull_request_target nejde: GitHub ho bere z výchozí větve main, kde workflow není.)
 name: risk-gate
 on:
-  pull_request_target:
+  pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
   pull_request_review:
     types: [submitted, dismissed]
@@ -27,9 +26,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ github.event.pull_request.base.sha }}
-      - name: Načíst commity z PR (jen jako data)
-        run: git fetch --no-tags origin "+refs/pull/${{ github.event.pull_request.number }}/head"
       - uses: actions/setup-node@v4
         with:
           node-version: 24
