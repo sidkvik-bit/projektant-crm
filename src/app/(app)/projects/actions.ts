@@ -8,6 +8,7 @@ import { updateEntityRecord } from "@/engine/entityActions";
 import { computeMilestoneDueDates } from "@/engine/milestoneDates";
 import { ADDRESS_FIELD_KEYS, addressFieldsChanged, buildAddressQuery, geocodeAddress, type AddressFields } from "@/lib/mapbox";
 import type { EntityFormValues } from "@/engine/zodSchema";
+import { returnPluginError, type SaveResult } from "@/customization/plugins";
 import entity from "@/solutions/Projektant_CRM/Entities/Project/Entity.json";
 
 const BASE_PATH = "/projects";
@@ -77,10 +78,11 @@ async function generateMilestonesFromTemplate(
   if (error) throw error;
 }
 
-export async function createProject(values: EntityFormValues) {
+export async function createProject(values: EntityFormValues): Promise<SaveResult> {
   const supabase = await createClient();
   const gps = submittedGps(values) ?? (await geocodeFromValues(values));
-  const record = await createRecord<{ id: string }>(supabase, entity.table, { ...values, ...gps });
+  const record = await returnPluginError(() => createRecord<{ id: string }>(supabase, entity.table, { ...values, ...gps }));
+  if ("error" in record) return record;
 
   const templateId = values.project_template_id as string | null | undefined;
   if (templateId) {
@@ -96,7 +98,7 @@ export async function createProject(values: EntityFormValues) {
   redirect(`${BASE_PATH}/${record.id}`);
 }
 
-export async function updateProject(id: string, values: EntityFormValues) {
+export async function updateProject(id: string, values: EntityFormValues): Promise<SaveResult> {
   const supabase = await createClient();
 
   // project_template_id je lockOnceSet (viz Entity.json), takže sem přijde
@@ -135,7 +137,8 @@ export async function updateProject(id: string, values: EntityFormValues) {
       ? await geocodeFromValues(values)
       : null;
 
-  await updateEntityRecord(entity.table, BASE_PATH, id, { ...values, ...gps });
+  const saved = await updateEntityRecord(entity.table, BASE_PATH, id, { ...values, ...gps });
+  if (saved) return saved;
 
   if (shouldGenerateMilestones && templateId) {
     await generateMilestonesFromTemplate(

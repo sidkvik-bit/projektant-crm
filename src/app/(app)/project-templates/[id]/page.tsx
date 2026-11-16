@@ -31,7 +31,7 @@ export default async function ProjectTemplateDetailPage({
 
   async function handleUpdate(values: EntityFormValues) {
     "use server";
-    await updateProjectTemplate(id, values);
+    return updateProjectTemplate(id, values);
   }
 
   return (

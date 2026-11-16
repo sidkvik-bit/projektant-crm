@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { GlobalSearch } from "./GlobalSearch";
 import { MobileNav } from "./MobileNav";
+import type { ShellNavExtras } from "./nav";
 
 export interface NotificationItem {
   id: string;
@@ -35,6 +36,7 @@ export function TopBar({
   notifications,
   organizationName,
   isSuperadmin,
+  navExtras,
   onSignOut,
   onMarkRead,
 }: {
@@ -42,6 +44,7 @@ export function TopBar({
   notifications: NotificationItem[];
   organizationName: string;
   isSuperadmin?: boolean;
+  navExtras?: ShellNavExtras;
   onSignOut: () => Promise<void>;
   onMarkRead: (id: string) => Promise<void>;
 }) {
@@ -51,7 +54,7 @@ export function TopBar({
 
   return (
     <header className="flex h-14 shrink-0 items-center gap-2 border-b bg-background/80 px-3 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:gap-4 sm:px-4">
-      <MobileNav organizationName={organizationName} isSuperadmin={isSuperadmin} />
+      <MobileNav organizationName={organizationName} isSuperadmin={isSuperadmin} extras={navExtras} />
       <div className="min-w-0 flex-1 sm:max-w-md">
         <GlobalSearch />
       </div>

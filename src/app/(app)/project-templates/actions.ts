@@ -9,11 +9,11 @@ import entity from "@/solutions/Projektant_CRM/Entities/ProjectTemplate/Entity.j
 const BASE_PATH = "/project-templates";
 
 export async function createProjectTemplate(values: EntityFormValues) {
-  await createEntityRecord(entity.table, BASE_PATH, values);
+  return createEntityRecord(entity.table, BASE_PATH, values);
 }
 
 export async function updateProjectTemplate(id: string, values: EntityFormValues) {
-  await updateEntityRecord(entity.table, BASE_PATH, id, values);
+  return updateEntityRecord(entity.table, BASE_PATH, id, values);
 }
 
 export async function addTemplateMilestone(templateId: string, name: string, offsetDni: number) {

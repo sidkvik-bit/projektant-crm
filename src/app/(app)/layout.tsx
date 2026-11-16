@@ -3,6 +3,11 @@ import { createClient } from "@/lib/supabase/server";
 import { formatUserName } from "@/engine/users";
 import { Sidebar } from "@/components/shell/Sidebar";
 import { TopBar } from "@/components/shell/TopBar";
+import { Toaster } from "@/components/ui/sonner";
+import { getCustomizations, isPreviewMode } from "@/customization/repository";
+import { customEntityBasePath } from "@/customization/registry";
+import type { ShellNavExtras } from "@/components/shell/nav";
+import { PreviewBanner } from "@/customization/client/PreviewBanner";
 import { signOut, markNotificationRead } from "./actions";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -37,10 +42,21 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const organization = profile.organizations as unknown as { name: string } | null;
   const isSuperadmin = profile.role === "Platform Superadmin";
+  const isCustomizer = isSuperadmin || profile.role === "System Customizer";
+
+  const [customizations, preview] = await Promise.all([getCustomizations(), isPreviewMode()]);
+  const navExtras: ShellNavExtras = {
+    isCustomizer,
+    customEntities: customizations.of("entity").map((c) => ({
+      label: c.definition.displayNamePlural,
+      href: customEntityBasePath(c.key),
+      icon: c.definition.icon,
+    })),
+  };
 
   return (
     <div className="flex h-screen overflow-hidden bg-muted/30">
-      <Sidebar organizationName={organization?.name ?? ""} isSuperadmin={isSuperadmin} />
+      <Sidebar organizationName={organization?.name ?? ""} isSuperadmin={isSuperadmin} extras={navExtras} />
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar
           user={{
@@ -52,11 +68,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           notifications={notifications ?? []}
           organizationName={organization?.name ?? ""}
           isSuperadmin={isSuperadmin}
+          navExtras={navExtras}
           onSignOut={signOut}
           onMarkRead={markNotificationRead}
         />
+        {preview && isCustomizer && <PreviewBanner />}
         <main className="flex-1 overflow-y-auto">{children}</main>
       </div>
+      <Toaster position="bottom-right" richColors />
     </div>
   );
 }

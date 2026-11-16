@@ -8,7 +8,7 @@ import { getCommonFormContext } from "@/engine/formContext";
 import { getOptionSetValues } from "@/engine/optionSets";
 import { getTimelineActivities } from "@/engine/activities";
 import { createTimelineActivity } from "@/engine/entityActions";
-import { FormEngine } from "@/engine/FormEngine";
+import { CustomizedFormEngine } from "@/customization/CustomizedFormEngine";
 import { ActivityTimeline } from "@/engine/ActivityTimeline";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -63,7 +63,7 @@ export default async function InvoiceDetailPage({
 
   async function handleUpdate(values: EntityFormValues) {
     "use server";
-    await updateInvoice(id, values);
+    return updateInvoice(id, values);
   }
 
   return (
@@ -114,7 +114,7 @@ export default async function InvoiceDetailPage({
           </TabsList>
 
           <TabsContent value="general" className="max-w-5xl space-y-8 pt-4">
-            <FormEngine
+            <CustomizedFormEngine
               entity={lockVatRateUnlessPayer(entity as EntityDefinition, record.je_platce_dph)}
               form={formDef as FormDefinition}
               defaultValues={record}

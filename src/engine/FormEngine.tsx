@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowUpRight, Plus, Ban, CheckCircle2, Trash2, RefreshCw } from "lucide-react";
@@ -49,6 +49,12 @@ import type { OptionSetValue } from "./optionSets";
 import { buildEntityZodSchema, type EntityFormValues } from "./zodSchema";
 import { entityRegistry } from "@/solutions/Projektant_CRM/registry";
 import { deleteEntityRecord, setEntityStatus } from "./entityActions";
+import type { SaveResult } from "@/customization/plugins";
+import type { ClientCustomization } from "@/customization/client/types";
+import type { ScriptHandler } from "@/customization/types";
+import type { ScriptRunContext } from "@/customization/sandbox/browserSandbox";
+import { useScriptHost } from "@/customization/client/useScriptHost";
+import { CustomCommandButtons } from "@/customization/client/CustomCommandButtons";
 
 const STATUS_FIELD: FieldDefinition = {
   name: "status",
@@ -92,11 +98,26 @@ export interface FormEngineProps {
   optionSetValues?: Record<string, OptionSetValue[]>;
   /** Možnosti pro lookup pole, klíč = FieldDefinition.targetEntity. */
   lookupOptions?: Record<string, LookupOption[]>;
-  onSubmit: (values: EntityFormValues) => Promise<void>;
+  /** Vrátí-li `{ error }`, formulář ho zobrazí (typicky validace z pluginu firmy). */
+  onSubmit: (values: EntityFormValues) => Promise<SaveResult>;
   submitLabel?: string;
   /** Seznam záznamů pro postranní navigátor (jen u existujícího záznamu) — viz RecordNavigator. */
   navigator?: { viewLabel: string; records: NavigatorRecord[] };
+  /** Tlačítka a skripty z vrstvy úprav firmy — dodá je CustomizedFormEngine. */
+  customization?: ClientCustomization;
 }
+
+interface FieldState {
+  visible?: boolean;
+  required?: boolean;
+  disabled?: boolean;
+}
+
+const NOTIFICATION_CLASSES = {
+  info: "border-sky-300 bg-sky-50 text-sky-900 dark:border-sky-800 dark:bg-sky-950 dark:text-sky-100",
+  warning: "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100",
+  error: "border-destructive/40 bg-destructive/10 text-destructive",
+} as const;
 
 function resolveField(entity: EntityDefinition, name: string): FieldDefinition {
   if (name === "status") return STATUS_FIELD;
@@ -118,6 +139,7 @@ export function FormEngine({
   onSubmit,
   submitLabel = "Uložit",
   navigator,
+  customization,
 }: FormEngineProps) {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -126,7 +148,9 @@ export function FormEngine({
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deactivateOpen, setDeactivateOpen] = useState(false);
   const router = useRouter();
-  const closePath = entityRegistry[entity.name]?.basePath ?? null;
+  const basePathOf = (entityName: string) =>
+    entityRegistry[entityName]?.basePath ?? customization?.basePaths[entityName] ?? null;
+  const closePath = basePathOf(entity.name);
   const currentId = defaultValues?.id as string | undefined;
   const [status, setStatus] = useState((defaultValues?.status as string | undefined) ?? "active");
   // Sdílené mezi všemi aresLookup poli tohoto formuláře — vybrání na jednom (např. Název)
@@ -160,7 +184,11 @@ export function FormEngine({
     if (!currentId || !closePath) return;
     setDeleteBusy(true);
     try {
-      await deleteEntityRecord(entity.table, closePath, currentId);
+      const result = await deleteEntityRecord(entity.table, closePath, currentId);
+      if (result?.error) {
+        setSubmitError(result.error);
+        setDeleteOpen(false);
+      }
     } finally {
       setDeleteBusy(false);
     }
@@ -171,12 +199,68 @@ export function FormEngine({
     control,
     handleSubmit,
     setValue,
+    getValues,
+    subscribe,
     reset,
     formState: { errors, isDirty },
   } = useForm<EntityFormValues>({
     resolver: zodResolver(schema),
     defaultValues: { status: "active", ...defaultValues },
   });
+
+  // --- Skripty firmy (vrstva úprav) ------------------------------------------------------
+  const [fieldStates, setFieldStates] = useState<Record<string, FieldState>>({});
+  const [notifications, setNotifications] = useState<{ message: string; level: keyof typeof NOTIFICATION_CLASSES }[]>([]);
+  const events = customization?.events;
+  const runHandler = useScriptHost(customization?.entity ?? entity.name, customization?.scripts ?? {}, {
+    setValue: (field, value) => setValue(field, value, { shouldDirty: true }),
+    setFieldState: (field, state, on) =>
+      setFieldStates((prev) => ({ ...prev, [field]: { ...prev[field], [state]: on } })),
+    notify: (message, level) => setNotifications((prev) => [...prev, { message, level }]),
+    clearNotifications: () => setNotifications([]),
+  });
+
+  const runEvent = useCallback(
+    async (handlers: ScriptHandler[] | undefined, event: ScriptRunContext["event"]) => {
+      let preventSave: string | undefined;
+      const changed = new Set<string>();
+      for (const handler of handlers ?? []) {
+        const outcome = await runHandler(handler, {
+          entity: entity.name,
+          recordId: currentId ?? null,
+          event,
+          values: getValues(),
+        });
+        preventSave ??= outcome.preventSave;
+        outcome.changedFields.forEach((f) => changed.add(f));
+      }
+      return { preventSave, changed };
+    },
+    [runHandler, entity.name, currentId, getValues],
+  );
+
+  // onLoad jednou na záznam (ne při každém router.refresh).
+  const loadedFor = useRef<string | null>(null);
+  useEffect(() => {
+    const key = currentId ?? "new";
+    if (!events?.onLoad?.length || loadedFor.current === key) return;
+    loadedFor.current = key;
+    void runEvent(events.onLoad, { type: "onLoad" });
+  }, [events, currentId, runEvent]);
+
+  // onChange jen na změnu od uživatele — setValue ze skriptu (type undefined) další událost
+  // nespustí, takže se skripty nemůžou navzájem roztočit.
+  useEffect(() => {
+    if (!events?.onChange) return;
+    return subscribe({
+      formState: { values: true },
+      callback: ({ name, type }) => {
+        if (type === "change" && name && events.onChange?.[name]) {
+          void runEvent(events.onChange[name], { type: "onChange", field: name });
+        }
+      },
+    });
+  }, [events, subscribe, runEvent]);
 
   // Důvod stavu patří ke konkrétnímu stavu (D365 vzor) — combobox níž nabízí jen důvody platné
   // pro tenhle živý (ne jen výchozí) stav, ať nejde vybrat "Neaktivní" jako důvod u záznamu,
@@ -198,7 +282,30 @@ export function FormEngine({
     setSubmitting(true);
     setSubmitError(null);
     try {
-      await onSubmit(values);
+      const { preventSave, changed } = await runEvent(events?.onSave, { type: "onSave" });
+      if (preventSave) {
+        setSubmitError(preventSave);
+        return;
+      }
+      // `values` už prošly zod schématem (čísla, prázdné → null); z formuláře se doberou jen
+      // pole, která onSave skript právě změnil.
+      const latest = {
+        ...values,
+        ...Object.fromEntries([...changed].map((name) => [name, getValues(name)])),
+      };
+      // Povinnost nastavená skriptem (setRequired) — zod schéma o ní neví.
+      const missing = Object.entries(fieldStates)
+        .filter(([name, s]) => s.required && s.visible !== false && (latest[name] === undefined || latest[name] === null || latest[name] === ""))
+        .map(([name]) => entity.fields.find((f) => f.name === name)?.label ?? name);
+      if (missing.length) {
+        setSubmitError(`Vyplňte povinná pole: ${missing.join(", ")}`);
+        return;
+      }
+      const result = await onSubmit(latest);
+      if (result?.error) {
+        setSubmitError(result.error);
+        return;
+      }
       // Pro nový záznam server action sama přesměruje na nově vzniklý záznam —
       // tahle navigace se pak nestihne uplatnit, což je v pořádku (uvidí ho hned).
       if (closeAfter && closePath) router.push(closePath);
@@ -283,6 +390,19 @@ export function FormEngine({
             <CommandBarButton icon={RefreshCw} label="Aktualizovat" onClick={() => router.refresh()} />
           </>
         )}
+        {currentId && customization && customization.commands.length > 0 && (
+          <>
+            <CommandBarSeparator />
+            <CustomCommandButtons
+              entity={customization.entity}
+              commands={customization.commands}
+              recordIds={[currentId]}
+              getValues={() => getValues()}
+              runHandler={runHandler}
+              disabled={isDirty}
+            />
+          </>
+        )}
 
         <div className="ml-auto flex items-center gap-2">
           {submitError && <p className="text-sm text-destructive">{submitError}</p>}
@@ -322,6 +442,15 @@ export function FormEngine({
           )}
         </div>
       </CommandBar>
+      {notifications.length > 0 && (
+        <div className="space-y-2">
+          {notifications.map((n, i) => (
+            <p key={i} role="status" className={cn("rounded-md border px-3 py-2 text-sm", NOTIFICATION_CLASSES[n.level])}>
+              {n.message}
+            </p>
+          ))}
+        </div>
+      )}
       {form.tabs.map((tab) => (
         <div key={tab.label} className="space-y-6">
           <h2 className="text-lg font-semibold">{tab.label}</h2>
@@ -337,8 +466,14 @@ export function FormEngine({
               <div className={cn("grid gap-4", COLUMN_CLASSES[form.columns ?? 2])}>
                 {section.fields.map((fieldName) => {
                   const rawField = resolveField(entity, fieldName);
+                  const state = fieldStates[rawField.name];
+                  if (state?.visible === false) return null;
                   const locked = Boolean(rawField.lockOnceSet && defaultValues?.[rawField.name]);
-                  const field = locked ? { ...rawField, readOnly: true } : rawField;
+                  const field = {
+                    ...rawField,
+                    readOnly: locked || (state?.disabled ?? rawField.readOnly),
+                    required: state?.required ?? rawField.required,
+                  };
                   const error = errors[field.name];
                   const options =
                     field.name === "status_reason_id"
@@ -406,7 +541,7 @@ export function FormEngine({
 
                           if (field.type === "lookup") {
                             const linkBasePath = field.targetEntity
-                              ? entityRegistry[field.targetEntity]?.basePath
+                              ? basePathOf(field.targetEntity)
                               : null;
                             const linkHref =
                               linkBasePath && rhf.value ? `${linkBasePath}/${rhf.value}` : null;

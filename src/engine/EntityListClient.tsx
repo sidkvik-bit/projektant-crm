@@ -27,10 +27,14 @@ import { CommandBar, CommandBarButton, CommandBarSeparator } from "@/components/
 import { GridEngine } from "./GridEngine";
 import { ColumnPicker } from "./ColumnPicker";
 import type { ColumnFilter } from "./ColumnFilterPopover";
+import { toast } from "sonner";
 import { bulkDeleteEntityRecords } from "./entityActions";
 import { exportEntityToExcel } from "./exportToExcel";
 import { resolveFilterField } from "./columnFields";
 import type { EntityDefinition, ViewDefinition } from "./types";
+import type { ClientCustomization } from "@/customization/client/types";
+import { useScriptHost } from "@/customization/client/useScriptHost";
+import { CustomCommandButtons } from "@/customization/client/CustomCommandButtons";
 
 const COLUMN_FILTER_PREFIX = "cf_";
 
@@ -54,6 +58,7 @@ export function EntityListClient({
   newLabel,
   isImportable,
   fieldOptions = {},
+  customization,
 }: {
   entity: EntityDefinition;
   view: ViewDefinition;
@@ -66,8 +71,11 @@ export function EntityListClient({
   isImportable: boolean;
   /** Možnosti pro lookup/optionset sloupcové filtry, klíč = skutečný DB sloupec — viz resolveFilterField. */
   fieldOptions?: Record<string, { value: string; label: string }[]>;
+  /** Tlačítka firmy nad seznamem (vrstva úprav) — pracují s vybranými řádky. */
+  customization?: Omit<ClientCustomization, "events">;
 }) {
   const router = useRouter();
+  const runScriptHandler = useScriptHost(customization?.entity ?? entity.name, customization?.scripts ?? {}, {});
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -162,7 +170,8 @@ export function EntityListClient({
   async function confirmBulkDelete() {
     setDeleteBusy(true);
     try {
-      await bulkDeleteEntityRecords(entity.table, basePath, Array.from(selectedIds));
+      const result = await bulkDeleteEntityRecords(entity.table, basePath, Array.from(selectedIds));
+      if (result.error) toast.error(`Odstraněno ${result.deleted} z ${selectedIds.size}. ${result.error}`);
       setSelectedIds(new Set());
       setDeleteOpen(false);
       router.refresh();
@@ -250,6 +259,15 @@ export function EntityListClient({
           onClick={handleExport}
           disabled={exporting || rows.length === 0}
         />
+        {customization && customization.commands.length > 0 && (
+          <CustomCommandButtons
+            entity={customization.entity}
+            commands={customization.commands}
+            recordIds={Array.from(selectedIds)}
+            getValues={() => ({})}
+            runHandler={runScriptHandler}
+          />
+        )}
         <CommandBarSeparator />
         <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
           <DialogTrigger

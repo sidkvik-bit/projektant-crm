@@ -10,7 +10,7 @@ import { getOptionSetValues } from "@/engine/optionSets";
 import { getOrgUserOptions, formatUserName } from "@/engine/users";
 import { getTimelineActivities } from "@/engine/activities";
 import { createTimelineActivity } from "@/engine/entityActions";
-import { FormEngine } from "@/engine/FormEngine";
+import { CustomizedFormEngine } from "@/customization/CustomizedFormEngine";
 import { ActivityTimeline } from "@/engine/ActivityTimeline";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { CalendarLink, DriveLink, EmailLink } from "@/components/SmartLinks";
@@ -202,7 +202,7 @@ export default async function ProjectDetailPage({
 
   async function handleUpdate(values: EntityFormValues) {
     "use server";
-    await updateProject(id, values);
+    return updateProject(id, values);
   }
 
   const account = applicantAccount as unknown as {
@@ -260,7 +260,7 @@ export default async function ProjectDetailPage({
           </TabsList>
 
           <TabsContent value="general" className="max-w-5xl space-y-8 pt-4">
-            <FormEngine
+            <CustomizedFormEngine
               entity={entity as EntityDefinition}
               form={formDef as FormDefinition}
               defaultValues={record}

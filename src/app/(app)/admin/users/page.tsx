@@ -43,7 +43,7 @@ export default async function AdminUsersPage() {
     <div>
       <PageHeader
         title="Uživatelé a role"
-        description={`Všichni uživatelé napříč organizacemi (${users.length}). Platform Superadmin má přístup do admin sekce; uvnitř organizace má zatím stejná práva jako Basic User.`}
+        description={`Všichni uživatelé napříč organizacemi (${users.length}). Platform Superadmin má přístup do admin sekce; System Customizer smí upravovat svou firmu (Nastavení → Přizpůsobení).`}
       />
       <div className="p-6">
         <AdminUserList users={users} action={adminSetUserRole} />

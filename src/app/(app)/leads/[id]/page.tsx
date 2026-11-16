@@ -7,7 +7,7 @@ import { getCommonFormContext } from "@/engine/formContext";
 import { getOptionSetValues } from "@/engine/optionSets";
 import { getTimelineActivities } from "@/engine/activities";
 import { createTimelineActivity } from "@/engine/entityActions";
-import { FormEngine } from "@/engine/FormEngine";
+import { CustomizedFormEngine } from "@/customization/CustomizedFormEngine";
 import { ActivityTimeline } from "@/engine/ActivityTimeline";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -49,7 +49,7 @@ export default async function LeadDetailPage({
 
   async function handleUpdate(values: EntityFormValues) {
     "use server";
-    await updateLead(id, values);
+    return updateLead(id, values);
   }
 
   const alreadyQualified = Boolean(record.converted_account_id);
@@ -84,7 +84,7 @@ export default async function LeadDetailPage({
       />
 
       <div className="mx-auto max-w-3xl space-y-8 p-6">
-        <FormEngine
+        <CustomizedFormEngine
           entity={entity as EntityDefinition}
           form={formDef as FormDefinition}
           defaultValues={record}

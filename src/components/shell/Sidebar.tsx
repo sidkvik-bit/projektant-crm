@@ -3,7 +3,9 @@
 import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { navGroups, adminNavGroup, type NavItem } from "./nav";
+import { navGroups, adminNavGroup, customizationNavItem, type NavGroup, type NavItem, type ShellNavExtras } from "./nav";
+import { customIcon } from "@/customization/client/iconMap";
+import { Shapes } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { AnimatedLogo } from "./AnimatedLogo";
 
@@ -40,12 +42,30 @@ function NavLink({ item, onNavigate }: { item: NavItem; onNavigate?: () => void 
 }
 
 /** Sdílený obsah panelu — vykreslí ho jak stálý desktopový Sidebar, tak MobileNav uvnitř Sheetu. */
+/** Menu s úpravami firmy: skupina vlastních entit za Tabulkami, Přizpůsobení v Nastavení. */
+function groupsWithExtras(extras: ShellNavExtras | undefined): NavGroup[] {
+  if (!extras) return navGroups;
+  const groups = navGroups.map((g) =>
+    g.label === "Nastavení" && extras.isCustomizer ? { ...g, items: [...g.items, customizationNavItem] } : g,
+  );
+  if (extras.customEntities.length) {
+    const at = groups.findIndex((g) => g.label === "Tabulky") + 1;
+    groups.splice(at, 0, {
+      label: "Vlastní entity",
+      items: extras.customEntities.map((e) => ({ label: e.label, href: e.href, icon: customIcon(e.icon, Shapes) })),
+    });
+  }
+  return groups;
+}
+
 export function SidebarContent({
   organizationName,
   isSuperadmin = false,
+  extras,
   onNavigate,
 }: {
   organizationName: string;
+  extras?: ShellNavExtras;
   /** Platform Superadmin vidí navíc skupinu Admin — viz src/app/(app)/admin/layout.tsx, kde se
    * přístup taky reálně vynucuje (tohle jen skrývá odkaz, samo o sobě není ochrana). */
   isSuperadmin?: boolean;
@@ -67,7 +87,7 @@ export function SidebarContent({
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-        {navGroups.map((group, i) => (
+        {groupsWithExtras(extras).map((group, i) => (
           <div key={group.label} className={i > 0 ? "pt-4" : undefined}>
             <p className="px-3 pb-1 text-xs font-medium uppercase tracking-wide text-sidebar-foreground/40">
               {group.label}
@@ -104,13 +124,15 @@ export function SidebarContent({
 export function Sidebar({
   organizationName,
   isSuperadmin,
+  extras,
 }: {
   organizationName: string;
   isSuperadmin?: boolean;
+  extras?: ShellNavExtras;
 }) {
   return (
     <aside className="hidden h-screen w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex">
-      <SidebarContent organizationName={organizationName} isSuperadmin={isSuperadmin} />
+      <SidebarContent organizationName={organizationName} isSuperadmin={isSuperadmin} extras={extras} />
     </aside>
   );
 }

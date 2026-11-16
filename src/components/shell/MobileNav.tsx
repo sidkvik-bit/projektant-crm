@@ -5,14 +5,17 @@ import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { SidebarContent } from "./Sidebar";
+import type { ShellNavExtras } from "./nav";
 
 /** Hamburger + zásuvka s navigací pro mobil/tablet — stálý Sidebar je od `md` schovaný (viz Sidebar.tsx). */
 export function MobileNav({
   organizationName,
   isSuperadmin,
+  extras,
 }: {
   organizationName: string;
   isSuperadmin?: boolean;
+  extras?: ShellNavExtras;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -32,6 +35,7 @@ export function MobileNav({
         <SidebarContent
           organizationName={organizationName}
           isSuperadmin={isSuperadmin}
+          extras={extras}
           onNavigate={() => setOpen(false)}
         />
       </SheetContent>

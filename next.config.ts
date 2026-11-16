@@ -16,6 +16,10 @@ const nextConfig: NextConfig = {
     ];
   },
 
+  // Sandbox pluginů firem (src/customization/sandbox) — WASM soubor se načítá za běhu z
+  // node_modules, bundler by ho jinak nenašel.
+  serverExternalPackages: ["quickjs-emscripten-core", "@jitl/quickjs-wasmfile-release-sync"],
+
   devIndicators: {
     position: "bottom-right",
   },

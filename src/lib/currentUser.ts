@@ -1,16 +1,16 @@
 import { createClient } from "@/lib/supabase/server";
 
-/** Platform Superadmin je role NAD všemi organizacemi (přístup do /admin sekce) — uvnitř
- * konkrétní organizace má zatím stejná práva jako Basic User. */
-export type UserRole = "Basic User" | "Platform Superadmin";
+import type { UserRole } from "./userRoles";
 
-export const USER_ROLES: UserRole[] = ["Basic User", "Platform Superadmin"];
+export { USER_ROLES, type UserRole } from "./userRoles";
 
 export interface CurrentUserContext {
   userId: string;
   organizationId: string;
   role: UserRole;
   isSuperadmin: boolean;
+  /** Smí upravovat vrstvu úprav firmy — v DB to stejně vynucuje RLS (is_org_customizer). */
+  isCustomizer: boolean;
 }
 
 /** `null` když není přihlášený, nebo přihlášený je, ale ještě neprošel onboardingem (chybí řádek v `users`). */
@@ -34,5 +34,6 @@ export async function getCurrentUserContext(): Promise<CurrentUserContext | null
     organizationId: profile.organization_id,
     role,
     isSuperadmin: role === "Platform Superadmin",
+    isCustomizer: role === "System Customizer" || role === "Platform Superadmin",
   };
 }

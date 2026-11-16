@@ -28,7 +28,7 @@ export default async function BugDetailPage({
 
   async function handleUpdate(values: EntityFormValues) {
     "use server";
-    await updateBug(id, values);
+    return updateBug(id, values);
   }
 
   return (

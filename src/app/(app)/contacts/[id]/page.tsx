@@ -29,7 +29,7 @@ export default async function ContactDetailPage({
 
   async function handleUpdate(values: EntityFormValues) {
     "use server";
-    await updateContact(id, values);
+    return updateContact(id, values);
   }
 
   return (

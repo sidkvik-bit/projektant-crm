@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { FormEngine } from "./FormEngine";
+import { CustomizedFormEngine } from "@/customization/CustomizedFormEngine";
+import type { SaveResult } from "@/customization/plugins";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { getCommonFormContext } from "./formContext";
 import { getOptionSetValues, type OptionSetValue } from "./optionSets";
@@ -10,6 +11,8 @@ import { getTimelineActivities, type EntityRef } from "./activities";
 import { createTimelineActivity } from "./entityActions";
 import { ActivityTimeline } from "./ActivityTimeline";
 import { entityRegistry } from "@/solutions/Projektant_CRM/registry";
+import { getCustomizations } from "@/customization/repository";
+import { resolveEntityRef } from "@/customization/registry";
 import { cn } from "@/lib/utils";
 import type { EntityDefinition, FormDefinition } from "./types";
 import type { EntityFormValues } from "./zodSchema";
@@ -34,7 +37,7 @@ export interface EntityFormPageProps {
    */
   extraOptionSetKeys?: string[];
   extraLookups?: ExtraLookup[];
-  onSubmit: (values: EntityFormValues) => Promise<void>;
+  onSubmit: (values: EntityFormValues) => Promise<SaveResult>;
   submitLabel?: string;
   /** Zapne historii aktivit pod formulářem — s rollupem z navázaných záznamů (`related`). */
   timeline?: { related?: EntityRef[]; relatedEmail?: string | null };
@@ -74,7 +77,8 @@ export async function EntityFormPage({
   ];
 
   const currentId = defaultValues?.id as string | undefined;
-  const selfRegistryEntry = entityRegistry[entity.name];
+  // Vlastní entity firmy nejsou ve statickém registru — rozliší je vrstva úprav.
+  const selfRegistryEntry = resolveEntityRef(entity.name, await getCustomizations());
 
   const [common, extraSets, lookupEntries, navigatorRecords, timelineActivities, timelineActivityTypes] =
     await Promise.all([
@@ -97,6 +101,7 @@ export async function EntityFormPage({
       currentId && selfRegistryEntry?.basePath
         ? listRecords<Record<string, unknown>>(supabase, selfRegistryEntry.table, {
             select: `id, ${selfRegistryEntry.labelFields.join(", ")}`,
+            filter: selfRegistryEntry.filter,
             sort: { field: "created_at", direction: "desc" },
           })
         : Promise.resolve([]),
@@ -148,7 +153,7 @@ export async function EntityFormPage({
             )}
           </div>
         )}
-        <FormEngine
+        <CustomizedFormEngine
           entity={entity}
           form={form}
           defaultValues={defaultValues}
@@ -174,7 +179,7 @@ export async function EntityFormPage({
             <ActivityTimeline
               entityType={entity.name}
               entityId={currentId}
-              detailPath={`${entityRegistry[entity.name]?.basePath ?? ""}/${currentId}`}
+              detailPath={`${selfRegistryEntry?.basePath ?? ""}/${currentId}`}
               activities={timelineActivities}
               activityTypes={timelineActivityTypes}
               onAdd={createTimelineActivity}

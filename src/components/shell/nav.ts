@@ -24,6 +24,7 @@ import {
   UserCog,
   UserRound,
   Plug,
+  Blocks,
 } from "lucide-react";
 
 export interface NavItem {
@@ -31,6 +32,16 @@ export interface NavItem {
   href: string;
   icon: LucideIcon;
 }
+
+/** Položky menu z vrstvy úprav firmy — ze serveru přichází jen data, ikona je název
+ * (komponenta se přes hranici server/klient předat nedá), viz customIcon. */
+export interface ShellNavExtras {
+  customEntities: { label: string; href: string; icon?: string }[];
+  /** System Customizer / Platform Superadmin — vidí Nastavení → Přizpůsobení. */
+  isCustomizer: boolean;
+}
+
+export const customizationNavItem: NavItem = { label: "Přizpůsobení", href: "/settings/customization", icon: Blocks };
 
 export interface NavGroup {
   label: string;

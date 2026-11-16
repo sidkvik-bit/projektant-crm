@@ -31,7 +31,7 @@ export default async function ActivityDetailPage({
 
   async function handleUpdate(values: EntityFormValues) {
     "use server";
-    await updateActivity(id, values);
+    return updateActivity(id, values);
   }
 
   return (

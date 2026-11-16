@@ -13,6 +13,8 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { USER_ROLES, type UserRole } from "@/lib/userRoles";
 
 export interface AdminUserRow {
   userId: string;
@@ -25,7 +27,14 @@ export interface AdminUserRow {
 }
 
 const SUPERADMIN = "Platform Superadmin";
-const BASIC = "Basic User";
+const CUSTOMIZER = "System Customizer";
+
+const ROLE_EFFECT: Record<UserRole, string> = {
+  "Basic User": "Bude appku jen používat — bez admin sekce a bez úprav firmy.",
+  "System Customizer":
+    "Smí upravovat svou firmu: vlastní pole, entity, formuláře, pohledy, tlačítka, skripty a pluginy. Admin sekci neuvidí.",
+  "Platform Superadmin": "Získá přístup do admin sekce, uvidí data všech organizací a smí upravovat i firmy.",
+};
 
 export function AdminUserList({
   users,
@@ -36,7 +45,7 @@ export function AdminUserList({
 }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
-  const [target, setTarget] = useState<AdminUserRow | null>(null);
+  const [target, setTarget] = useState<{ user: AdminUserRow; role: UserRole } | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,14 +53,12 @@ export function AdminUserList({
     `${user.name} ${user.email ?? ""} ${user.organizationName}`.toLowerCase().includes(query.trim().toLowerCase()),
   );
 
-  const nextRole = target?.role === SUPERADMIN ? BASIC : SUPERADMIN;
-
   async function confirmRoleChange() {
     if (!target) return;
     setSaving(true);
     setError(null);
     try {
-      await action(target.userId, nextRole);
+      await action(target.user.userId, target.role);
       setTarget(null);
       router.refresh();
     } catch (err) {
@@ -85,15 +92,29 @@ export function AdminUserList({
                 <p className="flex flex-wrap items-center gap-2 text-sm font-medium">
                   {user.name}
                   {user.role === SUPERADMIN && <Badge>{SUPERADMIN}</Badge>}
+                  {user.role === CUSTOMIZER && <Badge variant="secondary">{CUSTOMIZER}</Badge>}
                   {user.isSelf && <Badge variant="secondary">To jsi ty</Badge>}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {user.email ?? "—"} · {user.organizationName}
                 </p>
               </div>
-              <Button variant="outline" size="sm" onClick={() => setTarget(user)}>
-                {user.role === SUPERADMIN ? "Odebrat superadmina" : "Udělat superadmina"}
-              </Button>
+              <Select
+                items={Object.fromEntries(USER_ROLES.map((r) => [r, r]))}
+                value={user.role}
+                onValueChange={(role) => role && role !== user.role && setTarget({ user, role: role as UserRole })}
+              >
+                <SelectTrigger size="sm" className="w-48" aria-label={`Role uživatele ${user.name}`}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {USER_ROLES.map((r) => (
+                    <SelectItem key={r} value={r}>
+                      {r}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           ))}
         </div>
@@ -102,13 +123,12 @@ export function AdminUserList({
       <Dialog open={target !== null} onOpenChange={(open) => !open && setTarget(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Změnit roli uživatele {target?.name}?</DialogTitle>
+            <DialogTitle>Změnit roli uživatele {target?.user.name}?</DialogTitle>
             <DialogDescription>
-              {target?.role} → {nextRole}.{" "}
-              {nextRole === SUPERADMIN
-                ? "Získá přístup do admin sekce a uvidí data všech organizací."
-                : "Ztratí přístup do admin sekce a bude vidět jen svoji organizaci."}
-              {target?.isSelf && nextRole === BASIC && " Tímhle si sám/sama odebereš přístup do admin sekce."}
+              {target?.user.role} → {target?.role}. {target && ROLE_EFFECT[target.role]}
+              {target?.user.isSelf &&
+                target.role !== SUPERADMIN &&
+                " Tímhle si sám/sama odebereš přístup do admin sekce."}
             </DialogDescription>
           </DialogHeader>
           {error && <p className="text-sm text-destructive">{error}</p>}

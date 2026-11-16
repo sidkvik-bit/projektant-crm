@@ -47,7 +47,7 @@ export default async function AccountDetailPage({
 
   async function handleUpdate(values: EntityFormValues) {
     "use server";
-    await updateAccount(id, values);
+    return updateAccount(id, values);
   }
 
   return (
