@@ -35,3 +35,4 @@ export function buildStatusViews(entity: EntityDefinition, template: ViewTemplat
     },
   ];
 }
+
