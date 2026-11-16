@@ -69,3 +69,4 @@ Zelené a oranžové změny jsou za pár minut na https://projektantcrmdev.verce
 
 Spoustu věcí (vlastní pole, formuláře, pohledy, tlačítka, skripty) si firma nastaví i bez kódu
 přímo v aplikaci — viz [docs/upravy-firmy/](upravy-firmy/README.md).
+
