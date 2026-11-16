@@ -22,7 +22,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: TypeScript
-        run: pnpm exec tsc --noEmit
+        # LayoutProps/PageProps generuje Next do .next/types — lokálně je tam má z `pnpm dev`.
+        run: pnpm exec next typegen && pnpm exec tsc --noEmit
       - name: ESLint
         run: pnpm lint
       - name: Vitest
