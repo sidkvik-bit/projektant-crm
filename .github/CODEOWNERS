@@ -1,0 +1,4 @@
+# Pojistky semaforu — změnu smí schválit jen vlastník. Ostatní pravidla jsou v .github/risk/rules.mjs.
+/.github/                @sidkvik-bit
+/.claude/settings.json   @sidkvik-bit
+/.claude/hooks/          @sidkvik-bit

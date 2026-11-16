@@ -1,0 +1,31 @@
+# Kontroly každého PR i pushe do develop. Check "ci" je povinný pro merge do develop.
+# E2E (Playwright) tu neběží — potřebuje přístup k DEV databázi; pouští se lokálně.
+name: ci
+on:
+  pull_request:
+  push:
+    branches: [develop]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: TypeScript
+        run: pnpm exec tsc --noEmit
+      - name: ESLint
+        run: pnpm lint
+      - name: Vitest
+        run: pnpm test
+      - name: Semafor (testy pravidel)
+        run: node --test .github/risk/classify.test.mjs

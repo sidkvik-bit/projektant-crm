@@ -54,3 +54,6 @@ next-env.d.ts
 New Text Document.txt
 .vercel
 .env*
+
+# Claude Code — osobní nastavení (vlastník si tu vypíná semafor)
+.claude/settings.local.json
