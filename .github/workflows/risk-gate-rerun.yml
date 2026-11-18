@@ -1,0 +1,28 @@
+# Po review (schválení / zamítnutí) znovu spustí PŮVODNÍ běh risk-gate pro aktuální commit PR.
+# Nový běh pod událostí pull_request_review by vytvořil druhý check "risk-gate" vedle starého
+# neúspěšného — a GitHub pak PR blokuje kvůli tomu starému (stalo se u PR #11). Re-run přepíše
+# výsledek ve stejném checku. Job se schválně nejmenuje risk-gate, ať nevzniká další check.
+name: risk-gate-rerun
+on:
+  pull_request_review:
+    types: [submitted, dismissed]
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  rerun:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Znovu spustit risk-gate pro aktuální commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          id=$(gh run list -R "$REPO" -w risk-gate -e pull_request -c "$HEAD_SHA" -L 1 --json databaseId --jq '.[0].databaseId // empty')
+          if [ -z "$id" ]; then echo "Pro $HEAD_SHA neběžel žádný risk-gate — není co spouštět."; exit 0; fi
+          # Běží-li ještě, počkat — re-run jde jen u dokončeného běhu.
+          gh run watch "$id" -R "$REPO" > /dev/null || true
+          gh run rerun "$id" -R "$REPO"
