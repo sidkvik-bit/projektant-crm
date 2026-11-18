@@ -131,7 +131,14 @@ test("celý tok: souhlas → token → volání MCP → obnovení tokenu", async
   const rotated = await refreshed.json();
   expect(rotated.access_token).not.toBe(tokens.access_token);
 
-  // OAuth 2.1 chce u veřejných klientů rotaci: starý refresh token už nesmí fungovat.
+  // Rotace s tolerancí (oauthTokens.ts, REFRESH_REUSE_GRACE_MS): klient, kterému se po síťové
+  // chybě nevrátila odpověď, smí předchozí refresh token krátce zopakovat a nebude odhlášen…
+  const retry = await request.post("/api/oauth/token", {
+    form: { grant_type: "refresh_token", refresh_token: tokens.refresh_token, client_id: clientId },
+  });
+  expect(retry.ok()).toBe(true);
+
+  // …ale tím se token posune o další rotaci a původní už nesmí fungovat (OAuth 2.1 rotace).
   const reuse = await request.post("/api/oauth/token", {
     form: { grant_type: "refresh_token", refresh_token: tokens.refresh_token, client_id: clientId },
   });

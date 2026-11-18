@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, type ReactElement } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -61,7 +60,6 @@ export function FieldDialog({
   optionSets: { key: string; label: string }[];
   trigger: ReactElement;
 }) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const initial = existing?.definition;
   const [label, setLabel] = useState(initial?.label ?? "");
@@ -96,7 +94,6 @@ export function FieldDialog({
     }
     toast.success(`Pole ${label} uloženo do rozpracovaných změn.`);
     setOpen(false);
-    router.refresh();
   }
 
   return (

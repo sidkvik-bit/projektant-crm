@@ -8,6 +8,7 @@ import { listComponentRows, PREVIEW_COOKIE, toCustomizationSet } from "./reposit
 import { validateComponent } from "./validation";
 import { COMPONENT_TYPES, type ComponentType } from "./types";
 import { parsePackage, type CustomizationPackage } from "./package";
+import { discardDraft, publishDrafts, removeComponent, revertToPublish } from "./publishing";
 
 // Server actions studia (Nastavení → Přizpůsobení). Zápis do customization_components hlídá
 // RLS (is_org_customizer), tady je jen čitelnější chyba a validace definic, ať do vrstvy
@@ -57,82 +58,29 @@ export async function saveComponentDraft(
 
 /** Smazání jde přes draft (draft_deleted) — zmizí až publikováním; nepublikovaná se smaže hned. */
 export async function deleteComponent(type: ComponentType, entity: string, key: string): Promise<StudioResult> {
-  try {
-    const supabase = await requireCustomizer();
-    const match = { component_type: type, entity_name: entity, key };
-    const { data: row, error: readError } = await supabase
-      .from("customization_components")
-      .select("published")
-      .match(match)
-      .maybeSingle();
-    if (readError) throw readError;
-    if (!row) return { ok: true, value: null };
-
-    const { error } =
-      row.published == null
-        ? await supabase.from("customization_components").delete().match(match)
-        : await supabase.from("customization_components").update({ draft: null, draft_deleted: true }).match(match);
-    if (error) throw error;
-    revalidateAll();
-    return { ok: true, value: null };
-  } catch (err) {
-    return fail(err);
-  }
+  return run(async (supabase) => removeComponent(supabase, type, entity, key));
 }
 
-/** Zahodí rozpracovanou změnu komponenty — vrátí se publikovaná verze. */
 export async function discardComponentDraft(type: ComponentType, entity: string, key: string): Promise<StudioResult> {
-  try {
-    const supabase = await requireCustomizer();
-    const match = { component_type: type, entity_name: entity, key };
-    const { data: row } = await supabase.from("customization_components").select("published").match(match).maybeSingle();
-    const { error } =
-      row && row.published == null
-        ? await supabase.from("customization_components").delete().match(match)
-        : await supabase.from("customization_components").update({ draft: null, draft_deleted: false }).match(match);
-    if (error) throw error;
-    revalidateAll();
-    return { ok: true, value: null };
-  } catch (err) {
-    return fail(err);
-  }
+  return run(async (supabase) => discardDraft(supabase, type, entity, key));
 }
 
 export async function publishCustomizations(message: string): Promise<StudioResult<number>> {
-  try {
-    const supabase = await requireCustomizer();
-    // Před publikací znovu zkontrolovat celý draft — mezi uložením komponent se mohly
-    // změnit ty, na které odkazují (smazané pole, které je ve formuláři…).
-    const rows = await listComponentRows(supabase);
-    const set = toCustomizationSet(rows, true);
-    const problems: string[] = [];
-    for (const row of rows.filter((r) => r.draft != null && !r.draft_deleted)) {
-      const checked = await validateComponent(supabase, set, {
-        type: row.component_type,
-        entity: row.entity_name,
-        key: row.key,
-        definition: row.draft,
-      });
-      if (!checked.ok) problems.push(`${row.component_type} ${row.entity_name}/${row.key}: ${checked.error}`);
-    }
-    if (problems.length) return { ok: false, error: `Nejde publikovat:\n${problems.join("\n")}` };
-
-    const { data, error } = await supabase.rpc("publish_customizations", { p_message: message.slice(0, 500) });
-    if (error) throw error;
-    revalidateAll();
-    return { ok: true, value: data as number };
-  } catch (err) {
-    return fail(err);
-  }
+  return run(async (supabase) => publishDrafts(supabase, message));
 }
 
 export async function revertPublish(publishId: string): Promise<StudioResult<number>> {
+  return run(async (supabase) => revertToPublish(supabase, publishId));
+}
+
+/** Ověří roli, provede operaci a po úspěchu obnoví stránky. */
+async function run<T>(
+  operation: (supabase: Awaited<ReturnType<typeof createClient>>) => Promise<StudioResult<T>>,
+): Promise<StudioResult<T>> {
   try {
-    const supabase = await requireCustomizer();
-    const { data, error } = await supabase.rpc("revert_customization_publish", { p_publish_id: publishId });
-    if (error) throw error;
-    revalidateAll();
-    return { ok: true, value: data as number };
+    const result = await operation(await requireCustomizer());
+    if (result.ok) revalidateAll();
+    return result;
   } catch (err) {
     return fail(err);
   }

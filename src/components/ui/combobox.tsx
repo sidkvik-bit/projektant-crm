@@ -27,7 +27,7 @@ function ComboboxInput({ className, ref, ...props }: ComboboxPrimitive.Input.Pro
       ref={ref}
       data-slot="combobox-input"
       className={cn(
-        "h-8 w-full bg-transparent py-2 pr-8 pl-7 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50",
+        "h-8 w-full bg-transparent py-2 pr-8 pl-7 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:text-foreground disabled:opacity-100",
         className
       )}
       {...props}

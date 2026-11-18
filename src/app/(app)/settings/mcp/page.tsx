@@ -25,8 +25,9 @@ export default async function McpSettingsPage() {
           </p>
           <p>
             <strong className="text-foreground">Co pak AI umí:</strong> číst zakázky, termíny, zájemce a
-            kontakty — a na vyžádání zapisovat: posunout fázi projektu („podepsala se smlouva“), odškrtnout
-            milník, opravit telefon u kontaktu, založit zájemce nebo zapsat aktivitu.
+            kontakty — a na vyžádání dělat skoro všechno co ve webu: posunout fázi projektu („podepsala se
+            smlouva“), odškrtnout milník, kvalifikovat zájemce, připravit nabídku s položkami, označit fakturu
+            jako uhrazenou nebo upravit CRM pro vaši firmu (pole, formuláře, tlačítka).
           </p>
           <p>
             <strong className="text-foreground">Za AI platíš ty, ne my</strong> — model běží ve tvém klientu,
@@ -35,7 +36,8 @@ export default async function McpSettingsPage() {
           <p>
             Token jedná <strong className="text-foreground">tvým jménem</strong>: AI uvidí a změní přesně to,
             co bys mohl/a ty ve webu, a nic navíc — data jiných firem jsou mimo dosah, i kdyby si o ně řekl.
-            <strong className="text-foreground"> Mazat záznamy přes AI nejde vůbec</strong> a každá změna je
+            <strong className="text-foreground"> Smazat ani vystavit fakturu AI sama nemůže</strong> — pošle ti
+            odkaz, kde to potvrdíš ty. Každá změna je
             i se starou hodnotou v logu změn.
           </p>
         </div>

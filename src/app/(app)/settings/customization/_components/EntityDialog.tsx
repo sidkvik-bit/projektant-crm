@@ -72,7 +72,6 @@ export function EntityDialog({
     toast.success(`Entita ${displayName} uložena do rozpracovaných změn.`);
     setOpen(false);
     router.push(`/settings/customization/${key}`);
-    router.refresh();
   }
 
   return (

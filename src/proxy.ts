@@ -3,7 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 
 // Next.js 16 přejmenoval Middleware na Proxy — funkce je stejná, jen jiný soubor/export.
 // /api má vlastní autorizaci (session, nebo CRON_SECRET u cronu) — negatuje ji tu.
-const PUBLIC_PATHS = ["/login", "/auth/callback", "/api", "/Privacy", "/Toc", "/.well-known"];
+const PUBLIC_PATHS = ["/login", "/auth/callback", "/api", "/Privacy", "/Toc", "/napoveda", "/.well-known"];
 // Veřejná úvodní stránka (Google to u ověřování OAuth appky vyžaduje). Musí se porovnávat
 // PŘESNĚ — přes startsWith by "/" pustilo úplně celou appku bez přihlášení.
 const PUBLIC_EXACT_PATHS = ["/"];

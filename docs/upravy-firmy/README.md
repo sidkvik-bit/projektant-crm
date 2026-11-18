@@ -9,7 +9,7 @@ firmy stejná a vyvíjí se dál. Úpravy firmy leží nad ní a jsou jen její.
 firma změnu dostane automaticky a její úpravy zůstanou.
 
 Najdeš je v **Nastavení → Přizpůsobení**. Vidí je jen uživatelé s rolí **System Customizer**
-(a Platform Superadmin). Roli přiděluje Honza v Admin → Uživatelé a role.
+(a Platform Superadmin). Roli přiděluje správce platformy.
 
 ## Jak to funguje
 
@@ -56,18 +56,15 @@ Entity základu: `Account` (Firmy), `Contact` (Kontakty), `Lead` (Zájemci), `Pr
 - **Jádro fakturace.** Číselná řada, výpočet DPH a QR platba zůstávají pevné, aby doklady
   seděly. Pluginem jde fakturu po vygenerování doplnit (viz [pluginy.md](pluginy.md)).
 
-Potřebuješ něco za touto hranicí? To je změna aplikace, ne úprava firmy. Popiš ji Honzovi,
-nebo ji připrav jako změnu kódu podle [CONTRIBUTING.md](../../CONTRIBUTING.md).
+Potřebuješ něco za touto hranicí? To je změna aplikace, ne úprava firmy. Napiš nám na
+jan.kvicala.29@gmail.com.
 
 ## S pomocí AI
 
-Přes MCP (Nastavení → MCP - AI) umí Claude úpravy připravit za tebe. Nástroje:
-
-- `describe_customization_api`: reference všech tvarů a API.
-- `list_customizations`: co firma má.
-- `save_customization_draft`: uloží rozpracovanou změnu.
-
-Publikuješ vždy ty ve studiu. AI publikovat ani mazat neumí.
+Přes MCP (Nastavení → MCP - AI) zvládne Claude celý postup za tebe: úpravu připraví, ukáže ti,
+co se změní (před → po), a po tvém souhlasu ji publikuje. Umí i vrátit publikaci z historie
+nebo komponentu odebrat (také až publikováním). Nemusíš tedy vědět, kam ve studiu kliknout.
+Viz [AI asistent](../napoveda/ai-asistent.md).
 
 Příklad zadání: *„Přidej na projekty pole Číslo zakázky a tlačítko, které z projektu založí
 nabídku.“*

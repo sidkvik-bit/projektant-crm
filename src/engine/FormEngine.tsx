@@ -455,8 +455,8 @@ export function FormEngine({
         <div key={tab.label} className="space-y-6">
           <h2 className="text-lg font-semibold">{tab.label}</h2>
           {tab.sections.map((section) => (
-            <div key={section.label} className="space-y-4 rounded-lg border p-4">
-              <h3 className="text-sm font-medium text-muted-foreground">{section.label}</h3>
+            <div key={section.label} className="space-y-4 rounded-xl border bg-card p-5 shadow-sm">
+              <h3 className="border-b pb-2 text-sm font-semibold text-foreground">{section.label}</h3>
               {section.ruianLookup && (
                 <RuianAddressLookup
                   setValue={setValue}
@@ -490,7 +490,7 @@ export function FormEngine({
 
                   return (
                     <div key={field.name} className="space-y-1.5">
-                      <Label htmlFor={field.name}>
+                      <Label htmlFor={field.name} className="text-xs text-muted-foreground">
                         {field.label}
                         {field.required && <span className="text-destructive"> *</span>}
                       </Label>

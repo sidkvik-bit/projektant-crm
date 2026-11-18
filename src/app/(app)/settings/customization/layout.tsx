@@ -28,7 +28,7 @@ export default async function CustomizationLayout({ children }: { children: Reac
           </Link>
         ))}
         <a
-          href="https://github.com/sidkvik-bit/projektant-crm/tree/develop/docs/upravy-firmy"
+          href="/napoveda/upravy-firmy"
           target="_blank"
           rel="noreferrer"
           className="ml-auto rounded-lg px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"

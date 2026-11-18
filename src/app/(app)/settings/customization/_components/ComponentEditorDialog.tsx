@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, type ReactElement } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -64,7 +63,6 @@ export function ComponentEditorDialog({
   fixedKey?: string;
   keyHint?: string;
 }) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const def = (initial ?? {}) as Definition;
   const [key, setKey] = useState(componentKey ?? fixedKey ?? "");
@@ -113,7 +111,6 @@ export function ComponentEditorDialog({
     result.value.warnings.forEach((w) => toast.warning(w));
     toast.success("Uloženo do rozpracovaných změn — uživatelé to uvidí po publikování.");
     setOpen(false);
-    router.refresh();
   }
 
   return (

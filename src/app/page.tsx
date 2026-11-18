@@ -10,6 +10,9 @@ import {
   BellRing,
   FileSpreadsheet,
   KanbanSquare,
+  Sparkles,
+  Bot,
+  Puzzle,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
@@ -19,6 +22,24 @@ import { AnimatedLogo } from "@/components/shell/AnimatedLogo";
  * vyžaduje, aby se kdokoliv, včetně jejich schvalovatele, dostal na domovskou stránku a
  * pochopil z ní, co appka dělá). Viz i PUBLIC_PATHS v src/proxy.ts. */
 const FEATURES = [
+  {
+    icon: Sparkles,
+    title: "AI asistent nad tvými zakázkami",
+    description:
+      "Připoj CRM do Clauda, Cursoru nebo Gemini a ptej se běžnou řečí: co tento týden hoří, které nabídky čekají, kolik jsme fakturovali.",
+  },
+  {
+    icon: Bot,
+    title: "AI zapisuje za tebe",
+    description:
+      "Řekni AI, ať posune fázi projektu, odškrtne milník, založí zájemce nebo zapíše schůzku. Jedná tvým jménem, smazání vždy potvrzuješ ty a každá změna je v historii.",
+  },
+  {
+    icon: Puzzle,
+    title: "Přizpůsobení pro tvoji firmu",
+    description:
+      "Vlastní pole, tabulky, formuláře, pohledy, tlačítka i automatizace bez zásahu do aplikace. Stačí AI říct, co chceš: úpravu připraví, ukáže ti změny a po tvém souhlasu ji publikuje.",
+  },
   {
     icon: Target,
     title: "Zájemci a firmy",
@@ -119,6 +140,9 @@ export default async function LandingPage() {
             <Button variant="outline" render={<Link href="#funkce" />}>
               Co všechno umí
             </Button>
+            <Button variant="ghost" render={<Link href="/napoveda" />}>
+              Nápověda
+            </Button>
           </div>
         </section>
 
@@ -193,6 +217,9 @@ export default async function LandingPage() {
           </Link>
           <Link href="/Toc" className="hover:text-foreground hover:underline">
             Podmínky užití
+          </Link>
+          <Link href="/napoveda" className="hover:text-foreground hover:underline">
+            Nápověda
           </Link>
           <a href="mailto:jan.kvicala.29@gmail.com" className="hover:text-foreground hover:underline">
             jan.kvicala.29@gmail.com

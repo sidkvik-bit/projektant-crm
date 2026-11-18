@@ -55,6 +55,18 @@ async function createUserWithMcpToken(prefix: string) {
 }
 
 /** Jedno JSON-RPC volání na MCP endpoint. */
+/** Názvy nástrojů z odpovědi tools/list (SSE i čisté JSON). */
+function toolNames(body: string): string[] {
+  const json = body.split("\n").find((line) => line.startsWith("data:"))?.slice(5) ?? body;
+  return (JSON.parse(json).result.tools as { name: string }[]).map((t) => t.name);
+}
+
+/** Mazat přes AI nejde: jediný „mazací“ nástroj smazání jen připraví a potvrzuje ho člověk ve webu.
+ * remove_customization jen označí úpravu k odebrání — zmizí až publikováním a jde vrátit. */
+function expectNoDirectDelete(body: string) {
+  expect(toolNames(body).filter((name) => /delete|remove/.test(name)).sort()).toEqual(["remove_customization", "request_delete"]);
+}
+
 async function mcpCall(
   request: import("@playwright/test").APIRequestContext,
   token: string | null,
@@ -104,7 +116,7 @@ test("a valid token can list tools and read its own organization's data", async 
   }
 });
 
-test("every core entity can be listed and created, and nothing can be deleted", async ({ request }) => {
+test("every core entity can be listed and created, and nothing can be deleted directly", async ({ request }) => {
   const { admin, token, userId, orgId, suffix } = await createUserWithMcpToken("surface");
 
   try {
@@ -126,7 +138,7 @@ test("every core entity can be listed and created, and nothing can be deleted", 
     ]) {
       expect(body, `chybí nástroj ${tool}`).toContain(tool);
     }
-    expect(body).not.toContain("delete");
+    expectNoDirectDelete(body);
 
     // Řetěz, jak ho projde model: firma → kontakt pod ní → projekt pro ni → milník.
     const call = async (name: string, args: Record<string, unknown>) => {
@@ -217,14 +229,14 @@ test("a token cannot reach another organization's data — RLS holds through MCP
   }
 });
 
-test("writes land in the caller's own organization, and there is no delete tool at all", async ({ request }) => {
+test("writes land in the caller's own organization, and there is no direct delete tool", async ({ request }) => {
   const { admin, token, userId, orgId, suffix } = await createUserWithMcpToken("write");
 
   try {
     const list = await mcpCall(request, token, "tools/list");
     const toolsBody = await list.text();
-    // Zápisová plocha je schválně úzká — mazání ani hromadné změny se nesmí objevit.
-    expect(toolsBody).not.toContain("delete");
+    // Zápisová plocha je schválně úzká — přímé mazání ani hromadné změny se nesmí objevit.
+    expectNoDirectDelete(toolsBody);
     expect(toolsBody).toContain("create_lead");
 
     const created = await mcpCall(request, token, "tools/call", {
@@ -262,7 +274,9 @@ test("generating a token through the settings UI produces a working token", asyn
 
   // Token se ukazuje jen jednou, přímo v dialogu — vytáhneme ho a rovnou zkusíme použít.
   const tokenCode = page.locator("pre").filter({ hasText: /^pcrm_/ });
-  await expect(tokenCode).toBeVisible();
+  // Vygenerování tokenu zakládá vlastní Supabase session (magic link, #12) — v dev režimu to
+  // trvá déle než výchozích 5 s.
+  await expect(tokenCode).toBeVisible({ timeout: 20_000 });
   const token = ((await tokenCode.textContent()) ?? "").trim();
   expect(token.startsWith("pcrm_")).toBe(true);
 

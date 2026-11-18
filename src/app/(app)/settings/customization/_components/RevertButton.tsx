@@ -28,7 +28,6 @@ export function RevertButton({ publishId, number, changeCount }: { publishId: st
     if (!result.ok) return toast.error(result.error);
     toast.success(`Vrácení verze #${number} je připravené v rozpracovaných změnách — zkontroluj a publikuj.`);
     router.push("/settings/customization/publish");
-    router.refresh();
   }
 
   return (

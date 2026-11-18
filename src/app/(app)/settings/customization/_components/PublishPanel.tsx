@@ -36,7 +36,6 @@ export function PublishPanel({ pendingCount }: { pendingCount: number }) {
     }
     toast.success(`Publikováno jako verze #${result.value}.`);
     router.push("/settings/customization/history");
-    router.refresh();
   }
 
   return (
