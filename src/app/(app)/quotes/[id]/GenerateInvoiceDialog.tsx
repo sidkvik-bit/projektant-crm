@@ -103,7 +103,7 @@ export function GenerateInvoiceDialog({
 
           {items.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Nabídka nemá žádné položky — faktura vznikne prázdná a položky se do ní doplní ručně.
+              Do faktury se převezmou všechny fáze nabídky — každá jako jedna položka s cenou fáze.
             </p>
           ) : (
             <div className="max-h-72 space-y-1 overflow-y-auto">

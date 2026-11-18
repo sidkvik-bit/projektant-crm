@@ -186,14 +186,15 @@ export function registerQuoteTools(server: McpServer) {
       }
 
       const supplier = profile.id ? await resolveSupplierProfile(supabase, "quote", profile.id) : null;
+      // Kontakt ověřit vždy (RLS): cizí klíč by jinak pustil uhodnuté id kontaktu jiné firmy.
+      const { data: contact } = await supabase
+        .from("contacts")
+        .select("first_name, last_name, address_street, address_house_number, address_city, address_zip")
+        .eq("id", contactId)
+        .maybeSingle();
+      if (!contact) return fail("Objednatel (kontakt) nenalezen (nebo k němu nemáš přístup).");
       let zadavatel = input.zadavatel_text;
       if (zadavatel === undefined) {
-        const { data: contact } = await supabase
-          .from("contacts")
-          .select("first_name, last_name, address_street, address_house_number, address_city, address_zip")
-          .eq("id", contactId)
-          .maybeSingle();
-        if (!contact) return fail("Objednatel (kontakt) nenalezen.");
         zadavatel = formatClientLine(formatContactName(contact), {
           street: contact.address_street,
           houseNumber: contact.address_house_number,
@@ -287,7 +288,9 @@ export function registerQuoteTools(server: McpServer) {
         try {
           await replaceQuotePhases(supabase, quote_id, newPhases);
         } catch (err) {
-          return fail(`Fáze se nepodařilo uložit: ${errorText(err)}. Zkontroluj nabídku přes get_quote_detail a pošli fáze znovu.`);
+          return fail(
+            `${Object.keys(patch).length > 0 ? "Pole nabídky se upravila, ale f" : "F"}áze se nepodařilo uložit (původní fáze zůstaly): ${errorText(err)}.`,
+          );
         }
       }
       return ok({ pred_zmenou: before, po_zmene: await quoteDetail(supabase, quote_id) });

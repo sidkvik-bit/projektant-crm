@@ -79,14 +79,21 @@ export async function phasesFromTemplates(supabase: SupabaseClient, codes: strin
 }
 
 /**
- * Nahradí všechny fáze nabídky novým seznamem (MCP update_quote). Smaže a vloží v tomto pořadí;
- * kdyby vložení selhalo, chyba se vrátí a nabídka zůstane bez fází — volající to musí ohlásit.
+ * Nahradí všechny fáze nabídky novým seznamem (MCP update_quote) — v jedné transakci (RPC),
+ * takže po chybě zůstanou původní fáze, nikdy nabídka bez fází.
  */
 export async function replaceQuotePhases(supabase: SupabaseClient, quoteId: string, phases: NewQuotePhase[]) {
   await assertQuoteVisible(supabase, quoteId);
-  const { error } = await supabase.from("quote_phases").delete().eq("quote_id", quoteId);
+  const { error } = await supabase.rpc("replace_quote_phases", {
+    p_quote_id: quoteId,
+    p_phases: phases.map((p) => ({
+      kod: p.kod ?? null,
+      nazev: p.nazev.trim(),
+      odrazky: p.odrazky.map((o) => o.trim()).filter(Boolean),
+      cena: p.cena,
+    })),
+  });
   if (error) throw error;
-  return appendQuotePhases(supabase, quoteId, phases);
 }
 
 /** Prohodí fázi se sousední (nahoru = -1, dolů = 1). */

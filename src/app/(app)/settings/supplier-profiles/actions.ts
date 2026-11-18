@@ -39,19 +39,6 @@ export async function saveSupplierProfile(id: string | null, input: SupplierProf
   if (!input.nazev.trim() || !input.jmeno.trim()) return { error: "Vyplň název profilu a jméno dodavatele." };
   const supabase = await createClient();
 
-  // Výchozí profil smí být jen jeden pro nabídky a jeden pro faktury — ostatním příznak nejdřív
-  // sundat (unikátní index by jinak uložení odmítl).
-  for (const flag of ["pouzit_pro_nabidky", "pouzit_pro_faktury"] as const) {
-    if (!input[flag]) continue;
-    let clear = supabase.from("supplier_profiles").update({ [flag]: false }).eq(flag, true);
-    if (id) clear = clear.neq("id", id);
-    const { error } = await clear;
-    if (error) {
-      console.error("saveSupplierProfile: clear default failed", error);
-      return { error: "Profil se nepodařilo uložit." };
-    }
-  }
-
   const row = {
     nazev: input.nazev.trim(),
     jmeno: input.jmeno.trim(),
@@ -71,16 +58,25 @@ export async function saveSupplierProfile(id: string | null, input: SupplierProf
     default_due_days: Number.isFinite(input.default_due_days) ? input.default_due_days : 14,
     platnost_nabidky_mesice: Number.isFinite(input.platnost_nabidky_mesice) ? input.platnost_nabidky_mesice : 3,
     vychozi_poznamky: orNull(input.vychozi_poznamky),
-    pouzit_pro_nabidky: input.pouzit_pro_nabidky,
-    pouzit_pro_faktury: input.pouzit_pro_faktury,
   };
 
-  const { error } = id
-    ? await supabase.from("supplier_profiles").update(row).eq("id", id)
-    : await supabase.from("supplier_profiles").insert(row);
-  if (error) {
-    console.error("saveSupplierProfile: save failed", error);
+  // Údaje uložit bez příznaků „výchozí“ a ty pak nastavit jednou funkcí v transakci — sundat je
+  // ostatním a dát tomuhle musí proběhnout naráz (unikátní index, žádná firma bez výchozího).
+  const saved = id
+    ? await supabase.from("supplier_profiles").update(row).eq("id", id).select("id").single()
+    : await supabase.from("supplier_profiles").insert(row).select("id").single();
+  if (saved.error || !saved.data) {
+    console.error("saveSupplierProfile: save failed", saved.error);
     return { error: "Profil se nepodařilo uložit." };
+  }
+  const { error } = await supabase.rpc("set_supplier_profile_defaults", {
+    p_profile_id: saved.data.id,
+    p_quotes: input.pouzit_pro_nabidky,
+    p_invoices: input.pouzit_pro_faktury,
+  });
+  if (error) {
+    console.error("saveSupplierProfile: defaults failed", error);
+    return { error: "Údaje se uložily, ale výchozí profil se nepodařilo nastavit. Zkus to znovu." };
   }
   revalidatePath(PATH);
   return {};

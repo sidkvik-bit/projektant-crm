@@ -188,7 +188,7 @@ returns trigger language plpgsql security invoker set search_path = public as $$
 declare
   v_parts text[];
 begin
-  v_parts := regexp_match(new.number, '^NAB-(\d{4})-(\d+)$');
+  v_parts := regexp_match(new.number, '^NAB-(\d{4})-(\d{1,9})$');
   if v_parts is not null then
     new.number := 'CN-' || v_parts[1] || '-' ||
       case when v_parts[2]::int < 1000 then lpad((v_parts[2]::int)::text, 3, '0') else (v_parts[2]::int)::text end;
@@ -198,3 +198,122 @@ end $$;
 
 create trigger quotes_set_number_format before insert on public.quotes
   for each row execute function public.trg_format_quote_number();
+
+-- ---------------------------------------------------------------------------
+-- 7. Atomické zápisy (security invoker — RLS hlídá organizaci jako u přímých dotazů)
+-- ---------------------------------------------------------------------------
+
+-- Výchozí profil pro nabídky/faktury: sundat příznak ostatním a nastavit tenhle v jedné
+-- transakci. Dřív dva kroky ze server action — když druhý selhal, firma zůstala bez výchozího.
+create or replace function public.set_supplier_profile_defaults(p_profile_id uuid, p_quotes boolean, p_invoices boolean)
+returns void language plpgsql security invoker set search_path = public as $$
+begin
+  if not exists (select 1 from public.supplier_profiles where id = p_profile_id) then
+    raise exception 'Profil dodavatele nenalezen.' using errcode = 'P0002';
+  end if;
+  if p_quotes then
+    update public.supplier_profiles set pouzit_pro_nabidky = false where pouzit_pro_nabidky and id <> p_profile_id;
+  end if;
+  if p_invoices then
+    update public.supplier_profiles set pouzit_pro_faktury = false where pouzit_pro_faktury and id <> p_profile_id;
+  end if;
+  update public.supplier_profiles
+    set pouzit_pro_nabidky = p_quotes, pouzit_pro_faktury = p_invoices
+    where id = p_profile_id;
+end $$;
+
+revoke execute on function public.set_supplier_profile_defaults(uuid, boolean, boolean) from public, anon;
+grant execute on function public.set_supplier_profile_defaults(uuid, boolean, boolean) to authenticated;
+
+-- Nahrazení všech fází nabídky (MCP update_quote): smazat a vložit v jedné transakci, ať po
+-- chybě nezůstane nabídka bez fází. p_phases = [{kod, nazev, odrazky: [..], cena}, …].
+create or replace function public.replace_quote_phases(p_quote_id uuid, p_phases jsonb)
+returns void language plpgsql security invoker set search_path = public as $$
+begin
+  if not exists (select 1 from public.quotes where id = p_quote_id) then
+    raise exception 'Nabídka nenalezena.' using errcode = 'P0002';
+  end if;
+  delete from public.quote_phases where quote_id = p_quote_id;
+  insert into public.quote_phases (quote_id, kod, nazev, odrazky, cena, sort_order)
+    select p_quote_id,
+           nullif(p ->> 'kod', ''),
+           p ->> 'nazev',
+           coalesce(array(select jsonb_array_elements_text(p -> 'odrazky')), '{}'),
+           coalesce((p ->> 'cena')::numeric, 0),
+           (ord - 1)::int
+      from jsonb_array_elements(p_phases) with ordinality as t(p, ord);
+end $$;
+
+revoke execute on function public.replace_quote_phases(uuid, jsonb) from public, anon;
+grant execute on function public.replace_quote_phases(uuid, jsonb) to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- 8. Faktura z nabídky převezme i fáze
+-- ---------------------------------------------------------------------------
+-- Celé tělo zkopírované z 20261014100000_freeze_vat_on_documents.sql; přibylo jen kopírování
+-- fází (každá jako položka 1 × cena) a odmítnutí nabídky, ze které by vznikla prázdná faktura.
+-- p_item_ids vybírá jen mezi položkami starého typu; fáze se fakturují všechny.
+
+create or replace function public.generate_invoice_from_quote(p_quote_id uuid, p_item_ids uuid[] default null)
+returns uuid language plpgsql security invoker set search_path = public as $$
+declare
+  v_quote public.quotes%rowtype;
+  v_org_payer boolean;
+  v_org_rate numeric;
+  v_vat_rate numeric;
+  v_invoice_id uuid;
+  v_found int;
+  v_phase_count int;
+begin
+  select * into v_quote from public.quotes where id = p_quote_id;
+  if not found then
+    raise exception 'Nabídka nenalezena.' using errcode = 'P0002';
+  end if;
+
+  select count(*) into v_phase_count from public.quote_phases where quote_id = p_quote_id;
+
+  -- Prázdný výběr by vytvořil prázdnou fakturu se spotřebovaným číslem z řady.
+  if p_item_ids is not null and cardinality(p_item_ids) = 0 and v_phase_count = 0 then
+    raise exception 'Vyberte alespoň jednu položku k fakturaci.' using errcode = 'P0002';
+  end if;
+  if v_phase_count = 0 and not exists (select 1 from public.quote_items where quote_id = p_quote_id) then
+    raise exception 'Nabídka nemá žádné fáze ani položky — není co fakturovat.' using errcode = 'P0002';
+  end if;
+
+  -- Položka smazaná mezitím v jiném okně by jinak tiše vypadla a faktura by vznikla bez ní.
+  if p_item_ids is not null and cardinality(p_item_ids) > 0 then
+    select count(*) into v_found from public.quote_items
+      where quote_id = p_quote_id and id = any(p_item_ids);
+    if v_found <> cardinality(array(select distinct unnest(p_item_ids))) then
+      raise exception 'Některé vybrané položky už v nabídce nejsou. Obnovte stránku a vyberte je znovu.'
+        using errcode = 'P0002';
+    end if;
+  end if;
+
+  select o.je_platce_dph, o.default_vat_rate into v_org_payer, v_org_rate
+    from public.organizations o where o.id = v_quote.organization_id;
+  v_vat_rate := case when v_quote.je_platce_dph = coalesce(v_org_payer, false)
+                     then v_quote.vat_rate else v_org_rate end;
+
+  insert into public.invoices (name, quote_id, project_id, contact_id, odberatel_je_firma, vat_rate, note)
+    values (v_quote.name, p_quote_id, v_quote.project_id, v_quote.contact_id,
+            v_quote.odberatel_je_firma, v_vat_rate, v_quote.note)
+    returning id into v_invoice_id;
+
+  insert into public.invoice_items (invoice_id, name, quantity, unit, unit_price, sort_order)
+    select v_invoice_id, qp.nazev, 1, 'ks', qp.cena, qp.sort_order
+      from public.quote_phases qp
+      where qp.quote_id = p_quote_id
+      order by qp.sort_order;
+
+  insert into public.invoice_items (invoice_id, name, quantity, unit, unit_price, sort_order)
+    select v_invoice_id, qi.name, qi.quantity, qi.unit, qi.unit_price, 1000 + qi.sort_order
+      from public.quote_items qi
+      where qi.quote_id = p_quote_id and (p_item_ids is null or qi.id = any(p_item_ids))
+      order by qi.sort_order;
+
+  return v_invoice_id;
+end $$;
+
+revoke execute on function public.generate_invoice_from_quote(uuid, uuid[]) from public, anon;
+grant execute on function public.generate_invoice_from_quote(uuid, uuid[]) to authenticated;
