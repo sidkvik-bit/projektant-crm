@@ -200,7 +200,8 @@ create trigger quotes_set_number_format before insert on public.quotes
   for each row execute function public.trg_format_quote_number();
 
 -- ---------------------------------------------------------------------------
--- 7. Atomické zápisy (security invoker — RLS hlídá organizaci jako u přímých dotazů)
+-- 7. Atomické zápisy (security invoker — RLS hlídá organizaci jako u přímých dotazů, takže
+--    oprávnění se neomezují: nepřihlášený přes ně nic nevidí ani nezmění)
 -- ---------------------------------------------------------------------------
 
 -- Výchozí profil pro nabídky/faktury: sundat příznak ostatním a nastavit tenhle v jedné
@@ -222,30 +223,7 @@ begin
     where id = p_profile_id;
 end $$;
 
-revoke execute on function public.set_supplier_profile_defaults(uuid, boolean, boolean) from public, anon;
-grant execute on function public.set_supplier_profile_defaults(uuid, boolean, boolean) to authenticated;
 
--- Nahrazení všech fází nabídky (MCP update_quote): smazat a vložit v jedné transakci, ať po
--- chybě nezůstane nabídka bez fází. p_phases = [{kod, nazev, odrazky: [..], cena}, …].
-create or replace function public.replace_quote_phases(p_quote_id uuid, p_phases jsonb)
-returns void language plpgsql security invoker set search_path = public as $$
-begin
-  if not exists (select 1 from public.quotes where id = p_quote_id) then
-    raise exception 'Nabídka nenalezena.' using errcode = 'P0002';
-  end if;
-  delete from public.quote_phases where quote_id = p_quote_id;
-  insert into public.quote_phases (quote_id, kod, nazev, odrazky, cena, sort_order)
-    select p_quote_id,
-           nullif(p ->> 'kod', ''),
-           p ->> 'nazev',
-           coalesce(array(select jsonb_array_elements_text(p -> 'odrazky')), '{}'),
-           coalesce((p ->> 'cena')::numeric, 0),
-           (ord - 1)::int
-      from jsonb_array_elements(p_phases) with ordinality as t(p, ord);
-end $$;
-
-revoke execute on function public.replace_quote_phases(uuid, jsonb) from public, anon;
-grant execute on function public.replace_quote_phases(uuid, jsonb) to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- 8. Faktura z nabídky převezme i fáze
@@ -315,5 +293,3 @@ begin
   return v_invoice_id;
 end $$;
 
-revoke execute on function public.generate_invoice_from_quote(uuid, uuid[]) from public, anon;
-grant execute on function public.generate_invoice_from_quote(uuid, uuid[]) to authenticated;

@@ -289,7 +289,7 @@ export function registerQuoteTools(server: McpServer) {
           await replaceQuotePhases(supabase, quote_id, newPhases);
         } catch (err) {
           return fail(
-            `${Object.keys(patch).length > 0 ? "Pole nabídky se upravila, ale f" : "F"}áze se nepodařilo uložit (původní fáze zůstaly): ${errorText(err)}.`,
+            `${Object.keys(patch).length > 0 ? "Pole nabídky se upravila, ale f" : "F"}áze se nepodařilo uložit (původní fáze zůstaly, pokud chyba neříká jinak): ${errorText(err)}.`,
           );
         }
       }
