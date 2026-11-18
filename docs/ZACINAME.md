@@ -113,7 +113,7 @@ a znovu otevřít VS Code, aby nové programy našel.
 3. Nainstaluje knihovny (`pnpm install`) a pustí kontroly `pnpm exec tsc --noEmit`
    a `pnpm test`. Obě mají projít.
 4. Spustí aplikaci (`pnpm dev`) a řekne ti, ať otevřeš http://localhost:3000 a přihlásíš se
-   Google účtem pro.havlin@gmail.com. Uvidíš firmu VHarch s daty z DEV.
+   svým Google účtem (tím, kterým se přihlašuješ do CRM). Uvidíš firmu VHarch s daty z DEV.
 5. Krátce ti shrne [CONTRIBUTING.md](../CONTRIBUTING.md): semafor a jak jdou změny na DEV.
 
 ### Každodenní práce
