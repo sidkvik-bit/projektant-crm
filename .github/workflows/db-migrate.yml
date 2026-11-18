@@ -34,4 +34,5 @@ jobs:
           echo "DB_URL=postgresql://$POOLER_USER:$PW@$POOLER_HOST/postgres" >> "$GITHUB_ENV"
       - name: Náhled — co se aplikuje
         run: supabase db push --db-url "$DB_URL" --dry-run
-      - run: supabase db push --db-url "$DB_URL"
+      # CLI 3.x bez terminálu nic nezmění, dokud se aplikace migrací výslovně nepotvrdí.
+      - run: supabase db push --db-url "$DB_URL" --yes
