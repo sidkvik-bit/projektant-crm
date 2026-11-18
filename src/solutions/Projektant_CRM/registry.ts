@@ -23,4 +23,5 @@ export const entityRegistry: Record<string, EntityRegistryEntry> = {
   Bug: { table: "bugs", labelFields: ["name"], basePath: "/bugs" },
   Quote: { table: "quotes", labelFields: ["name"], basePath: "/quotes" },
   Invoice: { table: "invoices", labelFields: ["name"], basePath: "/invoices" },
+  SupplierProfile: { table: "supplier_profiles", labelFields: ["nazev"], basePath: null },
 };

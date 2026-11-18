@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { PluginError, runPlugins } from "@/customization/plugins";
 import { loadCustomizations } from "@/customization/repository";
+import { appendQuotePhases, moveQuotePhase, phasesFromTemplates } from "@/lib/quotePhases";
+import { parseLines } from "@/lib/quoteDocument";
 
 function basePath(quoteId: string) {
   return `/quotes/${quoteId}`;
@@ -96,5 +98,53 @@ export async function deleteQuoteItem(quoteId: string, itemId: string) {
   const supabase = await createClient();
   const { error } = await supabase.from("quote_items").delete().eq("id", itemId);
   if (error) throw error;
+  revalidatePath(basePath(quoteId));
+}
+
+// --- Fáze nabídky ---
+//
+// Fáze jsou kopie šablon (Nastavení → Šablony fází); úprava tady šablonu nemění.
+
+export async function addQuotePhasesFromTemplates(quoteId: string, codes: string[]) {
+  const supabase = await createClient();
+  await appendQuotePhases(supabase, quoteId, await phasesFromTemplates(supabase, codes));
+  revalidatePath(basePath(quoteId));
+}
+
+export async function addEmptyQuotePhase(quoteId: string) {
+  const supabase = await createClient();
+  await appendQuotePhases(supabase, quoteId, [{ nazev: "Nová fáze", odrazky: [], cena: 0 }]);
+  revalidatePath(basePath(quoteId));
+}
+
+export async function updateQuotePhase(
+  quoteId: string,
+  phaseId: string,
+  values: { nazev: string; odrazky: string; cena: number },
+) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("quote_phases")
+    .update({
+      nazev: values.nazev.trim() || "Fáze",
+      odrazky: parseLines(values.odrazky),
+      cena: Number.isFinite(values.cena) && values.cena >= 0 ? values.cena : 0,
+    })
+    .eq("id", phaseId)
+    .eq("quote_id", quoteId);
+  if (error) throw error;
+  revalidatePath(basePath(quoteId));
+}
+
+export async function deleteQuotePhase(quoteId: string, phaseId: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("quote_phases").delete().eq("id", phaseId).eq("quote_id", quoteId);
+  if (error) throw error;
+  revalidatePath(basePath(quoteId));
+}
+
+export async function moveQuotePhaseAction(quoteId: string, phaseId: string, direction: -1 | 1) {
+  const supabase = await createClient();
+  await moveQuotePhase(supabase, quoteId, phaseId, direction);
   revalidatePath(basePath(quoteId));
 }
