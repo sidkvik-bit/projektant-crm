@@ -128,3 +128,4 @@ nabídku.“* Claude pak:
 
 Zelené a oranžové změny jsou za pár minut na https://projektantcrmdev.vercel.app. Červené
 počkají, až je Honza schválí.
+
