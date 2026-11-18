@@ -132,8 +132,27 @@ export async function exchangeAuthorizationCode(input: {
 }
 
 /**
- * Obnoví tokeny z refresh tokenu. OAuth 2.1 u veřejných klientů vyžaduje rotaci, takže starý
- * pár se odvolá a vznikne nový — refresh token se nedá použít dvakrát.
+ * Jak dlouho po rotaci ještě platí PŘEDCHOZÍ refresh token. Klient (Claude) občas obnovu
+ * zopakuje — ztratí odpověď, nebo pošle dvě obnovy naráz. Bez tolerance to znamenalo
+ * invalid_grant a uživatel se musel přihlásit znovu. Dvě minuty pokryjí opakování po síťové
+ * chybě, a přitom zůstává okno pro zneužití uniklého starého tokenu krátké.
+ */
+export const REFRESH_REUSE_GRACE_MS = 2 * 60 * 1000;
+
+/** Smí se předchozí refresh token ještě použít? Čistá funkce kvůli testům. */
+export function isWithinReuseGrace(rotatedAt: string | null, now: number = Date.now()) {
+  if (!rotatedAt) return false;
+  const age = now - new Date(rotatedAt).getTime();
+  return age >= 0 && age <= REFRESH_REUSE_GRACE_MS;
+}
+
+/**
+ * Obnoví tokeny z refresh tokenu. OAuth 2.1 u veřejných klientů vyžaduje rotaci: vydá se nový
+ * pár a starý přestane platit (po krátké toleranci, viz REFRESH_REUSE_GRACE_MS).
+ *
+ * Rotuje se NA MÍSTĚ — stejný řádek dostane nové hashe. Dřív vznikal nový řádek s kopií
+ * Supabase refresh tokenu; každá další kopie téže relace mohla zastarat a její použití pak
+ * Supabase vyhodnotil jako zneužití a zrušil relaci. Jedno připojení = jeden řádek.
  */
 export async function refreshAccessToken(input: {
   refreshToken: string;
@@ -141,30 +160,51 @@ export async function refreshAccessToken(input: {
   clientName: string | null;
 }): Promise<ExchangeResult> {
   const admin = createAdminClient();
-  const { data } = await admin
+  const hash = hashSecret(input.refreshToken);
+  const invalid = { error: "invalid_grant", description: "Refresh token není platný." };
+
+  const { data: current } = await admin
     .from("mcp_tokens")
-    .select("id, user_id, client_id, refresh_token, revoked_at")
-    .eq("oauth_refresh_hash", hashSecret(input.refreshToken))
+    .select("id, client_id, revoked_at, oauth_refresh_hash")
+    .eq("oauth_refresh_hash", hash)
     .maybeSingle();
 
-  const invalid = { error: "invalid_grant", description: "Refresh token není platný." };
-  if (!data || data.revoked_at) return invalid;
-  if (data.client_id !== input.clientId) return invalid;
+  let row = current;
+  if (!row) {
+    // Předchozí token, použitý znovu krátce po rotaci → vydat nový pár místo odhlášení.
+    const { data: previous } = await admin
+      .from("mcp_tokens")
+      .select("id, client_id, revoked_at, oauth_refresh_hash, rotated_at")
+      .eq("previous_refresh_hash", hash)
+      .maybeSingle();
+    if (!previous || !isWithinReuseGrace(previous.rotated_at as string | null)) return invalid;
+    row = previous;
+  }
+  if (row.revoked_at) return invalid;
+  if (row.client_id !== input.clientId) return invalid;
 
-  const { data: revoked } = await admin
+  const accessToken = `pcrm_oauth_${randomBytes(32).toString("base64url")}`;
+  const refreshToken = `pcrmr_${randomBytes(32).toString("base64url")}`;
+
+  // Podmíněně na aktuální hash: kdyby dvě obnovy proběhly přesně současně, druhá nezmění nic
+  // a skončí jako neplatná, místo aby jedna druhé tiše přepsala tokeny.
+  const { data: rotated, error } = await admin
     .from("mcp_tokens")
-    .update({ revoked_at: new Date().toISOString() })
-    .eq("id", data.id)
+    .update({
+      token_hash: hashSecret(accessToken),
+      oauth_refresh_hash: hashSecret(refreshToken),
+      previous_refresh_hash: row.oauth_refresh_hash,
+      rotated_at: new Date().toISOString(),
+      expires_at: new Date(Date.now() + ACCESS_TOKEN_TTL_SECONDS * 1000).toISOString(),
+      ...(input.clientName ? { name: input.clientName } : {}),
+    })
+    .eq("id", row.id)
+    .eq("oauth_refresh_hash", row.oauth_refresh_hash as string)
     .is("revoked_at", null)
     .select("id")
     .maybeSingle();
-  if (!revoked) return invalid;
+  if (error) throw error;
+  if (!rotated) return invalid;
 
-  const tokens = await issueTokenPair({
-    userId: data.user_id as string,
-    clientId: input.clientId,
-    clientName: input.clientName,
-    supabaseRefreshToken: data.refresh_token as string,
-  });
-  return { tokens };
+  return { tokens: { accessToken, refreshToken, expiresIn: ACCESS_TOKEN_TTL_SECONDS } };
 }

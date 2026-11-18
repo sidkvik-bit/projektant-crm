@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateMcpToken } from "@/lib/mcp/auth";
+import { createDedicatedRefreshToken } from "@/lib/mcp/oauthSession";
 
 export interface McpTokenRow {
   id: string;
@@ -34,23 +35,25 @@ export async function listMcpTokens(): Promise<McpTokenRow[]> {
 
 /**
  * Vrací plain token — zobrazí se uživateli JEDNOU a nikde se neukládá (v databázi je jen hash).
- * Spolu s ním se ukládá refresh token aktuální relace; z něj si MCP server při každém volání
+ * Spolu s ním se ukládá refresh token VLASTNÍ relace konektoru; z něj si MCP server
  * vymění krátkodobý access token, takže dotazy běží pod identitou uživatele (viz lib/mcp/auth.ts).
  */
 export async function createMcpToken(name: string): Promise<string> {
   const supabase = await createClient();
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  if (!session?.refresh_token) throw new Error("Chybí přihlášení — zkus se odhlásit a přihlásit znovu.");
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Chybí přihlášení — zkus se odhlásit a přihlásit znovu.");
 
   const { token, hash } = generateMcpToken();
   const admin = createAdminClient();
   const { error } = await admin.from("mcp_tokens").insert({
-    user_id: session.user.id,
+    user_id: user.id,
     name: name.trim() || "MCP token",
     token_hash: hash,
-    refresh_token: session.refresh_token,
+    // Vlastní relace, ne ta z prohlížeče — jinak by se s ním přetahovaly o tentýž refresh
+    // token a Supabase by relaci zrušil (viz createDedicatedRefreshToken).
+    refresh_token: await createDedicatedRefreshToken(user.id),
   });
   if (error) throw error;
 

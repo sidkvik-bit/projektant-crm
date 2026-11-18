@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isRedirectUriAllowed, resolveOAuthClient } from "@/lib/mcp/oauthClients";
 import { issueAuthorizationCode } from "@/lib/mcp/oauthTokens";
+import { createDedicatedRefreshToken } from "@/lib/mcp/oauthSession";
 
 /**
  * Zpracuje kliknutí na Povolit/Zamítnout.
@@ -11,8 +12,8 @@ import { issueAuthorizationCode } from "@/lib/mcp/oauthTokens";
  * Klient i návratová adresa se ověřují ZNOVU, i když je stránka už jednou ověřila — na hodnoty
  * ze skrytých polí formuláře se spolehnout nedá, ty přijdou od prohlížeče a jdou podvrhnout.
  *
- * Při souhlasu se do kódu uloží Supabase refresh token přihlášené relace; z něj si pak MCP
- * server u každého volání vymění čerstvý access token, takže dotazy běží pod identitou tohohle
+ * Při souhlasu se konektoru založí vlastní Supabase relace a do kódu se uloží její refresh
+ * token; z něj si pak MCP server vymění access token, takže dotazy běží pod identitou tohohle
  * uživatele a platí na ně RLS úplně stejně jako ve webu.
  */
 export async function approveAuthorization(formData: FormData) {
@@ -35,18 +36,20 @@ export async function approveAuthorization(formData: FormData) {
     redirect(target.toString());
   }
 
+  // getUser ověří přihlášení u Supabase (getSession jen čte cookie).
   const supabase = await createClient();
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  if (!session?.refresh_token) throw new Error("Chybí přihlášení — zkus se přihlásit znovu.");
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Chybí přihlášení — zkus se přihlásit znovu.");
 
+  // Konektor dostane vlastní relaci, ne tu z prohlížeče — viz createDedicatedRefreshToken.
   const code = await issueAuthorizationCode({
     clientId,
-    userId: session.user.id,
+    userId: user.id,
     redirectUri,
     codeChallenge,
-    supabaseRefreshToken: session.refresh_token,
+    supabaseRefreshToken: await createDedicatedRefreshToken(user.id),
   });
 
   target.searchParams.set("code", code);
