@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { verifyPkceS256 } from "./oauthTokens";
+import { isWithinReuseGrace, verifyPkceS256 } from "./oauthTokens";
+import { isSupabaseAccessFresh } from "./auth";
 import { isRedirectUriAllowed, isCimdClientId, type OAuthClient } from "./oauthClients";
 
 const client = (redirectUris: string[]): OAuthClient => ({
@@ -72,5 +73,37 @@ describe("isCimdClientId", () => {
     expect(isCimdClientId("pcrmc_abc123")).toBe(false);
     // http není CIMD — metadata se smí stahovat jen přes https.
     expect(isCimdClientId("http://claude.ai/metadata")).toBe(false);
+  });
+});
+
+describe("isWithinReuseGrace", () => {
+  const now = Date.parse("2026-11-18T12:00:00Z");
+
+  it("pustí předchozí refresh token krátce po rotaci (klient obnovu zopakoval)", () => {
+    expect(isWithinReuseGrace("2026-11-18T11:59:30Z", now)).toBe(true);
+  });
+
+  it("po uplynutí tolerance předchozí token odmítne", () => {
+    expect(isWithinReuseGrace("2026-11-18T11:57:00Z", now)).toBe(false);
+  });
+
+  it("bez rotace (null) nic nepustí", () => {
+    expect(isWithinReuseGrace(null, now)).toBe(false);
+  });
+});
+
+describe("isSupabaseAccessFresh", () => {
+  const now = Date.parse("2026-11-18T12:00:00Z");
+
+  it("uložený access token použije, dokud má rezervu", () => {
+    expect(isSupabaseAccessFresh("2026-11-18T12:30:00Z", now)).toBe(true);
+  });
+
+  it("těsně před vypršením radši obnoví", () => {
+    expect(isSupabaseAccessFresh("2026-11-18T12:03:00Z", now)).toBe(false);
+  });
+
+  it("bez uloženého tokenu obnoví", () => {
+    expect(isSupabaseAccessFresh(null, now)).toBe(false);
   });
 });
