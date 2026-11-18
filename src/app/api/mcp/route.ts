@@ -4,6 +4,7 @@ import { resolveMcpSession } from "@/lib/mcp/auth";
 import { registerReadTools } from "@/lib/mcp/readTools";
 import { registerWriteTools } from "@/lib/mcp/writeTools";
 import { registerCustomizationTools } from "@/lib/mcp/customizationTools";
+import { registerQuoteTools } from "@/lib/mcp/quoteTools";
 
 /**
  * Vzdálený MCP server nad CRM — uživatel si ho připojí do svého AI klienta (Claude, Cursor…)
@@ -22,9 +23,10 @@ const handler = createMcpHandler(
   (server) => {
     registerReadTools(server);
     registerWriteTools(server);
+    registerQuoteTools(server);
     registerCustomizationTools(server);
   },
-  { serverInfo: { name: "projektantcrm", version: "1.2.0" } },
+  { serverInfo: { name: "projektantcrm", version: "1.3.0" } },
 );
 
 const verifyToken = async (_req: Request, bearerToken?: string): Promise<AuthInfo | undefined> => {

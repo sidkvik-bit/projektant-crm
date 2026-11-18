@@ -1,153 +1,219 @@
 import path from "node:path";
 import { Document, Page, View, Text, Image, StyleSheet, Font } from "@react-pdf/renderer";
+import { formatPhasePrice } from "./quoteDocument";
 
-// Standardní PDF fonty (Helvetica) neumí českou diakritiku (WinAnsi encoding) — PT Sans
-// (OFL licence, staticky bundlovaná v repu) pokrývá celou českou znakovou sadu.
+// Rozvržení přesně podle referenčního vzoru kanceláře (Vzor_CN_VHarch.html): A4, rozměry v mm,
+// Roboto Light, patička Roboto Italic. Standardní PDF fonty neumí českou diakritiku, Roboto
+// (Apache 2.0, bundlovaná v repu) ano.
+// Cesty doslova (ne skládané z proměnné) — jinak je Next.js při nasazení nepřibalí.
 Font.register({
-  family: "PT Sans",
+  family: "Roboto",
   fonts: [
-    { src: path.join(process.cwd(), "src/assets/fonts/PTSans-Regular.ttf"), fontWeight: "normal" },
-    { src: path.join(process.cwd(), "src/assets/fonts/PTSans-Bold.ttf"), fontWeight: "bold" },
+    { src: path.join(process.cwd(), "src/assets/fonts/Roboto-Light.ttf"), fontWeight: 300 },
+    { src: path.join(process.cwd(), "src/assets/fonts/Roboto-Regular.ttf"), fontWeight: 400 },
+    { src: path.join(process.cwd(), "src/assets/fonts/Roboto-LightItalic.ttf"), fontWeight: 300, fontStyle: "italic" },
+    { src: path.join(process.cwd(), "src/assets/fonts/Roboto-Italic.ttf"), fontWeight: 400, fontStyle: "italic" },
   ],
 });
+// Dlouhá slova (názvy obcí) nedělit — react-pdf by jinak lámal se spojovníkem.
+Font.registerHyphenationCallback((word) => [word]);
+
+const mm = (value: number) => (value * 72) / 25.4;
 
 const styles = StyleSheet.create({
-  page: { fontFamily: "PT Sans", fontSize: 10, padding: 40, color: "#1a1a1a" },
-  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 },
-  logoBlock: { flexDirection: "row", alignItems: "center", gap: 8 },
-  logo: { width: 36, height: 36 },
-  orgName: { fontSize: 14, fontWeight: "bold" },
-  title: { fontSize: 16, fontWeight: "bold", marginBottom: 4 },
-  muted: { fontSize: 9, color: "#666666" },
-  quoteName: { fontSize: 12, fontWeight: "bold", marginBottom: 16 },
-  partiesRow: { flexDirection: "row", gap: 24, marginBottom: 24 },
-  partyBox: { flex: 1, backgroundColor: "#f4f4f5", borderRadius: 4, padding: 10 },
-  partyLabel: { fontSize: 8, textTransform: "uppercase", color: "#666666", marginBottom: 4, letterSpacing: 0.5 },
-  table: { borderTopWidth: 1, borderTopColor: "#dddddd" },
-  tableRow: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: "#eeeeee", paddingVertical: 6 },
-  tableHeaderRow: { backgroundColor: "#f4f4f5", fontWeight: "bold" },
-  cell: { fontSize: 9 },
-  cellName: { flex: 3 },
-  cellNum: { flex: 1, textAlign: "right" },
-  totals: { alignSelf: "flex-end", width: 220, marginTop: 12 },
-  totalsRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 3 },
-  totalsFinal: { borderTopWidth: 1, borderTopColor: "#1a1a1a", marginTop: 4, paddingTop: 6, fontWeight: "bold", fontSize: 11 },
-  noteBox: { marginTop: 24, padding: 10, backgroundColor: "#f4f4f5", borderRadius: 4 },
-  footer: { position: "absolute", bottom: 30, left: 40, right: 40, fontSize: 8, color: "#999999", textAlign: "center" },
+  page: {
+    fontFamily: "Roboto",
+    fontWeight: 300,
+    fontSize: 11,
+    lineHeight: 1.3,
+    color: "#000000",
+    paddingTop: mm(13),
+    paddingRight: mm(25),
+    paddingLeft: mm(21),
+    // Místo pro patičku (začíná 275 mm od horního okraje), obsah se do ní nesmí dostat.
+    paddingBottom: mm(297 - 272),
+  },
+  logo: { position: "absolute", top: mm(13), right: mm(25), width: mm(53), objectFit: "contain" },
+  h1: { fontSize: 15, textDecoration: "underline", marginTop: mm(19), marginBottom: mm(4.5) },
+  label: { marginBottom: mm(3.5) },
+  block: { marginBottom: mm(4) },
+  strong: { fontWeight: 400 },
+  phaseTitle: { fontWeight: 400, textDecoration: "underline", marginBottom: mm(3.5) },
+  list: { marginBottom: mm(5) },
+  listItem: { flexDirection: "row" },
+  bullet: { width: mm(13), paddingLeft: mm(6.5) },
+  listText: { flex: 1 },
+  priceBox: {
+    borderWidth: 0.75,
+    borderColor: "#000000",
+    marginLeft: mm(-2),
+    marginRight: mm(-2),
+    marginBottom: mm(5),
+    paddingTop: mm(0.6),
+    paddingBottom: mm(0.6),
+    paddingLeft: mm(2),
+    paddingRight: mm(13),
+    alignItems: "flex-end",
+  },
+  price: { fontWeight: 400, textDecoration: "underline" },
+  totals: { alignItems: "flex-end", marginTop: mm(-2), marginBottom: mm(6) },
+  notes: { fontSize: 9.5, lineHeight: 1.3, marginTop: mm(2) },
+  placeDate: {
+    marginTop: mm(9),
+    marginRight: mm(7),
+    flexDirection: "row",
+    justifyContent: "space-between",
+    fontSize: 10,
+  },
+  footer: {
+    position: "absolute",
+    left: mm(13),
+    right: mm(13),
+    top: mm(275),
+    borderTopWidth: 0.75,
+    borderTopColor: "#000000",
+    paddingTop: mm(4),
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: mm(6),
+    fontSize: 9,
+    fontStyle: "italic",
+    fontWeight: 400,
+  },
 });
 
-const currencyFormat = new Intl.NumberFormat("cs-CZ", { style: "currency", currency: "CZK" });
-const formatDate = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("cs-CZ") : "—");
+export interface QuotePdfPhase {
+  nazev: string;
+  odrazky: string[];
+  cena: number;
+}
 
-export interface QuotePdfItem {
-  name: string;
-  quantity: number;
-  unit: string;
-  unitPrice: number;
-  lineTotal: number;
+export interface QuotePdfSupplier {
+  jmeno: string;
+  adresa: string;
+  ico: string | null;
+  dic: string | null;
+  jePlatceDph: boolean;
+  email: string | null;
+  telefon: string | null;
+  web: string | null;
+  mistoVystaveni: string | null;
+  logoUrl: string | null;
 }
 
 export interface QuotePdfData {
-  organizationName: string;
-  organizationLogoUrl: string | null;
+  /** Číslo se netiskne (vzor), jen do metadat PDF. */
   number: string;
-  name: string;
-  createdAt: string;
-  validUntil: string | null;
-  projectName: string;
-  accountName: string | null;
-  contactName: string | null;
-  contactEmail: string | null;
-  /** Plátcovství DPH firmy (nastavení > Fakturace). Neplátci se DPH netiskne vůbec. */
+  nazevStavby: string;
+  supplier: QuotePdfSupplier;
+  zadavatel: string;
+  phases: QuotePdfPhase[];
+  showTotal: boolean;
+  /** Plátcovství zmrazené na nabídce; neplátci se DPH netiskne. */
   vatRegistered: boolean;
   vatRate: number;
   subtotal: number;
   vatAmount: number;
   total: number;
-  note: string | null;
-  items: QuotePdfItem[];
+  notes: string[];
+  issuedAt: string;
+}
+
+const formatDate = (iso: string) => {
+  const d = new Date(iso);
+  return `${d.getDate()}. ${d.getMonth() + 1}. ${d.getFullYear()}`;
+};
+
+/** react-pdf neumí SVG přes <Image> — takové logo radši vynechat, než shodit celé PDF. */
+const isRasterLogo = (url: string | null): url is string => !!url && !/\.svg(\?|$)/i.test(url);
+
+function Bullets({ items, style }: { items: string[]; style?: { marginBottom?: number } }) {
+  return (
+    <View style={[styles.list, style ?? {}]}>
+      {items.map((item, i) => (
+        <View key={i} style={styles.listItem} wrap={false}>
+          <Text style={styles.bullet}>•</Text>
+          <Text style={styles.listText}>{item}</Text>
+        </View>
+      ))}
+    </View>
+  );
 }
 
 export function QuotePdfDocument({ data }: { data: QuotePdfData }) {
+  const s = data.supplier;
+  const footer = [s.jmeno, s.email, s.telefon, s.web].filter(Boolean) as string[];
+  const ico = s.ico ? `IČ: ${s.ico}${s.jePlatceDph ? "" : " (neplátce DPH)"}` : s.jePlatceDph ? null : "neplátce DPH";
+
   return (
-    <Document title={`${data.number} – ${data.name}`}>
+    <Document title={`Cenová nabídka ${data.number} – ${data.nazevStavby}`} author={s.jmeno}>
       <Page size="A4" style={styles.page}>
-        <View style={styles.headerRow}>
-          <View style={styles.logoBlock}>
-            {data.organizationLogoUrl ? <Image src={data.organizationLogoUrl} style={styles.logo} /> : null}
-            <Text style={styles.orgName}>{data.organizationName}</Text>
-          </View>
-          <View style={{ alignItems: "flex-end" }}>
-            <Text style={styles.title}>Nabídka {data.number}</Text>
-            <Text style={styles.muted}>Vystaveno: {formatDate(data.createdAt)}</Text>
-            <Text style={styles.muted}>Platnost do: {formatDate(data.validUntil)}</Text>
-          </View>
+        {isRasterLogo(s.logoUrl) ? <Image src={s.logoUrl} style={styles.logo} fixed /> : null}
+
+        <Text style={styles.h1}>Cenová nabídka</Text>
+
+        <Text style={styles.label}>Název:</Text>
+        <Text style={[styles.block, styles.strong]}>{data.nazevStavby}</Text>
+
+        <Text style={styles.label}>Dodavatel:</Text>
+        <View style={styles.block}>
+          <Text>{s.jmeno}</Text>
+          {s.adresa ? <Text>{s.adresa}</Text> : null}
+          {ico ? <Text>{ico}</Text> : null}
+          {s.jePlatceDph && s.dic ? <Text>DIČ: {s.dic}</Text> : null}
         </View>
 
-        <Text style={styles.quoteName}>{data.name}</Text>
+        <Text style={styles.label}>Zadavatel:</Text>
+        <Text style={styles.block}>{data.zadavatel || "—"}</Text>
 
-        <View style={styles.partiesRow}>
-          <View style={styles.partyBox}>
-            <Text style={styles.partyLabel}>Projekt</Text>
-            <Text>{data.projectName}</Text>
-          </View>
-          <View style={styles.partyBox}>
-            <Text style={styles.partyLabel}>Objednatel</Text>
-            <Text>{data.accountName ?? "—"}</Text>
-            {data.contactName ? <Text>{data.contactName}</Text> : null}
-            {data.contactEmail ? <Text style={styles.muted}>{data.contactEmail}</Text> : null}
-          </View>
-        </View>
-
-        <View style={styles.table}>
-          <View style={[styles.tableRow, styles.tableHeaderRow]}>
-            <Text style={[styles.cell, styles.cellName]}>Popis</Text>
-            <Text style={[styles.cell, styles.cellNum]}>Množství</Text>
-            <Text style={[styles.cell, styles.cellNum]}>Jedn. cena</Text>
-            <Text style={[styles.cell, styles.cellNum]}>Celkem</Text>
-          </View>
-          {data.items.map((item, i) => (
-            <View key={i} style={styles.tableRow}>
-              <Text style={[styles.cell, styles.cellName]}>{item.name}</Text>
-              <Text style={[styles.cell, styles.cellNum]}>
-                {item.quantity} {item.unit}
-              </Text>
-              <Text style={[styles.cell, styles.cellNum]}>{currencyFormat.format(item.unitPrice)}</Text>
-              <Text style={[styles.cell, styles.cellNum]}>{currencyFormat.format(item.lineTotal)}</Text>
+        <Text style={styles.label}>Rozsah:</Text>
+        {data.phases.map((phase, i) => (
+          <View key={i}>
+            <Text style={styles.phaseTitle} minPresenceAhead={mm(15)}>
+              {i + 1}/ {phase.nazev}:
+            </Text>
+            {phase.odrazky.length > 0 ? <Bullets items={phase.odrazky} /> : null}
+            <View style={styles.priceBox} wrap={false}>
+              <Text style={styles.price}>{formatPhasePrice(phase.cena)}</Text>
             </View>
-          ))}
-        </View>
-
-        <View style={styles.totals}>
-          {data.vatRegistered ? (
-            <>
-              <View style={styles.totalsRow}>
-                <Text>Mezisoučet</Text>
-                <Text>{currencyFormat.format(data.subtotal)}</Text>
-              </View>
-              <View style={styles.totalsRow}>
-                <Text>DPH ({data.vatRate}%)</Text>
-                <Text>{currencyFormat.format(data.vatAmount)}</Text>
-              </View>
-            </>
-          ) : null}
-          <View style={[styles.totalsRow, styles.totalsFinal]}>
-            <Text>Celkem k úhradě</Text>
-            <Text>{currencyFormat.format(data.total)}</Text>
           </View>
-        </View>
-        {data.vatRegistered ? null : <Text style={styles.muted}>Nejsem plátce DPH.</Text>}
+        ))}
 
-        {data.note ? (
-          <View style={styles.noteBox}>
-            <Text style={styles.partyLabel}>Poznámka</Text>
-            <Text>{data.note}</Text>
+        {data.showTotal ? (
+          <View style={styles.totals} wrap={false}>
+            {data.vatRegistered ? (
+              <>
+                <Text>Celkem bez DPH: {formatPhasePrice(data.subtotal)}</Text>
+                <Text>
+                  DPH {data.vatRate} %: {formatPhasePrice(data.vatAmount)}
+                </Text>
+                <Text style={styles.strong}>Celkem s DPH: {formatPhasePrice(data.total)}</Text>
+              </>
+            ) : (
+              <Text style={styles.strong}>Celkem: {formatPhasePrice(data.total)}</Text>
+            )}
           </View>
         ) : null}
 
-        <Text style={styles.footer} fixed>
-          {data.organizationName} · Nabídka {data.number}
-        </Text>
+        {data.notes.length > 0 ? (
+          <View style={styles.notes}>
+            <Text>pozn.</Text>
+            <Bullets items={data.notes} style={{ marginBottom: 0 }} />
+          </View>
+        ) : null}
+
+        <View style={styles.placeDate} wrap={false}>
+          <Text>{s.mistoVystaveni ?? ""}</Text>
+          <Text>{formatDate(data.issuedAt)}</Text>
+        </View>
+
+        {footer.length > 0 ? (
+          <View style={styles.footer} fixed>
+            {footer.flatMap((part, i) => (i > 0 ? ["I", part] : [part])).map((part, i) => (
+              <Text key={i}>{part}</Text>
+            ))}
+          </View>
+        ) : null}
       </Page>
     </Document>
   );

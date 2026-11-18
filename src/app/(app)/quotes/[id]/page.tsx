@@ -18,7 +18,19 @@ import type { EntityFormValues } from "@/engine/zodSchema";
 
 import entity from "@/solutions/Projektant_CRM/Entities/Quote/Entity.json";
 import formDef from "@/solutions/Projektant_CRM/Entities/Quote/FormXml/main_form.json";
-import { addQuoteItem, updateQuoteItem, deleteQuoteItem, generateInvoiceFromQuote } from "./actions";
+import {
+  addQuoteItem,
+  updateQuoteItem,
+  deleteQuoteItem,
+  generateInvoiceFromQuote,
+  addQuotePhasesFromTemplates,
+  addEmptyQuotePhase,
+  updateQuotePhase,
+  deleteQuotePhase,
+  moveQuotePhaseAction,
+} from "./actions";
+import { QuotePhasesPanel } from "./QuotePhasesPanel";
+import { listQuotePhases } from "@/lib/quotePhases";
 import { updateQuote } from "../actions";
 import { QuoteItemsPanel, type QuoteItem } from "./QuoteItemsPanel";
 import { GenerateInvoiceDialog } from "./GenerateInvoiceDialog";
@@ -44,7 +56,7 @@ export default async function QuoteDetailPage({
 
   if (!record) notFound();
 
-  const [common, accounts, contacts, projects, activityTypes, activities, items] = await Promise.all([
+  const [common, accounts, contacts, projects, activityTypes, activities, items, phases, phaseTemplates, supplierProfiles] = await Promise.all([
     getCommonFormContext(supabase, entity as EntityDefinition),
     listRecords<{ id: string; name: string }>(supabase, "accounts", { select: "id, name" }),
     listRecords<{ id: string; first_name: string; last_name: string | null }>(supabase, "contacts", {
@@ -58,6 +70,12 @@ export default async function QuoteDetailPage({
       filter: { quote_id: id },
       sort: { field: "sort_order", direction: "asc" },
     }),
+    listQuotePhases(supabase, id),
+    listRecords<{ kod: string; nazev: string }>(supabase, "quote_phase_templates", {
+      select: "kod, nazev",
+      sort: { field: "sort_order", direction: "asc" },
+    }),
+    listRecords<{ id: string; nazev: string }>(supabase, "supplier_profiles", { select: "id, nazev" }),
   ]);
 
   async function handleUpdate(values: EntityFormValues) {
@@ -88,7 +106,7 @@ export default async function QuoteDetailPage({
             <Button
               size="sm"
               render={
-                <a href={`/api/quotes/${id}/pdf`} target="_blank" rel="noreferrer">
+                <a href={`/api/quotes/${id}/pdf`}>
                   <Download className="size-4" />
                   Stáhnout PDF
                 </a>
@@ -121,6 +139,7 @@ export default async function QuoteDetailPage({
                 ...common.lookupOptions,
                 Project: projects.map((p) => ({ id: p.id, label: p.name })),
                 Account: accounts.map((a) => ({ id: a.id, label: a.name })),
+                SupplierProfile: supplierProfiles.map((p) => ({ id: p.id, label: p.nazev })),
                 Contact: contacts.map((c) => ({
                   id: c.id,
                   label: [c.first_name, c.last_name].filter(Boolean).join(" "),
@@ -131,16 +150,43 @@ export default async function QuoteDetailPage({
             />
 
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">Položky nabídky</h2>
-              </div>
-              <QuoteItemsPanel
+              <h2 className="text-lg font-semibold">Rozsah – fáze nabídky</h2>
+              <QuotePhasesPanel
                 quoteId={id}
-                items={items}
-                vatRate={Number(record.vat_rate) || 0}
-                onAdd={addQuoteItem}
-                onUpdate={updateQuoteItem}
-                onDelete={deleteQuoteItem}
+                phases={phases}
+                templates={phaseTemplates}
+                onAddFromTemplates={addQuotePhasesFromTemplates}
+                onAddEmpty={addEmptyQuotePhase}
+                onUpdate={updateQuotePhase}
+                onDelete={deleteQuotePhase}
+                onMove={moveQuotePhaseAction}
+              />
+            </div>
+
+            {/* Položky (množství × cena) má jen starší nabídka; nové se skládají z fází. */}
+            {items.length > 0 && (
+              <div className="space-y-3">
+                <h2 className="text-lg font-semibold">Položky nabídky (starší způsob)</h2>
+                <QuoteItemsPanel
+                  quoteId={id}
+                  items={items}
+                  vatRate={Number(record.vat_rate) || 0}
+                  onAdd={addQuoteItem}
+                  onUpdate={updateQuoteItem}
+                  onDelete={deleteQuoteItem}
+                />
+              </div>
+            )}
+
+            <div className="space-y-3">
+              <h2 className="text-lg font-semibold">Náhled PDF</h2>
+              {/* Klíč z obsahu fází: po každé změně se náhled načte znovu. Změny polí formuláře
+                  se projeví po uložení (stránka se obnoví). */}
+              <iframe
+                key={phases.map((p) => `${p.id}:${p.nazev}:${p.cena}:${p.odrazky.length}:${p.sort_order}`).join("|")}
+                src={`/api/quotes/${id}/pdf?inline=1`}
+                title="Náhled PDF nabídky"
+                className="h-[1100px] w-full rounded-lg border"
               />
             </div>
           </TabsContent>

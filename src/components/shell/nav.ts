@@ -24,6 +24,8 @@ import {
   UserCog,
   UserRound,
   Plug,
+  IdCard,
+  ListChecks,
   Blocks,
 } from "lucide-react";
 
@@ -90,6 +92,8 @@ export const navGroups: NavGroup[] = [
       { label: "Sledování e-mailů", href: "/settings/email", icon: Mail },
       { label: "MCP - AI", href: "/settings/mcp", icon: Plug },
       { label: "Fakturace", href: "/settings/invoicing", icon: Landmark },
+      { label: "Profily dodavatele", href: "/settings/supplier-profiles", icon: IdCard },
+      { label: "Šablony fází", href: "/settings/quote-phases", icon: ListChecks },
       { label: "Import z Excelu", href: "/import", icon: FileSpreadsheet },
     ],
   },

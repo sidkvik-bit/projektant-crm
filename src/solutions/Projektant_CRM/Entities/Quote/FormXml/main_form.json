@@ -6,11 +6,11 @@
       "sections": [
         {
           "label": "Nabídka",
-          "fields": ["number", "name", "project_id", "contact_id", "odberatel_je_firma"]
+          "fields": ["number", "name", "nazev_stavby", "project_id", "contact_id", "zadavatel_text", "supplier_profile_id", "odberatel_je_firma"]
         },
         {
           "label": "Podmínky",
-          "fields": ["valid_until", "vat_rate", "note"]
+          "fields": ["valid_until", "vat_rate", "zobrazit_soucet", "poznamky", "note"]
         },
         {
           "label": "Stav a vlastník",
