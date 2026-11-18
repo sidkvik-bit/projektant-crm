@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { matchOptionValue, withStageLabel } from "./shared";
+import { matchOptionValue, unsavedFields, withStageLabel } from "./shared";
 import type { OptionSetValue } from "@/engine/optionSets";
 
 const stage = (id: string, value_key: string, label: string): OptionSetValue => ({
@@ -52,5 +52,26 @@ describe("withStageLabel", () => {
 
   it("projekt bez fáze nevyhodí chybu ani nenechá viset UUID", () => {
     expect(withStageLabel(labels)({ id: "p2", status_reason_id: null })).toEqual({ id: "p2", faze: null });
+  });
+});
+
+describe("unsavedFields", () => {
+  it("nic nehlásí, když se uložilo přesně to, co přišlo (numeric jako řetězec, prázdné = null)", () => {
+    expect(
+      unsavedFields(
+        { address_street: "Legionářů", budget: 150000, gps_lat: 50.587123, description: "" },
+        { address_street: "Legionářů", budget: "150000.00", gps_lat: "50.587123", description: null },
+      ),
+    ).toEqual([]);
+  });
+
+  it("nahlásí pole, které databáze zahodila nebo přepsala", () => {
+    expect(unsavedFields({ address_zip: "51101", name: "Dům" }, { address_zip: null, name: "Dům" })).toEqual([
+      { pole: "address_zip", poslano: "51101", ulozeno: null },
+    ]);
+  });
+
+  it("když se záznam nepodařilo přečíst, hlásí všechna pole", () => {
+    expect(unsavedFields({ name: "Dům" }, null)).toEqual([{ pole: "name", poslano: "Dům", ulozeno: null }]);
   });
 });

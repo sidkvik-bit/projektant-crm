@@ -18,6 +18,7 @@ interface Milestone {
   id: string;
   name: string;
   offset_dni: number;
+  description?: string | null;
 }
 
 export function TemplateMilestonesPanel({
@@ -28,11 +29,12 @@ export function TemplateMilestonesPanel({
 }: {
   templateId: string;
   milestones: Milestone[];
-  onAdd: (templateId: string, name: string, offsetDni: number) => Promise<void>;
+  onAdd: (templateId: string, name: string, offsetDni: number, description?: string) => Promise<void>;
   onDelete: (templateId: string, milestoneId: string) => Promise<void>;
 }) {
   const [name, setName] = useState("");
   const [offset, setOffset] = useState("0");
+  const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const sorted = [...milestones].sort((a, b) => a.offset_dni - b.offset_dni);
@@ -69,7 +71,12 @@ export function TemplateMilestonesPanel({
             ) : (
               sorted.map((m) => (
                 <TableRow key={m.id} className="transition-colors hover:bg-accent/40">
-                  <TableCell className="font-medium">{m.name}</TableCell>
+                  <TableCell>
+                    <div className="font-medium">{m.name}</div>
+                    {m.description && (
+                      <div className="whitespace-pre-line text-xs text-muted-foreground">{m.description}</div>
+                    )}
+                  </TableCell>
                   <TableCell className="text-muted-foreground">+{m.offset_dni} dní</TableCell>
                   <TableCell>
                     <Button
@@ -93,18 +100,28 @@ export function TemplateMilestonesPanel({
           e.preventDefault();
           setSubmitting(true);
           try {
-            await onAdd(templateId, name, Number(offset) || 0);
+            await onAdd(templateId, name, Number(offset) || 0, description);
             setName("");
             setOffset("0");
+            setDescription("");
           } finally {
             setSubmitting(false);
           }
         }}
-        className="flex items-end gap-2"
+        className="flex flex-wrap items-end gap-2"
       >
-        <div className="flex-1 space-y-1.5">
+        <div className="min-w-48 flex-1 space-y-1.5">
           <Label htmlFor="ms-name">Název kroku</Label>
           <Input id="ms-name" value={name} onChange={(e) => setName(e.target.value)} required />
+        </div>
+        <div className="min-w-48 flex-[2] space-y-1.5">
+          <Label htmlFor="ms-description">Popis (nepovinný)</Label>
+          <Input
+            id="ms-description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="např. Odevzdání studie klientovi"
+          />
         </div>
         <div className="w-28 space-y-1.5">
           <Label htmlFor="ms-offset">Dní od startu</Label>

@@ -21,8 +21,8 @@ export default async function ProjectTemplateDetailPage({
 
   const [record, milestones] = await Promise.all([
     getRecordById<EntityFormValues & { name: string }>(supabase, entity.table, id).catch(() => null),
-    listRecords<{ id: string; name: string; offset_dni: number }>(supabase, "template_milestones", {
-      select: "id, name, offset_dni",
+    listRecords<{ id: string; name: string; offset_dni: number; description: string | null }>(supabase, "template_milestones", {
+      select: "id, name, offset_dni, description",
       filter: { template_id: id },
     }),
   ]);

@@ -16,11 +16,16 @@ export async function updateProjectTemplate(id: string, values: EntityFormValues
   return updateEntityRecord(entity.table, BASE_PATH, id, values);
 }
 
-export async function addTemplateMilestone(templateId: string, name: string, offsetDni: number) {
+export async function addTemplateMilestone(
+  templateId: string,
+  name: string,
+  offsetDni: number,
+  description?: string,
+) {
   const supabase = await createClient();
   const { error } = await supabase
     .from("template_milestones")
-    .insert({ template_id: templateId, name, offset_dni: offsetDni });
+    .insert({ template_id: templateId, name, offset_dni: offsetDni, description: description?.trim() || null });
   if (error) throw error;
   revalidatePath(`${BASE_PATH}/${templateId}`);
 }

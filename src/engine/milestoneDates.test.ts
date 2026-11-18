@@ -11,8 +11,8 @@ describe("computeMilestoneDueDates", () => {
       "2026-01-01",
     );
     expect(result).toEqual([
-      { name: "Studie", termin_splneni: "2026-01-15", splneno: false },
-      { name: "DSP", termin_splneni: "2026-03-02", splneno: false },
+      { name: "Studie", description: null, termin_splneni: "2026-01-15", splneno: false },
+      { name: "DSP", description: null, termin_splneni: "2026-03-02", splneno: false },
     ]);
   });
 
@@ -41,5 +41,16 @@ describe("computeMilestoneDueDates", () => {
   it("every generated milestone starts as not completed", () => {
     const result = computeMilestoneDueDates([{ name: "Studie", offset_dni: 14 }], "2026-01-01");
     expect(result.every((m) => m.splneno === false)).toBe(true);
+  });
+
+  it("copies the template milestone description, trimming blanks to null", () => {
+    const result = computeMilestoneDueDates(
+      [
+        { name: "Studie", offset_dni: 14, description: "Půdorysy, pohledy, vizualizace" },
+        { name: "DSP", offset_dni: 60, description: "   " },
+      ],
+      "2026-01-01",
+    );
+    expect(result.map((m) => m.description)).toEqual(["Půdorysy, pohledy, vizualizace", null]);
   });
 });

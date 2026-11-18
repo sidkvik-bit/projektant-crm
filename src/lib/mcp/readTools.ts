@@ -67,25 +67,30 @@ export function registerReadTools(server: McpServer) {
     {
       title: "Detail projektu",
       description:
-        "Vrátí jeden projekt včetně fáze, milníků, nabídek a posledních aktivit. Použij, když se uživatel ptá na konkrétní zakázku — a taky předtím, než budeš projekt nebo jeho milník upravovat, ať víš, co v něm je.",
+        "Vrátí jeden projekt včetně fáze, adresy stavby, katastru a parcel (s LV), šablony, milníků (s popisy), nabídek a posledních aktivit. Použij, když se uživatel ptá na konkrétní zakázku — a taky předtím, než budeš projekt nebo jeho milník upravovat, ať víš, co v něm je.",
       inputSchema: z.object({ project_id: z.string().uuid() }),
     },
     async ({ project_id }, ctx) => {
       const session = sessionFrom(ctx);
       if (!session) return fail("Chybí autorizace.");
-      const [project, milestones, quotes, activities, stages] = await Promise.all([
+      const [project, milestones, parcels, quotes, activities, stages] = await Promise.all([
         session.supabase
           .from("projects")
           .select(
-            "id, name, status, status_reason_id, datum_zahajeni, deadline, budget, description, address_city, klient:contacts!projects_primary_contact_id_fkey(first_name, last_name)",
+            "id, name, status, status_reason_id, datum_zahajeni, deadline, budget, description, address_street, address_house_number, address_city, address_zip, address_country, katastralni_uzemi, parcelni_cislo, gps_lat, gps_lng, sablona:project_templates(id, name), klient:contacts!projects_primary_contact_id_fkey(first_name, last_name)",
           )
           .eq("id", project_id)
           .maybeSingle(),
         session.supabase
           .from("project_milestones")
-          .select("id, name, termin_splneni, splneno")
+          .select("id, name, description, termin_splneni, splneno")
           .eq("project_id", project_id)
           .order("termin_splneni"),
+        session.supabase
+          .from("project_parcels")
+          .select("id, parcelni_cislo, druh, katastralni_uzemi, list_vlastnictvi, vymera_m2")
+          .eq("project_id", project_id)
+          .order("created_at"),
         session.supabase.from("quotes").select("id, number, name, total, status").eq("project_id", project_id),
         session.supabase
           .from("activities")
@@ -96,13 +101,46 @@ export function registerReadTools(server: McpServer) {
           .limit(10),
         optionLabelMap(session.supabase, "project_status_reason"),
       ]);
+      if (project.error) return fail(`Načtení projektu selhalo: ${project.error.message}`);
       if (!project.data) return fail("Projekt nenalezen (nebo k němu nemáš přístup).");
+      // Milníky a parcely jsou to, na co se model ptá nejčastěji — prázdný seznam kvůli chybě
+      // by vypadal jako „projekt žádné nemá“, proto chybu radši vrátit.
+      if (milestones.error) return fail(`Načtení milníků selhalo: ${milestones.error.message}`);
+      if (parcels.error) return fail(`Načtení parcel selhalo: ${parcels.error.message}`);
       return ok({
         projekt: withStageLabel(stages)(project.data as Record<string, unknown>),
+        parcely: parcels.data ?? [],
         milniky: milestones.data ?? [],
         nabidky: quotes.data ?? [],
         posledni_aktivity: activities.data ?? [],
       });
+    },
+  );
+
+  server.registerTool(
+    "list_project_templates",
+    {
+      title: "Šablony zakázek",
+      description:
+        "Vypíše šablony zakázek (např. STU, DSP) s jejich milníky — název, popis a počet dní od zahájení. Použij před create_project s parametrem template nebo před apply_project_template.",
+      inputSchema: z.object({}),
+    },
+    async (_input, ctx) => {
+      const session = sessionFrom(ctx);
+      if (!session) return fail("Chybí autorizace.");
+      const { data, error } = await session.supabase
+        .from("project_templates")
+        .select("id, name, description, milniky:template_milestones(name, description, offset_dni)")
+        .order("name");
+      if (error) return fail(`Načtení šablon selhalo: ${error.message}`);
+      return ok(
+        (data ?? []).map((t) => ({
+          ...t,
+          milniky: [...((t.milniky as { offset_dni: number }[] | null) ?? [])].sort(
+            (a, b) => a.offset_dni - b.offset_dni,
+          ),
+        })),
+      );
     },
   );
 

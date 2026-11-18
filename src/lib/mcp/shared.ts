@@ -61,6 +61,31 @@ export async function resolveOptionValue(
   }
 }
 
+/** Sjednotí hodnotu pro porovnání "poslal jsem" × "uložilo se": numeric chodí z PostgRESTu
+ * i jako řetězec, prázdný text a null znamenají totéž. */
+function comparable(value: unknown): unknown {
+  if (value === undefined || value === null || value === "") return null;
+  if (typeof value === "number") return value;
+  if (typeof value === "string" && value.trim() !== "" && !Number.isNaN(Number(value))) return Number(value);
+  if (typeof value === "string") return value.trim();
+  return JSON.stringify(value);
+}
+
+/**
+ * Pole, která se po zápisu v databázi neobjevila tak, jak je model poslal (trigger, plugin
+ * firmy nebo chybějící sloupec je zahodil či přepsal). Dřív se to tiše polykalo a nástroj hlásil
+ * úspěch — model pak uživateli tvrdil, že něco uložil, i když to v CRM nebylo.
+ */
+export function unsavedFields(requested: Record<string, unknown>, stored: Record<string, unknown> | null) {
+  return Object.entries(requested)
+    .filter(([key, value]) => comparable(stored?.[key]) !== comparable(value))
+    .map(([key, value]) => ({ pole: key, poslano: value, ulozeno: stored?.[key] ?? null }));
+}
+
+function unsavedMessage(action: string, id: string, problems: ReturnType<typeof unsavedFields>) {
+  return `${action} (id ${id}), ale tato pole se neuložila tak, jak byla poslána: ${JSON.stringify(problems)}. Řekni to uživateli — v CRM jsou jiné hodnoty, než chtěl.`;
+}
+
 export interface UpdateSpec {
   table: string;
   id: string;
@@ -100,6 +125,10 @@ export async function applyUpdate(supabase: SupabaseClient, spec: UpdateSpec) {
   const { data: after } = await supabase.from(spec.table).select(spec.columns).eq("id", spec.id).maybeSingle();
   if (!after) return fail(spec.notFound);
 
+  const { data: stored } = await supabase.from(spec.table).select(Object.keys(patch).join(", ")).eq("id", spec.id).maybeSingle();
+  const problems = unsavedFields(patch, stored as Record<string, unknown> | null);
+  if (problems.length > 0) return fail(unsavedMessage("Záznam se upravil", spec.id, problems));
+
   const decorate = spec.decorate ?? ((row: Record<string, unknown>) => row);
   return ok({
     zmenena_pole: Object.keys(patch),
@@ -123,6 +152,11 @@ export async function applyInsert(
     createRecord<{ id: string }>(supabase, spec.table, { ...values, organization_id: spec.organizationId }),
   ).catch((err: { message?: string }) => ({ error: `Založení selhalo: ${err.message ?? String(err)}` }));
   if ("error" in created) return fail(String(created.error));
+
+  const { data: stored } = await supabase.from(spec.table).select(Object.keys(values).join(", ")).eq("id", created.id).maybeSingle();
+  const problems = unsavedFields(values, stored as Record<string, unknown> | null);
+  if (problems.length > 0) return fail(unsavedMessage("Záznam se založil", created.id, problems));
+
   const { data } = await supabase.from(spec.table).select(spec.columns).eq("id", created.id).single();
   return ok({ vytvoreno: data });
 }

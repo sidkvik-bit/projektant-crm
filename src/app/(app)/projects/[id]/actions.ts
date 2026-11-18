@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { applyProjectTemplate } from "@/lib/projectTemplates";
 
 function basePath(projectId: string) {
   return `/projects/${projectId}`;
@@ -40,13 +41,33 @@ export async function setProjectAddressFromPoint(
 
 // --- Milníky ---
 
-export async function addProjectMilestone(projectId: string, name: string, terminSplneni: string) {
+export async function addProjectMilestone(
+  projectId: string,
+  name: string,
+  terminSplneni: string,
+  description?: string,
+) {
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("project_milestones")
-    .insert({ project_id: projectId, name, termin_splneni: terminSplneni || null, splneno: false });
+  const { error } = await supabase.from("project_milestones").insert({
+    project_id: projectId,
+    name,
+    termin_splneni: terminSplneni || null,
+    description: description?.trim() || null,
+    splneno: false,
+  });
   if (error) throw error;
   revalidatePath(basePath(projectId));
+}
+
+/**
+ * „Vložit šablonu“ — přidá do už založeného projektu milníky šablony (STU, DSP…).
+ * Termíny se počítají od zadaného data zahájení (výchozí = datum zahájení projektu).
+ */
+export async function applyTemplateToProject(projectId: string, templateId: string, startDate: string | null) {
+  const supabase = await createClient();
+  const result = await applyProjectTemplate(supabase, { projectId, templateId, startDate: startDate || null });
+  revalidatePath(basePath(projectId));
+  return result;
 }
 
 export async function toggleProjectMilestone(projectId: string, milestoneId: string, splneno: boolean) {
@@ -149,16 +170,23 @@ export interface NewProjectParcel {
   katastralniUzemi: string | null;
   /** Výměra v m² z katastru; u ručně zapsané parcely bývá prázdná. */
   vymeraM2: number | null;
+  /** Číslo listu vlastnictví (LV). */
+  listVlastnictvi?: string | null;
 }
 
 export async function addProjectParcel(projectId: string, parcel: NewProjectParcel) {
   const supabase = await createClient();
+  // Cizí projekt RLS nepustí do SELECTu; bez téhle kontroly by šla parcela navázat na uhodnuté
+  // id projektu jiné firmy (cizí klíč organizaci nehlídá).
+  const { data: project } = await supabase.from("projects").select("id").eq("id", projectId).maybeSingle();
+  if (!project) throw new Error("Projekt nenalezen.");
   const { error } = await supabase.from("project_parcels").insert({
     project_id: projectId,
     parcelni_cislo: parcel.parcelniCislo,
     druh: parcel.druh,
     katastralni_uzemi: parcel.katastralniUzemi || null,
     vymera_m2: parcel.vymeraM2,
+    list_vlastnictvi: parcel.listVlastnictvi?.trim() || null,
   });
   if (error) throw error;
   revalidatePath(basePath(projectId));

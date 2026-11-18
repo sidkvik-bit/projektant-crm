@@ -44,6 +44,7 @@ function MilestoneStatusBadge({ splneno, terminSplneni }: { splneno: boolean; te
 interface Milestone {
   id: string;
   name: string;
+  description?: string | null;
   termin_splneni: string | null;
   splneno: boolean;
 }
@@ -230,8 +231,13 @@ export function MilestonesPanel({
                       <TableCell>
                         <Checkbox checked={selectedIds.has(m.id)} onCheckedChange={() => toggleRow(m.id)} />
                       </TableCell>
-                      <TableCell className={m.splneno ? "text-muted-foreground line-through" : "font-medium"}>
-                        {m.name}
+                      <TableCell>
+                        <div className={m.splneno ? "text-muted-foreground line-through" : "font-medium"}>
+                          {m.name}
+                        </div>
+                        {m.description && (
+                          <div className="whitespace-pre-line text-xs text-muted-foreground">{m.description}</div>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Input
