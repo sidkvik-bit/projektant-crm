@@ -101,8 +101,19 @@ async function addParcels(
 
   const key = (cislo: string, druh: string) => `${cislo.trim()}|${druh}`;
   const present = new Set((existing ?? []).map((p) => key(p.parcelni_cislo, p.druh)));
-  const fresh = parcels.filter((p) => !present.has(key(p.parcelni_cislo, p.druh)));
-  const skipped = parcels.filter((p) => present.has(key(p.parcelni_cislo, p.druh))).map((p) => p.parcelni_cislo);
+  // Projde postupně, ať se přeskočí i parcela, kterou model ve vstupu poslal dvakrát —
+  // jinak by unikátní klíč shodil celou dávku.
+  const fresh: ParcelInput[] = [];
+  const skipped: string[] = [];
+  for (const p of parcels) {
+    const k = key(p.parcelni_cislo, p.druh);
+    if (present.has(k)) {
+      skipped.push(p.parcelni_cislo);
+    } else {
+      present.add(k);
+      fresh.push(p);
+    }
+  }
 
   if (fresh.length === 0) return { pridano: [], preskoceno: skipped };
   const { data, error } = await supabase

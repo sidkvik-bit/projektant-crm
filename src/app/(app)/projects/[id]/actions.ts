@@ -176,6 +176,10 @@ export interface NewProjectParcel {
 
 export async function addProjectParcel(projectId: string, parcel: NewProjectParcel) {
   const supabase = await createClient();
+  // Cizí projekt RLS nepustí do SELECTu; bez téhle kontroly by šla parcela navázat na uhodnuté
+  // id projektu jiné firmy (cizí klíč organizaci nehlídá).
+  const { data: project } = await supabase.from("projects").select("id").eq("id", projectId).maybeSingle();
+  if (!project) throw new Error("Projekt nenalezen.");
   const { error } = await supabase.from("project_parcels").insert({
     project_id: projectId,
     parcelni_cislo: parcel.parcelniCislo,
