@@ -34,6 +34,7 @@ export interface Parcel {
   druh: ParcelKind;
   katastralni_uzemi: string | null;
   vymera_m2: number | null;
+  list_vlastnictvi: string | null;
 }
 
 const KIND_LABEL: Record<ParcelKind, string> = {
@@ -76,6 +77,7 @@ export function ParcelsPanel({
   );
   // Výměra se nezadává ručně — drží se jen tehdy, když parcela přišla z katastru.
   const [vymera, setVymera] = useState<number | null>(null);
+  const [lv, setLv] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [removing, setRemoving] = useState<Parcel | null>(null);
@@ -104,10 +106,12 @@ export function ParcelsPanel({
         druh,
         katastralniUzemi: uzemi.trim() || null,
         vymeraM2: vymera,
+        listVlastnictvi: lv.trim() || null,
       });
       setCislo("");
       setDruh("pozemkova");
       setVymera(null);
+      setLv("");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Přidání se nezdařilo.");
@@ -169,6 +173,10 @@ export function ParcelsPanel({
             <Label htmlFor="parcelUzemi">Katastrální území</Label>
             <Input id="parcelUzemi" value={uzemi} onChange={(e) => setUzemi(e.target.value)} />
           </div>
+          <div className="w-28 space-y-1.5">
+            <Label htmlFor="parcelLv">LV</Label>
+            <Input id="parcelLv" value={lv} onChange={(e) => setLv(e.target.value)} placeholder="např. 1234" />
+          </div>
           <Button onClick={handleAdd} disabled={busy || !cislo.trim()}>
             <Plus className="size-4" />
             Přidat
@@ -195,6 +203,9 @@ export function ParcelsPanel({
                 )}
                 {p.katastralni_uzemi && (
                   <span className="text-xs text-muted-foreground">k. ú. {p.katastralni_uzemi}</span>
+                )}
+                {p.list_vlastnictvi && (
+                  <span className="text-xs text-muted-foreground">LV {p.list_vlastnictvi}</span>
                 )}
               </div>
               <Button variant="ghost" size="icon-sm" onClick={() => setRemoving(p)} title="Odebrat parcelu">

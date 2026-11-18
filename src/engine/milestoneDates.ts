@@ -1,10 +1,12 @@
 export interface TemplateMilestoneInput {
   name: string;
   offset_dni: number;
+  description?: string | null;
 }
 
 export interface GeneratedMilestone {
   name: string;
+  description: string | null;
   termin_splneni: string;
   splneno: false;
 }
@@ -27,6 +29,9 @@ export function computeMilestoneDueDates(
     due.setDate(due.getDate() + tm.offset_dni);
     return {
       name: tm.name,
+      // Popis kroku (co se v něm odevzdává) patří k milníku stejně jako název — dřív se
+      // při kopírování ze šablony ztrácel.
+      description: tm.description?.trim() || null,
       termin_splneni: due.toISOString().slice(0, 10),
       splneno: false,
     };

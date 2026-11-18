@@ -3,9 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { createRecord, listRecords, getRecordById } from "@/engine/Database";
+import { createRecord, getRecordById } from "@/engine/Database";
 import { updateEntityRecord } from "@/engine/entityActions";
-import { computeMilestoneDueDates } from "@/engine/milestoneDates";
+import { applyProjectTemplate } from "@/lib/projectTemplates";
 import { ADDRESS_FIELD_KEYS, addressFieldsChanged, buildAddressQuery, geocodeAddress, type AddressFields } from "@/lib/mapbox";
 import type { EntityFormValues } from "@/engine/zodSchema";
 import { returnPluginError, type SaveResult } from "@/customization/plugins";
@@ -61,21 +61,7 @@ async function generateMilestonesFromTemplate(
   templateId: string,
   startDate: string | null,
 ) {
-  const templateMilestones = await listRecords<{ name: string; offset_dni: number }>(
-    supabase,
-    "template_milestones",
-    { select: "name, offset_dni", filter: { template_id: templateId } },
-  );
-
-  if (templateMilestones.length === 0) return;
-
-  const rows = computeMilestoneDueDates(templateMilestones, startDate).map((m) => ({
-    project_id: projectId,
-    ...m,
-  }));
-
-  const { error } = await supabase.from("project_milestones").insert(rows);
-  if (error) throw error;
+  await applyProjectTemplate(supabase, { projectId, templateId, startDate });
 }
 
 export async function createProject(values: EntityFormValues): Promise<SaveResult> {

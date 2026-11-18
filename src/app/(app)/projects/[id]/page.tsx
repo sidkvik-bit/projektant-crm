@@ -27,6 +27,7 @@ import entity from "@/solutions/Projektant_CRM/Entities/Project/Entity.json";
 import formDef from "@/solutions/Projektant_CRM/Entities/Project/FormXml/main_form.json";
 import {
   addProjectMilestone,
+  applyTemplateToProject,
   toggleProjectMilestone,
   deleteProjectMilestone,
   bulkDeleteProjectMilestones,
@@ -42,6 +43,7 @@ import {
 } from "./actions";
 import { updateProject } from "../actions";
 import { MilestonesPanel, type MilestoneNotification } from "./MilestonesPanel";
+import { ApplyTemplateDialog } from "./ApplyTemplateDialog";
 import { DriveFilesPanel } from "./DriveFilesPanel";
 import { ParcelsPanel, type Parcel } from "./ParcelsPanel";
 import { TeamPanel } from "./TeamPanel";
@@ -126,16 +128,16 @@ export default async function ProjectDetailPage({
         select: "id, first_name, last_name",
       }),
       listRecords<{ id: string; name: string }>(supabase, "project_templates", { select: "id, name" }),
-      listRecords<{ id: string; name: string; termin_splneni: string | null; splneno: boolean }>(
+      listRecords<{ id: string; name: string; description: string | null; termin_splneni: string | null; splneno: boolean }>(
         supabase,
         "project_milestones",
-        { select: "id, name, termin_splneni, splneno", filter: { project_id: id } },
+        { select: "id, name, description, termin_splneni, splneno", filter: { project_id: id } },
       ),
       getOptionSetValues(supabase, "activity_type"),
       getOptionSetValues(supabase, "profese"),
       supabase
         .from("project_parcels")
-        .select("id, parcelni_cislo, druh, katastralni_uzemi, vymera_m2")
+        .select("id, parcelni_cislo, druh, katastralni_uzemi, vymera_m2, list_vlastnictvi")
         .eq("project_id", id)
         .order("created_at")
         .then((r) => r.data ?? []),
@@ -297,7 +299,15 @@ export default async function ProjectDetailPage({
             />
 
             <div className="space-y-3">
-              <h2 className="text-lg font-semibold">Úkoly / Milníky</h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold">Úkoly / Milníky</h2>
+                <ApplyTemplateDialog
+                  projectId={id}
+                  templates={templates}
+                  defaultStartDate={(record.datum_zahajeni as string | null) ?? null}
+                  onApply={applyTemplateToProject}
+                />
+              </div>
               <MilestonesPanel
                 projectId={id}
                 milestones={milestones}
