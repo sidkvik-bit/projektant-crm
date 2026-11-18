@@ -185,3 +185,53 @@ test("neregistrovaná návratová adresa autorizaci zastaví", async ({ page, re
   // Souhlas se nesmí vůbec nabídnout.
   await expect(page.getByRole("button", { name: "Povolit" })).toHaveCount(0);
 });
+
+test("GitHub Copilot ve VS Code: registrace s jeho návratovými adresami a přihlášení přes smyčku na jiném portu", async ({
+  page,
+  request,
+}) => {
+  // Přesně takhle se VS Code registruje (DCR): smyčka na pevném portu + vscode.dev. Při přihlášení
+  // pak použije smyčku na volném portu, který se od registrovaného liší (RFC 8252 §7.3).
+  const reg = await request.post("/api/oauth/register", {
+    data: {
+      client_name: "Visual Studio Code",
+      redirect_uris: ["http://127.0.0.1:33418", "https://vscode.dev/redirect"],
+      grant_types: ["authorization_code", "refresh_token"],
+      response_types: ["code"],
+      token_endpoint_auth_method: "none",
+    },
+  });
+  expect(reg.status()).toBe(201);
+  const clientId = (await reg.json()).client_id as string;
+
+  const redirectUri = "http://127.0.0.1:54321/";
+  await page.route("http://127.0.0.1:54321/**", (route) => route.fulfill({ status: 200, body: "ok" }));
+  const { verifier, challenge } = pkcePair();
+  const url = new URL("/oauth/authorize", "http://localhost:3000");
+  url.searchParams.set("client_id", clientId);
+  url.searchParams.set("redirect_uri", redirectUri);
+  url.searchParams.set("response_type", "code");
+  url.searchParams.set("code_challenge", challenge);
+  url.searchParams.set("code_challenge_method", "S256");
+  url.searchParams.set("state", "vscode");
+  url.searchParams.set("resource", "http://localhost:3000/api/mcp");
+  await page.goto(url.toString());
+  await page.getByRole("button", { name: "Povolit" }).click();
+  await page.waitForURL(/127\.0\.0\.1:54321\/\?.*code=/);
+  const code = new URL(page.url()).searchParams.get("code")!;
+
+  const tokenRes = await request.post("/api/oauth/token", {
+    form: { grant_type: "authorization_code", code, client_id: clientId, redirect_uri: redirectUri, code_verifier: verifier },
+  });
+  expect(tokenRes.ok()).toBe(true);
+  const { access_token } = await tokenRes.json();
+  const mcp = await request.post("/api/mcp", {
+    headers: { "Content-Type": "application/json", Accept: "application/json, text/event-stream", Authorization: `Bearer ${access_token}` },
+    data: { jsonrpc: "2.0", id: 1, method: "tools/list", params: {} },
+  });
+  expect(await mcp.text()).toContain("create_record");
+
+  // Cizí adresa (jiný host) projít nesmí — jinak by šel kód odklonit útočníkovi.
+  await page.goto(url.toString().replace(encodeURIComponent(redirectUri), encodeURIComponent("https://evil.example/redirect")));
+  await expect(page.getByRole("button", { name: "Povolit" })).toHaveCount(0);
+});

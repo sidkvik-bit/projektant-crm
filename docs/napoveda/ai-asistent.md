@@ -1,6 +1,6 @@
 # AI asistent
 
-ProjektantCRM se připojí do AI nástroje, který už používáš (Claude, Cursor, Gemini CLI). Pak se
+ProjektantCRM se připojí do AI nástroje, který už používáš (Claude, GitHub Copilot, Cursor, Gemini CLI). Pak se
 na zakázky ptáš běžnou řečí a AI za tebe může i zapisovat.
 
 ## Co AI umí
@@ -23,7 +23,10 @@ na zakázky ptáš běžnou řečí a AI za tebe může i zapisovat.
 1. V CRM otevři **Nastavení → MCP - AI**.
 2. **Claude na webu (claude.ai):** přidej vlastní konektor s adresou ze stránky a přihlas se.
    Token nepotřebuješ.
-3. **Claude Desktop, Cursor, Gemini CLI:** vygeneruj token a zkopíruj připravený blok do
+3. **GitHub Copilot (VS Code):** ve VS Code otevři `MCP: Open User Configuration`, vlož blok ze
+   stránky Nastavení → MCP - AI a klikni na Start. Přihlásíš se do CRM v prohlížeči, token
+   nepotřebuješ. Nástroje pak uvidíš v Copilot Chatu v režimu Agent.
+4. **Claude Desktop, Cursor, Gemini CLI:** vygeneruj token a zkopíruj připravený blok do
    nastavení svého nástroje.
 
 ## Bezpečnost

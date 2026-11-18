@@ -26,7 +26,7 @@ const FEATURES = [
     icon: Sparkles,
     title: "AI asistent nad tvými zakázkami",
     description:
-      "Připoj CRM do Clauda, Cursoru nebo Gemini a ptej se běžnou řečí: co tento týden hoří, které nabídky čekají, kolik jsme fakturovali.",
+      "Připoj CRM do Clauda, GitHub Copilota, Cursoru nebo Gemini a ptej se běžnou řečí: co tento týden hoří, které nabídky čekají, kolik jsme fakturovali.",
   },
   {
     icon: Bot,

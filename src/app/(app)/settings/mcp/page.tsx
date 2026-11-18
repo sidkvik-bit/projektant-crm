@@ -14,7 +14,7 @@ export default async function McpSettingsPage() {
     <div>
       <PageHeader
         title="MCP - AI"
-        description="Připoj si CRM do svého AI nástroje (Claude, Cursor…) a ptej se na svoje zakázky přímo odtamtud."
+        description="Připoj si CRM do svého AI nástroje (Claude, GitHub Copilot, Cursor…) a ptej se na svoje zakázky přímo odtamtud."
       />
       <div className="mx-auto max-w-3xl space-y-8 p-6">
         <div className="space-y-2 rounded-lg border bg-muted/20 p-4 text-sm text-muted-foreground">
@@ -117,6 +117,29 @@ export default async function McpSettingsPage() {
             <p>
               Stejně to funguje i pro kolegy — každý se přihlásí svým účtem a uvidí přesně to, co má vidět ve
               webu.
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-3 border-t pt-6">
+          <h2 className="text-sm font-medium text-muted-foreground">GitHub Copilot (VS Code) — bez tokenu</h2>
+          <div className="space-y-2 text-sm text-muted-foreground">
+            <p>
+              Ve VS Code dej <strong className="text-foreground">Ctrl+Shift+P → MCP: Open User Configuration</strong>{" "}
+              a do souboru <code className="rounded bg-muted px-1 py-0.5">mcp.json</code> vlož:
+            </p>
+            <CopyBlock
+              text={JSON.stringify({ servers: { projektantcrm: { type: "http", url: serverUrl } } }, null, 2)}
+            />
+            <p>
+              Ulož a v souboru klikni nad serverem na <strong className="text-foreground">Start</strong>. VS Code
+              otevře prohlížeč, přihlásíš se do CRM a odklikneš „Povolit“ — stejně jako u claude.ai. Pak
+              v Copilot Chatu přepni na režim <strong className="text-foreground">Agent</strong> a nástroje CRM
+              uvidíš pod ikonou nástrojů.
+            </p>
+            <p>
+              Pozor na klíč <code className="rounded bg-muted px-1 py-0.5">servers</code> — Claude Desktop a
+              Cursor používají <code className="rounded bg-muted px-1 py-0.5">mcpServers</code>, VS Code ne.
             </p>
           </div>
         </div>
