@@ -1,9 +1,7 @@
-import { createElement } from "react";
 import { formatContactName } from "@/engine/contacts";
 import { NextResponse } from "next/server";
-import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
-import { QuotePdfDocument, type QuotePdfData, type QuotePdfPhase, type QuotePdfSupplier } from "@/lib/quotePdf";
+import { renderQuotePdf, type QuotePdfData, type QuotePdfPhase, type QuotePdfSupplier } from "@/lib/quotePdf";
 import { formatClientLine, formatAddressLine, parseLines, quoteFileName } from "@/lib/quoteDocument";
 import { resolveSupplierProfile, supplierAddress } from "@/lib/supplierProfiles";
 
@@ -177,9 +175,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     issuedAt: q.created_at,
   };
 
-  const buffer = await renderToBuffer(
-    createElement(QuotePdfDocument, { data }) as Parameters<typeof renderToBuffer>[0],
-  );
+  // Když přeteče jen kousek (datum a místo), zmenší mezery, ať je nabídka na jedné straně.
+  const buffer = await renderQuotePdf(data);
 
   const fileName = `${quoteFileName(phaseRows.map((p) => p.kod), zadavatel, q.number)}.pdf`;
   const asciiName = fileName.normalize("NFD").replace(/[^\x20-\x7e]/g, "").replace(/"/g, "");

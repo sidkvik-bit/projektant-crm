@@ -1,5 +1,6 @@
 import path from "node:path";
-import { Document, Page, View, Text, Image, StyleSheet, Font } from "@react-pdf/renderer";
+import { createElement } from "react";
+import { Document, Page, View, Text, Image, StyleSheet, Font, renderToBuffer } from "@react-pdf/renderer";
 import { formatPhasePrice } from "./quoteDocument";
 
 // Rozvržení přesně podle referenčního vzoru kanceláře (Vzor_CN_VHarch.html): A4, rozměry v mm,
@@ -20,12 +21,19 @@ Font.registerHyphenationCallback((word) => [word]);
 
 const mm = (value: number) => (value * 72) / 25.4;
 
-const styles = StyleSheet.create({
+/**
+ * Styly pro danou hustotu: 1 = mezery přesně podle vzoru, menší číslo = svislé mezery úměrně
+ * menší (a o chlup menší řádkování). Písmo, okraje stránky, logo ani patička se nemění.
+ * Mezera nad nadpisem zůstává — pod ní je logo (končí 31 mm od horního okraje).
+ */
+function createStyles(density: number) {
+  const gap = (value: number) => mm(value * density);
+  return StyleSheet.create({
   page: {
     fontFamily: "Roboto",
     fontWeight: 300,
     fontSize: 11,
-    lineHeight: 1.3,
+    lineHeight: 1.15 + 0.15 * density,
     color: "#000000",
     paddingTop: mm(13),
     paddingRight: mm(25),
@@ -34,12 +42,12 @@ const styles = StyleSheet.create({
     paddingBottom: mm(297 - 272),
   },
   logo: { position: "absolute", top: mm(13), right: mm(25), width: mm(53), objectFit: "contain" },
-  h1: { fontSize: 15, textDecoration: "underline", marginTop: mm(19), marginBottom: mm(4.5) },
-  label: { marginBottom: mm(3.5) },
-  block: { marginBottom: mm(4) },
+  h1: { fontSize: 15, textDecoration: "underline", marginTop: mm(19), marginBottom: gap(4.5) },
+  label: { marginBottom: gap(3.5) },
+  block: { marginBottom: gap(4) },
   strong: { fontWeight: 400 },
-  phaseTitle: { fontWeight: 400, textDecoration: "underline", marginBottom: mm(3.5) },
-  list: { marginBottom: mm(5) },
+  phaseTitle: { fontWeight: 400, textDecoration: "underline", marginBottom: gap(3.5) },
+  list: { marginBottom: gap(5) },
   listItem: { flexDirection: "row" },
   bullet: { width: mm(13), paddingLeft: mm(6.5) },
   listText: { flex: 1 },
@@ -48,7 +56,7 @@ const styles = StyleSheet.create({
     borderColor: "#000000",
     marginLeft: mm(-2),
     marginRight: mm(-2),
-    marginBottom: mm(5),
+    marginBottom: gap(5),
     paddingTop: mm(0.6),
     paddingBottom: mm(0.6),
     paddingLeft: mm(2),
@@ -56,10 +64,10 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   price: { fontWeight: 400, textDecoration: "underline" },
-  totals: { alignItems: "flex-end", marginTop: mm(-2), marginBottom: mm(6) },
-  notes: { fontSize: 9.5, lineHeight: 1.3, marginTop: mm(2) },
+  totals: { alignItems: "flex-end", marginTop: mm(-2), marginBottom: gap(6) },
+  notes: { fontSize: 9.5, lineHeight: 1.15 + 0.15 * density, marginTop: gap(2) },
   placeDate: {
-    marginTop: mm(9),
+    marginTop: gap(9),
     marginRight: mm(7),
     flexDirection: "row",
     justifyContent: "space-between",
@@ -80,7 +88,10 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     fontWeight: 400,
   },
-});
+  });
+}
+
+type Styles = ReturnType<typeof createStyles>;
 
 export interface QuotePdfPhase {
   nazev: string;
@@ -127,7 +138,7 @@ const formatDate = (iso: string) => {
 /** react-pdf neumí SVG přes <Image> — takové logo radši vynechat, než shodit celé PDF. */
 const isRasterLogo = (url: string | null): url is string => !!url && !/\.svg(\?|$)/i.test(url);
 
-function Bullets({ items, style }: { items: string[]; style?: { marginBottom?: number } }) {
+function Bullets({ items, styles, style }: { items: string[]; styles: Styles; style?: { marginBottom?: number } }) {
   return (
     <View style={[styles.list, style ?? {}]}>
       {items.map((item, i) => (
@@ -140,7 +151,8 @@ function Bullets({ items, style }: { items: string[]; style?: { marginBottom?: n
   );
 }
 
-export function QuotePdfDocument({ data }: { data: QuotePdfData }) {
+export function QuotePdfDocument({ data, density = 1 }: { data: QuotePdfData; density?: number }) {
+  const styles = createStyles(density);
   const s = data.supplier;
   const footer = [s.jmeno, s.email, s.telefon, s.web].filter(Boolean) as string[];
   const ico = s.ico ? `IČ: ${s.ico}${s.jePlatceDph ? "" : " (neplátce DPH)"}` : s.jePlatceDph ? null : "neplátce DPH";
@@ -174,7 +186,7 @@ export function QuotePdfDocument({ data }: { data: QuotePdfData }) {
             <Text style={styles.phaseTitle} minPresenceAhead={mm(15)}>
               {i + 1}/ {phase.nazev}:
             </Text>
-            {phase.odrazky.length > 0 ? <Bullets items={phase.odrazky} /> : null}
+            {phase.odrazky.length > 0 ? <Bullets items={phase.odrazky} styles={styles} /> : null}
             <View style={styles.priceBox} wrap={false}>
               <Text style={styles.price}>{formatPhasePrice(phase.cena)}</Text>
             </View>
@@ -200,7 +212,7 @@ export function QuotePdfDocument({ data }: { data: QuotePdfData }) {
         {data.notes.length > 0 ? (
           <View style={styles.notes}>
             <Text>pozn.</Text>
-            <Bullets items={data.notes} style={{ marginBottom: 0 }} />
+            <Bullets items={data.notes} styles={styles} style={{ marginBottom: 0 }} />
           </View>
         ) : null}
 
@@ -219,4 +231,30 @@ export function QuotePdfDocument({ data }: { data: QuotePdfData }) {
       </Page>
     </Document>
   );
+}
+
+/** Počet stran hotového PDF (react-pdf zapisuje slovník /Pages nekomprimovaně). */
+export function countPdfPages(pdf: Buffer): number {
+  const match = /\/Type\s*\/Pages\b[\s\S]*?\/Count\s+(\d+)/.exec(pdf.toString("latin1"));
+  return match ? Number(match[1]) : 1;
+}
+
+/** Hustoty, které se zkouší po řadě, když se nabídka nevejde na jednu stranu. */
+const DENSITIES = [1, 0.75, 0.5, 0.3];
+
+/**
+ * Vyrenderuje nabídku. Když s mezerami podle vzoru přeteče na druhou stranu (typicky jen datum
+ * a místo), zkusí to znovu s menšími mezerami. Když se nevejde ani s nejmenšími, vrátí verzi
+ * s normálními mezerami — dlouhá nabídka na víc stran má mít vzdušné rozvržení.
+ */
+export async function renderQuotePdf(data: QuotePdfData): Promise<Buffer> {
+  let first: Buffer | null = null;
+  for (const density of DENSITIES) {
+    const pdf = await renderToBuffer(
+      createElement(QuotePdfDocument, { data, density }) as Parameters<typeof renderToBuffer>[0],
+    );
+    if (countPdfPages(pdf) <= 1) return pdf;
+    first ??= pdf;
+  }
+  return first!;
 }
