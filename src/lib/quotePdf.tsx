@@ -148,7 +148,9 @@ export function QuotePdfDocument({ data }: { data: QuotePdfData }) {
   return (
     <Document title={`Cenová nabídka ${data.number} – ${data.nazevStavby}`} author={s.jmeno}>
       <Page size="A4" style={styles.page}>
-        {isRasterLogo(s.logoUrl) ? <Image src={s.logoUrl} style={styles.logo} fixed /> : null}
+        {/* Logo jen na první straně (jako ve vzoru). S `fixed` by se opakovalo na každé straně
+            a na pokračování, kde text začíná hned nahoře, by se s ním překrývalo. */}
+        {isRasterLogo(s.logoUrl) ? <Image src={s.logoUrl} style={styles.logo} /> : null}
 
         <Text style={styles.h1}>Cenová nabídka</Text>
 
