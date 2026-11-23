@@ -24,7 +24,9 @@ const mm = (value: number) => (value * 72) / 25.4;
 /**
  * Styly pro danou hustotu: 1 = mezery přesně podle vzoru, menší číslo = svislé mezery úměrně
  * menší (a o chlup menší řádkování). Písmo, okraje stránky, logo ani patička se nemění.
- * Mezera nad nadpisem zůstává — pod ní je logo (končí 31 mm od horního okraje).
+ * Zmenšuje se i mezera nad nadpisem; horní blok (nadpis a název stavby) se pak zúží, aby nevjel
+ * pod logo vpravo nahoře (končí 31 mm od horního okraje, levý okraj loga je 57 mm od pravého
+ * okraje textu).
  */
 function createStyles(density: number) {
   const gap = (value: number) => mm(value * density);
@@ -42,7 +44,9 @@ function createStyles(density: number) {
     paddingBottom: mm(297 - 272),
   },
   logo: { position: "absolute", top: mm(13), right: mm(25), width: mm(53), objectFit: "contain" },
-  h1: { fontSize: 15, textDecoration: "underline", marginTop: mm(19), marginBottom: gap(4.5) },
+  h1: { fontSize: 15, textDecoration: "underline", marginTop: gap(19), marginBottom: gap(4.5) },
+  // Ve vzoru (hustota 1) je nadpis až pod logem a název stavby smí mít celou šířku.
+  header: density < 1 ? { paddingRight: mm(57) } : {},
   label: { marginBottom: gap(3.5) },
   block: { marginBottom: gap(4) },
   strong: { fontWeight: 400 },
@@ -164,10 +168,12 @@ export function QuotePdfDocument({ data, density = 1 }: { data: QuotePdfData; de
             a na pokračování, kde text začíná hned nahoře, by se s ním překrývalo. */}
         {isRasterLogo(s.logoUrl) ? <Image src={s.logoUrl} style={styles.logo} /> : null}
 
-        <Text style={styles.h1}>Cenová nabídka</Text>
+        <View style={styles.header}>
+          <Text style={styles.h1}>Cenová nabídka</Text>
 
-        <Text style={styles.label}>Název:</Text>
-        <Text style={[styles.block, styles.strong]}>{data.nazevStavby}</Text>
+          <Text style={styles.label}>Název:</Text>
+          <Text style={[styles.block, styles.strong]}>{data.nazevStavby}</Text>
+        </View>
 
         <Text style={styles.label}>Dodavatel:</Text>
         <View style={styles.block}>
